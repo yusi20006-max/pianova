@@ -19,8 +19,9 @@
           "type": "listen",
           "id": "hear-middle-c",
           "title": "به صدای دو گوش کن",
-          "audioAsset": "audio/notes/c4.ogg",
-          "prompt": "به صدای نت دو با دقت گوش کن."
+          "prompt": "به صدای نت دو با دقت گوش کن.",
+          "midiNotes": [60],
+          "noteDurationMs": 900
         },
         {
           "type": "play_note",

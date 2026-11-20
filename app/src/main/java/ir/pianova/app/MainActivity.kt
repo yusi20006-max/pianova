@@ -13,6 +13,8 @@ import ir.pianova.app.core.designsystem.PianovaTheme
 import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.core.midi.VirtualKeyboardInput
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -31,6 +33,7 @@ class MainActivity : ComponentActivity() {
     private val audioOperationMutex = Mutex()
     private var isInForeground = false
     private var audioStartPending = false
+    private var referencePlaybackJob: Job? = null
     private var resumeAudioAfterPause = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +65,8 @@ class MainActivity : ComponentActivity() {
                     onNoteOff = { note -> virtualKeyboardInput.noteOff(note) },
                     onSustain = { enabled -> virtualKeyboardInput.sustain(enabled) },
                     onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) },
+                    pianoInput = virtualKeyboardInput,
+                    onPlayReferenceNotes = ::playReferenceNotes,
                     onPianoVisibilityChanged = { visible ->
                         requestedOrientation = if (visible) {
                             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
@@ -133,11 +138,54 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun playReferenceNotes(notes: List<Int>, durationMs: Long) {
+        if (notes.isEmpty()) return
+        referencePlaybackJob?.cancel()
+        referencePlaybackJob = lifecycleScope.launch {
+            val engine = audioEngine ?: return@launch
+            val started = audioOperationMutex.withLock {
+                if (!isInForeground || audioEngine !== engine) {
+                    false
+                } else if (engineRunning) {
+                    true
+                } else {
+                    withContext(Dispatchers.IO) {
+                        engine.start().also { if (it) engine.setVolume(outputVolume) }
+                    }
+                }
+            }
+            if (!started || !isInForeground || audioEngine !== engine) return@launch
+            engineRunning = true
+            engineStatus = "نمونه نت‌ها در حال پخش است"
+            var activeNote: Int? = null
+            try {
+                notes.forEach { note ->
+                    if (!isInForeground || audioEngine !== engine) return@launch
+                    withContext(Dispatchers.IO) { engine.noteOn(note, 0.82f) }
+                    activeNote = note
+                    delay(durationMs.coerceIn(150L, 3000L))
+                    withContext(Dispatchers.IO) { engine.noteOff(note) }
+                    activeNote = null
+                    delay(100L)
+                }
+            } finally {
+                activeNote?.let { note ->
+                    withContext(Dispatchers.IO) { engine.noteOff(note) }
+                }
+                if (audioEngine === engine && engineRunning) {
+                    engineStatus = "موتور فعال است؛ کلاویه‌ها را لمس کنید"
+                }
+            }
+        }
+    }
+
     private fun stopAudioEngine() {
         stopAudioEngine("موتور متوقف است")
     }
 
     private fun stopAudioEngine(statusMessage: String) {
+        referencePlaybackJob?.cancel()
+        referencePlaybackJob = null
         val engine = audioEngine ?: run {
             engineRunning = false
             return
@@ -165,6 +213,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         isInForeground = false
+        referencePlaybackJob?.cancel()
         if (engineRunning || audioStartPending) {
             resumeAudioAfterPause = true
             stopAudioEngine("با خروج برنامه از پیش‌زمینه، صدا متوقف شد")
@@ -181,6 +230,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         isInForeground = false
+        referencePlaybackJob?.cancel()
         resumeAudioAfterPause = false
         val engine = audioEngine
         audioEngine = null

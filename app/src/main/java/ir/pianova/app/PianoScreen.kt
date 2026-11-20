@@ -189,12 +189,14 @@ fun PianoScreen(
 }
 
 @Composable
-private fun PianoPlayableKeys(
+fun PianoPlayableKeys(
     firstMidi: Int,
     labelMode: Int,
     enabled: Boolean,
     onNoteOn: (Int, Float) -> Boolean,
     onNoteOff: (Int) -> Unit,
+    highlightedNotes: Set<Int> = emptySet(),
+    noteCount: Int = 24,
     modifier: Modifier = Modifier
 ) {
     val currentOn by rememberUpdatedState(onNoteOn)
@@ -202,13 +204,14 @@ private fun PianoPlayableKeys(
     val currentEnabled by rememberUpdatedState(enabled)
     val currentStart by rememberUpdatedState(firstMidi)
     val currentLabelMode by rememberUpdatedState(labelMode)
+    val currentCount by rememberUpdatedState(noteCount.coerceIn(1, 48))
     val pressedNotes = remember { mutableStateMapOf<Int, Int>() }
 
     Canvas(
         modifier = modifier
             .background(Color(0xFF172635), RoundedCornerShape(10.dp))
             .padding(3.dp)
-            .pointerInput(enabled, firstMidi) {
+            .pointerInput(enabled, firstMidi, noteCount) {
                 val active = mutableMapOf<PointerId, Int>()
                 fun release(note: Int) {
                     val count = pressedNotes[note] ?: return
@@ -226,7 +229,7 @@ private fun PianoPlayableKeys(
                 }
                 fun noteAt(x: Float, y: Float, width: Float, height: Float): Int? {
                     val start = currentStart
-                    val end = (start + 23).coerceAtMost(108)
+                    val end = (start + currentCount - 1).coerceAtMost(108)
                     val whites = (start..end).filter { it % 12 in whitePitchClasses }
                     if (whites.isEmpty() || x < 0f || x >= width || y < 0f || y >= height) return null
                     val whiteWidth = width / whites.size
@@ -282,7 +285,7 @@ private fun PianoPlayableKeys(
             }
     ) {
         val start = firstMidi
-        val end = (start + 23).coerceAtMost(108)
+        val end = (start + noteCount.coerceIn(1, 48) - 1).coerceAtMost(108)
         val whites = (start..end).filter { it % 12 in whitePitchClasses }
         if (whites.isEmpty()) return@Canvas
         val whiteWidth = size.width / whites.size
@@ -298,7 +301,7 @@ private fun PianoPlayableKeys(
             val left = index * whiteWidth
             val pressed = pressedNotes.containsKey(note)
             drawRoundRect(
-                color = if (pressed) PianoPressed else PianoWhite,
+                color = when { pressed -> PianoPressed; note in highlightedNotes -> Color(0xFFDCE9D9); else -> PianoWhite },
                 topLeft = Offset(left + 1f, 1f),
                 size = Size(whiteWidth - 2f, size.height - 2f),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f, 5f)
@@ -324,7 +327,7 @@ private fun PianoPlayableKeys(
             if (whiteIndex < 0) continue
             val left = (whiteIndex + 1) * whiteWidth - blackWidth / 2f
             drawRoundRect(
-                color = if (pressedNotes.containsKey(note)) PianoPressed else PianoBlack,
+                color = when { note in pressedNotes -> PianoPressed; note in highlightedNotes -> Color(0xFF557A62); else -> PianoBlack },
                 topLeft = Offset(left, 0f),
                 size = Size(blackWidth, blackHeight),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)

@@ -41,6 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -54,6 +57,9 @@ import ir.pianova.app.core.designsystem.PianovaInk
 import ir.pianova.app.core.designsystem.PianovaMuted
 import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
+import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.data.lesson.AndroidLessonAssetSource
+import ir.pianova.app.data.lesson.LessonRepository
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -76,9 +82,13 @@ fun PianovaApp(
     onNoteOff: (Int) -> Unit,
     onSustain: (Boolean) -> Unit,
     onVolume: (Float) -> Unit,
-    onPianoVisibilityChanged: (Boolean) -> Unit
+    onPianoVisibilityChanged: (Boolean) -> Unit,
+    pianoInput: PianoInput,
+    onPlayReferenceNotes: (List<Int>, Long) -> Unit
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
     var showAboutDialog by remember { mutableStateOf(false) }
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "home"
@@ -88,7 +98,7 @@ fun PianovaApp(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (route != "practice") {
+            if (route != "practice" && !route.startsWith("lesson/")) {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     mainTabs.forEach { tab ->
                         NavigationBarItem(
@@ -121,7 +131,44 @@ fun PianovaApp(
                     onProgress = { navController.navigate("progress") }
                 )
             }
-            composable("learning") { LearningScreen(onPractice = { navController.navigate("practice") }) }
+            composable("learning") {
+                LessonListScreen(
+                    repository = lessonRepository,
+                    onStartChapter = { lessonId, chapterId ->
+                        navController.navigate("lesson/$lessonId/$chapterId")
+                    }
+                )
+            }
+            composable(
+                route = "lesson/{lessonId}/{chapterId}",
+                arguments = listOf(
+                    navArgument("lessonId") { type = NavType.StringType },
+                    navArgument("chapterId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val lessonId = backStackEntry.arguments?.getString("lessonId").orEmpty()
+                val chapterId = backStackEntry.arguments?.getString("chapterId").orEmpty()
+                val lesson = remember(lessonId) { runCatching { lessonRepository.getLesson(lessonId) }.getOrNull() }
+                if (lesson == null) {
+                    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("بارگذاری درس ناموفق بود.", color = PianovaInk)
+                        TextButton(onClick = { navController.popBackStack() }) { Text("بازگشت") }
+                    }
+                } else {
+                    LessonPlayerScreen(
+                        lesson = lesson,
+                        startChapterId = chapterId,
+                        pianoInput = pianoInput,
+                        pianoReady = pianoReady,
+                        pianoRunning = pianoRunning,
+                        onPianoStart = onPianoStart,
+                        onNoteOn = onNoteOn,
+                        onNoteOff = onNoteOff,
+                        onPlayReferenceNotes = onPlayReferenceNotes,
+                        onExit = { navController.popBackStack() }
+                    )
+                }
+            }
             composable("practice") {
                 PianoScreen(
                     status = pianoStatus,
