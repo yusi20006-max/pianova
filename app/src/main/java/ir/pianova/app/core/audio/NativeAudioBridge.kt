@@ -1,22 +1,23 @@
 package ir.pianova.app.core.audio
 
-/**
- * JNI bridge to the native `pianova_audio` shared library built from
- * `app/src/main/cpp` (CMake + Google Oboe via Prefab).
- *
- * Phase 0 only exposes the engine status used by the smoke-test screen.
- * Phase 1 adds the real audio engine API (noteOn/noteOff/setSustain/...).
- */
-object NativeAudioBridge {
+import android.content.res.AssetManager
 
+/**
+ * Thin JNI boundary for the native Oboe + TinySoundFont engine.
+ * The returned handle owns one native AudioEngine instance.
+ */
+internal object NativeAudioBridge {
     init {
-        // Loads libpianova_audio.so (packaged from the externalNativeBuild output).
         System.loadLibrary("pianova_audio")
     }
 
-    /**
-     * Returns the status reported by the native side,
-     * e.g. `"Oboe Native Engine Ready"`.
-     */
-    external fun getEngineStatus(): String
+    external fun nativeCreate(assets: AssetManager): Long
+    external fun nativeStart(handle: Long): Boolean
+    external fun nativeStop(handle: Long)
+    external fun nativeNoteOn(handle: Long, note: Int, velocity: Float): Boolean
+    external fun nativeNoteOff(handle: Long, note: Int): Boolean
+    external fun nativeSetSustain(handle: Long, enabled: Boolean): Boolean
+    external fun nativeSetVolume(handle: Long, volume: Float): Boolean
+    external fun nativeStopAllNotes(handle: Long): Boolean
+    external fun nativeRelease(handle: Long)
 }

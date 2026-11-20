@@ -1,0 +1,23 @@
+Pianova bundled piano SoundFont
+================================
+
+File: pianova.sf2
+Upstream name: Chaos Bank v1.9
+Upstream source: https://github.com/bratpeki/soundfonts
+Pinned upstream commit: e1dcd9da45cc7454b4e3bfae613f4020d6a0b4f7
+Upstream path: SF2/GM/ChaosBank.sf2
+Size: 12,038,662 bytes
+
+License: Creative Commons CC0 1.0 Universal
+The upstream soundfont catalogue identifies ChaosBank.sf2 as CC0 1.0.
+This dedication permits copying, modification, redistribution, and commercial
+use without attribution. The original source and licence statement are retained
+here for provenance.
+
+CC0 1.0:
+https://creativecommons.org/publicdomain/zero/1.0/
+Upstream licence reference:
+https://rkhive.com/legal.html
+
+This is a General MIDI bank. Pianova selects preset 0 (Acoustic Grand Piano)
+for its initial piano instrument.

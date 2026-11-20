@@ -53,7 +53,7 @@
 
 ## 3. Audio Engine (Critical Path)
 - **Engine:** **Google Oboe** (for lowest possible Android audio latency) + **TinySoundFont (tsf.h)** (single-header C SoundFont2 synthesizer).
-- **Assets:** Bundled commercially-licensed lightweight .sf2 piano SoundFont (under 15MB) in assets/soundfonts/.
+- **Assets:** Bundled 12 MB Chaos Bank v1.9 General MIDI SoundFont (CC0 1.0, commercial redistribution permitted) in assets/soundfonts/; preset 0 is used as the acoustic grand piano.
 - **Requirements:**
   - Full polyphony (at least 32 simultaneous voices).
   - Real-time noteOn(note, velocity), noteOff(note), setSustain(enabled), setVolume(vol), stopAllNotes().
@@ -109,7 +109,7 @@ Lessons are stored as versioned JSON files in assets/lessons/.
 - **Exit Criteria:** Clean green build & downloadable APK from GitHub Actions.
 
 ### Phase 1: The Living Skeleton (Audio + Virtual Piano)
-- Integrate Google Oboe (via Prefab) + tsf.h + free-to-use .sf2 piano file.
+- Integrate Google Oboe (via Prefab) + TinySoundFont (tsf.h) + the verified CC0 1.0 Chaos Bank v1.9 SoundFont (<15 MB).
 - Build the multi-touch Compose Virtual Piano with octave scrolling, sustain button, and note labels.
 - **Exit Criteria:** APK installed on a real Android phone plays polyphonic piano audio with low latency and zero stuck notes.
 

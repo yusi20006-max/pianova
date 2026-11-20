@@ -1,39 +1,95 @@
-//
-// Pianova — Phase 0 native smoke test.
-//
-// Links Google Oboe through Prefab and exposes a single JNI entry point so the
-// Kotlin side can prove that libpianova_audio.so was built, packaged, and
-// loaded, and that it really links against liboboe.so.
-//
+#include "AudioEngine.h"
 
 #include <jni.h>
-
-#include <oboe/Oboe.h>
+#include <android/asset_manager_jni.h>
 #include <android/log.h>
 
+#include <cstdint>
+#include <memory>
+
 namespace {
+constexpr char kTag[] = "PianovaJNI";
 
-constexpr const char *kLogTag = "PianovaNative";
-constexpr const char *kEngineStatus = "Oboe Native Engine Ready";
+pianova::AudioEngine* fromHandle(jlong handle) {
+    return reinterpret_cast<pianova::AudioEngine*>(
+        static_cast<intptr_t>(handle));
+}
+}
 
-} // namespace
+extern "C" JNIEXPORT jlong JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeCreate(
+    JNIEnv* env, jobject /* thiz */, jobject assetManager) {
+    AAssetManager* assets = AAssetManager_fromJava(env, assetManager);
+    if (assets == nullptr) {
+        __android_log_print(ANDROID_LOG_ERROR, kTag,
+                            "Unable to obtain Android AssetManager");
+        return 0;
+    }
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_ir_pianova_app_core_audio_NativeAudioBridge_getEngineStatus(
-        JNIEnv *env,
-        jobject /* this */) {
-    // oboe::getVersionText() is defined inside liboboe.so, so resolving this
-    // symbol proves the Oboe prefab package is genuinely linked (the build
-    // would fail at link time otherwise).
-    const char *oboeVersion = oboe::getVersionText();
+    auto engine = std::make_unique<pianova::AudioEngine>();
+    if (!engine->loadSoundFont(assets, "soundfonts/pianova.sf2")) {
+        return 0;
+    }
 
-    __android_log_print(
-            ANDROID_LOG_INFO,
-            kLogTag,
-            "%s (built against Oboe %s, default sample rate %d Hz)",
-            kEngineStatus,
-            oboeVersion,
-            oboe::DefaultStreamValues::SampleRate);
+    return static_cast<jlong>(
+        reinterpret_cast<intptr_t>(engine.release()));
+}
 
-    return env->NewStringUTF(kEngineStatus);
+extern "C" JNIEXPORT jboolean JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeStart(
+    JNIEnv*, jobject, jlong handle) {
+    auto* engine = fromHandle(handle);
+    return engine != nullptr && engine->start() ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeStop(
+    JNIEnv*, jobject, jlong handle) {
+    if (auto* engine = fromHandle(handle)) engine->stop();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeNoteOn(
+    JNIEnv*, jobject, jlong handle, jint note, jfloat velocity) {
+    auto* engine = fromHandle(handle);
+    return engine != nullptr && engine->noteOn(note, velocity)
+        ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeNoteOff(
+    JNIEnv*, jobject, jlong handle, jint note) {
+    auto* engine = fromHandle(handle);
+    return engine != nullptr && engine->noteOff(note)
+        ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeSetSustain(
+    JNIEnv*, jobject, jlong handle, jboolean enabled) {
+    auto* engine = fromHandle(handle);
+    return engine != nullptr &&
+        engine->setSustain(enabled == JNI_TRUE) ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeSetVolume(
+    JNIEnv*, jobject, jlong handle, jfloat volume) {
+    auto* engine = fromHandle(handle);
+    return engine != nullptr && engine->setVolume(volume)
+        ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeStopAllNotes(
+    JNIEnv*, jobject, jlong handle) {
+    auto* engine = fromHandle(handle);
+    return engine != nullptr && engine->stopAllNotes()
+        ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeRelease(
+    JNIEnv*, jobject, jlong handle) {
+    delete fromHandle(handle);
 }
