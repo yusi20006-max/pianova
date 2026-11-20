@@ -40,7 +40,7 @@ class LessonNarrationTextTest {
             displayText = "متن نمایشی مستقل",
             narrationText = "متن مخصوص گویندگی"
         )
-        val spoken = LessonNarrationText.forStep(step, interactive = false)
+        val spoken = LessonNarrationText.forStep(step, interactive = true)
         assertTrue(spoken == "متن مخصوص گویندگی")
     }
 
