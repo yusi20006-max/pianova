@@ -116,7 +116,8 @@ sealed class LessonStep {
         override val displayText: String? = null,
         override val narrationText: String? = null,
         override val skillId: String? = null,
-        override val scaffolding: StepScaffolding? = null
+        override val scaffolding: StepScaffolding? = null,
+        val acceptedMidiNotes: List<Int> = emptyList()
     ) : LessonStep()
 
     @Serializable

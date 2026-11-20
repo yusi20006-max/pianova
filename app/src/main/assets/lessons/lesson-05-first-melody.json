@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "lesson-05-first-melody",
   "title": "اجرای اولین ملودی هفت‌نتی",
   "description": "با نت‌های آموخته‌شده، نخستین ملودی کوتاه خودت را بنواز.",
@@ -13,7 +13,9 @@
           "type": "explanation",
           "id": "first-melody-intro",
           "title": "ملودی هفت‌نتی ما",
-          "body": "حالا نت‌های دو، ر، می، فا، سل، لا و سی را می‌شناسی. در این تمرین یک ملودی کوتاه هفت‌نتی می‌نوازیم: دو، ر، می، سل، می، ر، دو. عجله نکن و هر نت را جداگانه بزن."
+          "body": "حالا نت‌های دو، ر، می، فا، سل، لا و سی را می‌شناسی. در این تمرین یک ملودی کوتاه هفت‌نتی می‌نوازیم: دو، ر، می، سل، می، ر، دو. عجله نکن و هر نت را جداگانه بزن.",
+          "displayText": "ملودی هفت‌نتی ما",
+          "narrationText": "حالا نت‌های دو، ر، می، فا، سل، لا و سی را می‌شناسی. در این تمرین ملودی دو، ر، می، سل، می، ر، دو را می‌نوازی. عجله نکن و هر نت را جداگانه اجرا کن."
         },
         {
           "type": "listen",
@@ -29,7 +31,9 @@
             62,
             60
           ],
-          "noteDurationMs": 520
+          "noteDurationMs": 520,
+          "displayText": "اول به ملودی گوش کن.",
+          "narrationText": "ملودی هفت‌نتی را یک بار کامل بشنو. به بالا رفتن صدا و سپس برگشت آن دقت کن."
         },
         {
           "type": "play_sequence",
@@ -44,13 +48,32 @@
             62,
             60
           ],
-          "tempoBpm": 70
+          "tempoBpm": 70,
+          "displayText": "ملودی خودت را بنواز.",
+          "narrationText": "حالا ملودی خودت را بنواز. نت‌ها را با دقت و بدون عجله اجرا کن.",
+          "skillId": "play-first-seven-note-melody",
+          "scaffolding": {
+            "level1": {
+              "hintText": "ملودی را با ترتیب دو، ر، می، سل، می، ر، دو بنواز.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "به بالا رفتن ملودی و سپس برگشت آن توجه کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "هر نت را جداگانه بشنو و بعد نت بعدی را اجرا کن.",
+              "revealsAnswer": false
+            }
+          }
         },
         {
           "type": "explanation",
           "id": "first-melody-review",
           "title": "یک اجرای آرام دیگر",
-          "body": "اگر ملودی سخت بود، اشکالی ندارد. این بار به ترتیب نت‌ها فکر کن: دو، ر، می، سل، می، ر، دو. هر نت را بشنو و بعد سراغ نت بعدی برو."
+          "body": "اگر ملودی سخت بود، اشکالی ندارد. این بار به ترتیب نت‌ها فکر کن: دو، ر، می، سل، می، ر، دو. هر نت را بشنو و بعد سراغ نت بعدی برو.",
+          "displayText": "یک اجرای آرام دیگر",
+          "narrationText": "اگر ملودی سخت بود، اشکالی ندارد. این بار ترتیب دو، ر، می، سل، می، ر، دو را در ذهن مرور کن. هر نت را بشنو و بعد سراغ نت بعدی برو."
         },
         {
           "type": "listen",
@@ -66,7 +89,9 @@
             62,
             60
           ],
-          "noteDurationMs": 600
+          "noteDurationMs": 600,
+          "displayText": "ملودی را دوباره بشنو.",
+          "narrationText": "یک بار دیگر به ملودی گوش کن و ترتیب هفت نت را دنبال کن."
         },
         {
           "type": "play_sequence",
@@ -81,7 +106,24 @@
             62,
             60
           ],
-          "tempoBpm": 60
+          "tempoBpm": 60,
+          "displayText": "اجرای پایانی.",
+          "narrationText": "حالا اجرای پایانی. نت‌ها را با دقت و بدون عجله اجرا کن.",
+          "skillId": "play-first-seven-note-melody",
+          "scaffolding": {
+            "level1": {
+              "hintText": "ملودی هفت‌نتی را یک بار دیگر اجرا کن.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "به ترتیب دو، ر، می، سل، می، ر، دو توجه کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "هر نت را با دقت و با فاصله مناسب بنواز.",
+              "revealsAnswer": false
+            }
+          }
         }
       ]
     }
@@ -89,5 +131,24 @@
   "completionCriteria": {
     "minimumAccuracyPercent": 80,
     "requireAllSteps": true
+  },
+  "language": "fa-IR",
+  "pedagogy": {
+    "teacherPersonality": "adaptive",
+    "learningPace": "adaptive",
+    "notationProgression": "gradual",
+    "waitModeByDefault": true,
+    "visualGuidance": {
+      "automaticSuggestionsEnabled": true,
+      "manualSelectionEnabled": true,
+      "defaultLevel": 2,
+      "suggestMoreHelpAfterConsecutiveErrors": 2,
+      "suggestLessHelpAfterConsecutiveSuccesses": 2,
+      "inactivitySuggestionSeconds": 8
+    }
+  },
+  "masteryCriteria": {
+    "successfulIndependentAttempts": 3,
+    "minimumDistinctSessions": 2
   }
 }

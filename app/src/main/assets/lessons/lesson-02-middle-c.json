@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "lesson-02-middle-c",
   "title": "پیدا کردن نت دو میانی",
   "description": "با کمک گروه دو کلید سیاه، نت دو وسط را روی پیانو پیدا کن.",
@@ -13,7 +13,9 @@
           "type": "explanation",
           "id": "middle-c-location",
           "title": "دو میانی کجاست؟",
-          "body": "یک گروه دو‌تایی از کلیدهای سیاه پیدا کن. کلید سفید بلافاصله در سمت چپِ اولین کلید سیاه، نت دو است. دو میانی یا C4 نزدیک مرکز پیانو قرار دارد."
+          "body": "یک گروه دو‌تایی از کلیدهای سیاه پیدا کن. کلید سفید بلافاصله در سمت چپِ اولین کلید سیاه، نت دو است. دو میانی یا C4 نزدیک مرکز پیانو قرار دارد.",
+          "displayText": "دو میانی کجاست؟",
+          "narrationText": "یک گروه دوتایی از کلیدهای سیاه پیدا کن. کلید سفید بلافاصله در سمت چپ اولین کلید سیاه، نت دو است. دو میانی نزدیک مرکز پیانو قرار دارد."
         },
         {
           "type": "listen",
@@ -23,20 +25,44 @@
           "midiNotes": [
             60
           ],
-          "noteDurationMs": 1000
+          "noteDurationMs": 1000,
+          "displayText": "به صدای دو میانی گوش کن.",
+          "narrationText": "صدای نت دو میانی را بشنو و جای آن را روی صفحه‌کلید به خاطر بسپار."
         },
         {
           "type": "play_note",
           "id": "play-middle-c-once",
           "title": "دو میانی را پیدا کن",
           "midiNote": 60,
-          "durationMs": 900
+          "durationMs": 900,
+          "displayText": "دو میانی را پیدا کن را روی پیانو پیدا کن و بنواز.",
+          "narrationText": "به صفحه‌کلید نگاه کن و دو میانی را پیدا کن را پیدا کن. سپس آن را بنواز.",
+          "skillId": "find-middle-c",
+          "scaffolding": {
+            "level1": {
+              "hintText": "کلید دو میانی را در سمت چپ گروه دوتایی کلیدهای سیاه پیدا کن.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "به گروه دوتایی کلیدهای سیاه نزدیک مرکز پیانو نگاه کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "از الگوی دو کلید سیاه کمک بگیر و کلید سفید کنار آن‌ها را پیدا کن.",
+              "revealsAnswer": false
+            }
+          },
+          "acceptedMidiNotes": [
+            60
+          ]
         },
         {
           "type": "explanation",
           "id": "middle-c-repeat",
           "title": "یک بار دیگر بررسی کن",
-          "body": "آفرین. برای مطمئن‌شدن، همان کلید سفید را دوباره پیدا کن. نام آن دو یا C4 است."
+          "body": "آفرین. برای مطمئن‌شدن، همان کلید سفید را دوباره پیدا کن. نام آن دو یا C4 است.",
+          "displayText": "یک بار دیگر بررسی کن.",
+          "narrationText": "برای مطمئن‌شدن، جای نت دو میانی را دوباره پیدا کن. نام این نت دو یا C4 است."
         },
         {
           "type": "listen",
@@ -46,14 +72,36 @@
           "midiNotes": [
             60
           ],
-          "noteDurationMs": 900
+          "noteDurationMs": 900,
+          "displayText": "دوباره به دو میانی گوش کن.",
+          "narrationText": "یک بار دیگر صدای نت دو میانی را بشنو و آن را به خاطر بسپار."
         },
         {
           "type": "play_note",
           "id": "play-middle-c-again",
           "title": "دو را دوباره بنواز",
           "midiNote": 60,
-          "durationMs": 900
+          "durationMs": 900,
+          "displayText": "دو را دوباره بنواز را روی پیانو پیدا کن و بنواز.",
+          "narrationText": "به صفحه‌کلید نگاه کن و دو را دوباره بنواز را پیدا کن. سپس آن را بنواز.",
+          "skillId": "find-middle-c",
+          "scaffolding": {
+            "level1": {
+              "hintText": "همان کلید دو میانی را دوباره بنواز.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "گروه دوتایی سیاه را پیدا کن و کلید سفید سمت چپ آن را بررسی کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "جایگاه دو میانی را از روی الگوی کلیدهای سیاه به یاد بیاور.",
+              "revealsAnswer": false
+            }
+          },
+          "acceptedMidiNotes": [
+            60
+          ]
         }
       ]
     }
@@ -61,5 +109,24 @@
   "completionCriteria": {
     "minimumAccuracyPercent": 80,
     "requireAllSteps": true
+  },
+  "language": "fa-IR",
+  "pedagogy": {
+    "teacherPersonality": "adaptive",
+    "learningPace": "adaptive",
+    "notationProgression": "gradual",
+    "waitModeByDefault": true,
+    "visualGuidance": {
+      "automaticSuggestionsEnabled": true,
+      "manualSelectionEnabled": true,
+      "defaultLevel": 2,
+      "suggestMoreHelpAfterConsecutiveErrors": 2,
+      "suggestLessHelpAfterConsecutiveSuccesses": 2,
+      "inactivitySuggestionSeconds": 8
+    }
+  },
+  "masteryCriteria": {
+    "successfulIndependentAttempts": 3,
+    "minimumDistinctSessions": 2
   }
 }
