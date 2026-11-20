@@ -1,59 +1,45 @@
 package ir.pianova.app.core.designsystem
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-/** Pianova brand palette (SPEC §6 — Visual Direction). */
-val DarkNavy = Color(0xFF0F172A)      // #0F172A background
-val DeepPurple = Color(0xFF6D28D9)    // #6D28D9 primary accents
-val ElectricBlue = Color(0xFF38BDF8)  // #38BDF8 highlights
-val Gold = Color(0xFFF59E0B)          // #F59E0B badges / rewards
+/** User-approved Learning Journey palette. */
+val PianovaIvory = Color(0xFFF5F1E8)
+val PianovaWhite = Color(0xFFFFFFFF)
+val PianovaSage = Color(0xFFDCE9D9)
+val PianovaGreen = Color(0xFF557A62)
+val PianovaInk = Color(0xFF233D32)
+val PianovaMuted = Color(0xFF6B796F)
+val PianovaBorder = Color(0xFFD9D4C8)
+val PianovaFuture = Color(0xFFE8E2D6)
+val PianovaGold = Color(0xFFB88735)
 
-private val Slate50 = Color(0xFFF8FAFC)
-private val Slate200 = Color(0xFFE2E8F0)
-private val Slate500 = Color(0xFF64748B)
-private val Slate700 = Color(0xFF334155)
-private val Slate800 = Color(0xFF1E293B)
-private val Slate900 = Color(0xFF0F172A)
-private val ErrorRed = Color(0xFFF87171)
-
-/**
- * Dark-first Material 3 color scheme. Pianova is a dark-themed app by design,
- * so the dark scheme is the only scheme required for Phase 0 / v1.0.
- */
-private val PianovaColorScheme = darkColorScheme(
-    primary = DeepPurple,
+private val PianovaColorScheme = lightColorScheme(
+    primary = PianovaGreen,
     onPrimary = Color.White,
-    primaryContainer = DeepPurple,
-    onPrimaryContainer = Color.White,
-    secondary = ElectricBlue,
-    onSecondary = Slate900,
-    secondaryContainer = Slate800,
-    onSecondaryContainer = ElectricBlue,
-    tertiary = Gold,
-    onTertiary = Slate900,
-    tertiaryContainer = Slate800,
-    onTertiaryContainer = Gold,
-    background = DarkNavy,
-    onBackground = Slate50,
-    surface = DarkNavy,
-    onSurface = Slate50,
-    surfaceVariant = Slate800,
-    onSurfaceVariant = Slate200,
-    surfaceContainerLow = Slate800,
-    surfaceContainerHigh = Slate700,
-    outline = Slate700,
-    outlineVariant = Slate500,
-    error = ErrorRed,
-    onError = Slate900
+    primaryContainer = PianovaSage,
+    onPrimaryContainer = PianovaInk,
+    secondary = PianovaMuted,
+    onSecondary = Color.White,
+    secondaryContainer = PianovaFuture,
+    onSecondaryContainer = PianovaInk,
+    tertiary = PianovaGold,
+    onTertiary = Color.White,
+    background = PianovaIvory,
+    onBackground = PianovaInk,
+    surface = PianovaWhite,
+    onSurface = PianovaInk,
+    surfaceVariant = PianovaFuture,
+    onSurfaceVariant = PianovaMuted,
+    outline = PianovaBorder,
+    outlineVariant = PianovaBorder,
+    error = Color(0xFFB3261E),
+    onError = Color.White
 )
 
-/**
- * App theme: Material 3, dark color scheme (Dark Navy / Deep Purple /
- * Electric Blue / Gold) with Dastkhat typography for all Persian and Latin text.
- */
+/** Material 3 light theme with the bundled Dastkhat Persian typeface. */
 @Composable
 fun PianovaTheme(content: @Composable () -> Unit) {
     MaterialTheme(
