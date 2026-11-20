@@ -137,7 +137,8 @@ class JsonLessonParserTest {
                     "level2": { "hintText": "به گروه دوتایی نگاه کن.", "revealsAnswer": false },
                     "level3": { "hintText": "یک کلید سفید پیدا کن.", "revealsAnswer": false }
                   },
-                  "midiNote": 60
+                  "midiNote": 60,
+                  "acceptedPitchClasses": [0, 2, 4, 5, 7, 9, 11]
                 }]
               }]
             }
