@@ -51,7 +51,7 @@ fun LessonVoiceControls(
     }
     LaunchedEffect(step.id) { referencePlayedFor = null }
 
-    LaunchedEffect(step.id, enabled, interactive, status) {
+    LaunchedEffect(step.id, enabled, interactive, status, pianoRunning) {
         if (enabled && status is VoiceCoachStatus.Ready) {
             paused = false
             val listen = step as? LessonStep.Listen
