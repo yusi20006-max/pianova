@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import ir.pianova.app.core.voice.AndroidLessonVoiceCoach
 import ir.pianova.app.core.voice.LessonNarrationText
 import ir.pianova.app.core.voice.VoiceCoachStatus
@@ -122,7 +123,7 @@ fun LessonVoiceControls(
                             context.startActivity(Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA))
                         }.onFailure {
                             try {
-                                context.startActivity(Intent(Settings.ACTION_TTS_SETTINGS))
+                                context.startActivity(Intent("com.android.settings.TTS_SETTINGS"))
                             } catch (_: ActivityNotFoundException) {
                                 // The lesson remains usable without narration.
                             }

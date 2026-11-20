@@ -61,7 +61,7 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
             tts.voice = selected
             initialized = true
             tts.setSpeechRate(rate)
-            statusMutable.value = VoiceCoachStatus.Ready(selected.networkConnectionRequired.not())
+            statusMutable.value = VoiceCoachStatus.Ready((!selected.isNetworkConnectionRequired))
             return
         }
 
