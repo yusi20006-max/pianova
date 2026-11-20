@@ -209,6 +209,7 @@ private data class LessonV2Step(
     val durationMs: Long? = null,
     val noteDurationMs: Long? = null,
     val repetitionCount: Int? = null,
+    val acceptedPitchClasses: List<Int>? = null,
     val tempoBpm: Int? = null
 ) {
     fun toDomain(): LessonStep {
