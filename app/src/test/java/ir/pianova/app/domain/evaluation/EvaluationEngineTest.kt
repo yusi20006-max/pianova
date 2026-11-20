@@ -124,6 +124,26 @@ class EvaluationEngineTest {
     }
 
     @Test
+    fun chordDoesNotPassUntilExtraHeldNoteIsReleased() = runBlocking {
+        val input = FakePianoInput()
+        val session = EvaluationEngine(input).start(
+            LessonStep.PlayChord("c-major", "آکورد دو ماژور", listOf(60, 64, 67)),
+            this
+        )
+        yield()
+
+        input.emit(PianoEvent.NoteOn(72, 0.8f, 1L))
+        awaitStatus(session, EvaluationStatus.EXTRA_NOTE)
+        input.emit(PianoEvent.NoteOn(60, 0.8f, 2L))
+        input.emit(PianoEvent.NoteOn(64, 0.8f, 3L))
+        input.emit(PianoEvent.NoteOn(67, 0.8f, 4L))
+        assertEquals(EvaluationStatus.EXTRA_NOTE, session.state.value.status)
+
+        input.emit(PianoEvent.NoteOff(72, 5L))
+        assertTrue(awaitStatus(session, EvaluationStatus.CORRECT).isComplete)
+    }
+
+    @Test
     fun finishReportsMissingNotes() = runBlocking {
         val input = FakePianoInput()
         val session = EvaluationEngine(input).start(
