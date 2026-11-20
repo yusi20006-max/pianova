@@ -3,7 +3,6 @@ package ir.pianova.app.core.midi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.startCoroutine
 import kotlinx.coroutines.CoroutineStart
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
