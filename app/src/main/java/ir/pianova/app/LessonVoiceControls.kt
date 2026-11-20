@@ -1,5 +1,9 @@
 package ir.pianova.app
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.speech.tts.TextToSpeech
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +33,8 @@ import ir.pianova.app.domain.model.LessonStep
 fun LessonVoiceControls(
     step: LessonStep,
     feedback: String?,
+    pianoRunning: Boolean,
+    onPlayReferenceNotes: (List<Int>, Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -38,15 +44,33 @@ fun LessonVoiceControls(
     var interactive by remember { mutableStateOf(true) }
     var paused by remember { mutableStateOf(false) }
     var rate by remember { mutableFloatStateOf(AndroidLessonVoiceCoach.DEFAULT_RATE) }
+    var referencePlayedFor by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(coach) {
         onDispose { coach.shutdown() }
     }
+    LaunchedEffect(step.id) { referencePlayedFor = null }
 
     LaunchedEffect(step.id, enabled, interactive, status) {
         if (enabled && status is VoiceCoachStatus.Ready) {
             paused = false
-            coach.speak(LessonNarrationText.forStep(step, interactive))
+            val listen = step as? LessonStep.Listen
+            coach.speak(LessonNarrationText.forStep(step, interactive)) {
+                if (listen != null && pianoRunning && referencePlayedFor != step.id) {
+                    referencePlayedFor = step.id
+                    onPlayReferenceNotes(listen.midiNotes, listen.noteDurationMs)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(step.id, pianoRunning, enabled, status) {
+        val listen = step as? LessonStep.Listen
+        if (listen != null && pianoRunning && (!enabled || status is VoiceCoachStatus.Unavailable) &&
+            referencePlayedFor != step.id
+        ) {
+            referencePlayedFor = step.id
+            onPlayReferenceNotes(listen.midiNotes, listen.noteDurationMs)
         }
     }
 
@@ -75,7 +99,7 @@ fun LessonVoiceControls(
                 TextButton(onClick = {
                     if (paused) coach.resume() else coach.pause()
                     paused = !paused
-                }) { Text(if (paused) "ادامه" else "مکث") }
+                }) { Text(if (paused) "ادامه از ابتدای جمله" else "مکث") }
                 TextButton(onClick = { paused = false; coach.replay() }) { Text("تکرار") }
                 TextButton(onClick = {
                     rate = AndroidLessonVoiceCoach.DEFAULT_RATE
@@ -91,9 +115,22 @@ fun LessonVoiceControls(
             )
             when (val current = status) {
                 VoiceCoachStatus.Initializing -> Text("در حال آماده‌سازی صدای فارسی…", style = MaterialTheme.typography.bodySmall)
-                is VoiceCoachStatus.Unavailable -> Text(current.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                is VoiceCoachStatus.Unavailable -> {
+                    Text(current.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = {
+                        runCatching {
+                            context.startActivity(Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA))
+                        }.onFailure {
+                            try {
+                                context.startActivity(Intent(Settings.ACTION_TTS_SETTINGS))
+                            } catch (_: ActivityNotFoundException) {
+                                // The lesson remains usable without narration.
+                            }
+                        }
+                    }) { Text("تنظیم یا نصب صدای فارسی") }
+                }
                 is VoiceCoachStatus.Ready -> Text(
-                    if (current.offlineAvailable) "صدای فارسی آماده است · قابل استفاده آفلاین" else "صدای فارسی آماده است · ممکن است به اینترنت نیاز داشته باشد",
+                    if (current.offlineAvailable) "صدای فارسی آماده است · قابل استفاده آفلاین" else "صدای فارسی آماده است · اتصال اینترنت ممکن است لازم باشد",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
