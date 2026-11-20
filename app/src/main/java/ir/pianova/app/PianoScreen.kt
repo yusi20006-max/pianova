@@ -211,13 +211,18 @@ private fun PianoPlayableKeys(
             .pointerInput(enabled, firstMidi) {
                 val active = mutableMapOf<PointerId, Int>()
                 fun release(note: Int) {
-                    val count = pressedNotes[note] ?: 0
-                    if (count <= 1) pressedNotes.remove(note) else pressedNotes[note] = count - 1
-                    currentOff(note)
+                    val count = pressedNotes[note] ?: return
+                    if (count <= 1) {
+                        pressedNotes.remove(note)
+                        currentOff(note)
+                    } else {
+                        pressedNotes[note] = count - 1
+                    }
                 }
                 fun press(note: Int, velocity: Float) {
-                    pressedNotes[note] = (pressedNotes[note] ?: 0) + 1
-                    currentOn(note, velocity)
+                    val count = pressedNotes[note] ?: 0
+                    pressedNotes[note] = count + 1
+                    if (count == 0) currentOn(note, velocity)
                 }
                 fun noteAt(x: Float, y: Float, width: Float, height: Float): Int? {
                     val start = currentStart
@@ -271,7 +276,7 @@ private fun PianoPlayableKeys(
                         }
                     }
                 } finally {
-                    active.values.toSet().forEach(::release)
+                    active.values.forEach(::release)
                     active.clear()
                 }
             }
