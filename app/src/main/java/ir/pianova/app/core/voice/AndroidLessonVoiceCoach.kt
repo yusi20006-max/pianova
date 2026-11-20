@@ -17,12 +17,14 @@ sealed interface VoiceCoachStatus {
     data class Failed(val message: String) : VoiceCoachStatus
 }
 
-class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
+class AndroidLessonVoiceCoach(
+    context: Context,
+    enginePackage: String? = null
+) : TextToSpeech.OnInitListener {
     private val statusMutable = MutableStateFlow<VoiceCoachStatus>(VoiceCoachStatus.Initializing)
     val status: StateFlow<VoiceCoachStatus> = statusMutable
-    private var engine: TextToSpeech? = TextToSpeech(context.applicationContext, this)
+    private var engine: TextToSpeech? = TextToSpeech(context.applicationContext, this, enginePackage)
     private var rate = DEFAULT_RATE
-    private var lastText: String? = null
     private var initialized = false
     @Volatile private var activeUtteranceId: String? = null
     private val completionCallbacks = ConcurrentHashMap<String, () -> Unit>()
@@ -30,38 +32,28 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
     init {
         engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String) = Unit
-
             override fun onDone(utteranceId: String) {
                 if (activeUtteranceId == utteranceId) {
                     activeUtteranceId = null
                     completionCallbacks.remove(utteranceId)?.let { callback ->
                         android.os.Handler(android.os.Looper.getMainLooper()).post(callback)
                     }
-                } else {
-                    completionCallbacks.remove(utteranceId)
-                }
+                } else completionCallbacks.remove(utteranceId)
             }
-
             @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String) {
-                reportPlaybackError(utteranceId)
-            }
-
-            override fun onError(utteranceId: String, errorCode: Int) {
-                reportPlaybackError(utteranceId)
-            }
+            override fun onError(utteranceId: String) = reportPlaybackError(utteranceId)
+            override fun onError(utteranceId: String, errorCode: Int) = reportPlaybackError(utteranceId)
         })
     }
 
     override fun onInit(result: Int) {
         val tts = engine ?: return
         if (result != TextToSpeech.SUCCESS) {
-            statusMutable.value = VoiceCoachStatus.Unavailable("موتور گفتار گوشی آماده نشد.")
+            statusMutable.value = VoiceCoachStatus.Unavailable(
+                "موتور گفتار انتخاب‌شده آماده نشد. نصب موتور فارسی آفلاین را بررسی کن."
+            )
             return
         }
-
-        // Route speech through the normal media channel so media volume and
-        // Bluetooth speaker routing behave consistently on Android devices.
         tts.setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -69,14 +61,17 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
                 .build()
         )
 
-        val persianVoices = tts.voices.orEmpty().filter { it.locale.language == "fa" }
-        val selected = persianVoices.firstOrNull { it.locale.country.equals("IR", true) }
-            ?: persianVoices.firstOrNull()
-        if (selected != null) {
-            tts.voice = selected
+        val voices = tts.voices.orEmpty()
+        val persianVoice = voices.firstOrNull {
+            isPersianTtsLanguage(it.locale.language) &&
+                (it.locale.country.equals("IR", true) || it.locale.country.isBlank())
+        } ?: voices.firstOrNull { isPersianTtsLanguage(it.locale.language) }
+
+        if (persianVoice != null) {
+            tts.voice = persianVoice
             initialized = true
             tts.setSpeechRate(rate)
-            statusMutable.value = VoiceCoachStatus.Ready(!selected.isNetworkConnectionRequired)
+            statusMutable.value = VoiceCoachStatus.Ready(!persianVoice.isNetworkConnectionRequired)
             return
         }
 
@@ -85,17 +80,14 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
         if (availability < TextToSpeech.LANG_AVAILABLE) {
             statusMutable.value = VoiceCoachStatus.Unavailable(
                 if (availability == TextToSpeech.LANG_MISSING_DATA) {
-                    "داده صدای فارسی نصب نیست. از تنظیمات تبدیل متن به گفتار اندروید، صدای فارسی را نصب کنید."
-                } else {
-                    "موتور گفتار انتخاب‌شده از زبان فارسی پشتیبانی نمی‌کند."
-                }
+                    "دادهٔ صدای فارسی برای این موتور نصب نیست."
+                } else "این موتور گفتار از زبان فارسی پشتیبانی نمی‌کند."
             )
             return
         }
-
         val languageResult = tts.setLanguage(locale)
         if (languageResult < TextToSpeech.LANG_AVAILABLE) {
-            statusMutable.value = VoiceCoachStatus.Unavailable("صدای فارسی در موتور گفتار گوشی در دسترس نیست.")
+            statusMutable.value = VoiceCoachStatus.Unavailable("صدای فارسی در موتور انتخاب‌شده در دسترس نیست.")
             return
         }
         initialized = true
@@ -107,9 +99,7 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
         val clean = text.trim()
         val tts = engine ?: return false
         if (!initialized || clean.isEmpty()) return false
-
-        stopUtterance(clearLastText = false)
-        lastText = clean
+        stopUtterance()
         tts.setSpeechRate(rate)
         val id = UUID.randomUUID().toString()
         activeUtteranceId = id
@@ -117,7 +107,8 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
         val result = tts.speak(clean, TextToSpeech.QUEUE_FLUSH, null, id)
         if (result == TextToSpeech.ERROR) {
             activeUtteranceId = null
-            statusMutable.value = VoiceCoachStatus.Failed("پخش گفتار شروع نشد. موتور گفتار فارسی گوشی را بررسی و دوباره تلاش کن.")
+            completionCallbacks.remove(id)
+            statusMutable.value = VoiceCoachStatus.Failed("پخش گفتار شروع نشد. موتور و صدای فارسی را بررسی کن.")
             return false
         }
         return true
@@ -128,22 +119,17 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
             activeUtteranceId = null
             completionCallbacks.remove(utteranceId)
             statusMutable.value = VoiceCoachStatus.Failed(
-                "موتور گفتار نتوانست صدا را پخش کند. صدای فارسی و بلندی صدای رسانه را بررسی کن."
+                "موتور گفتار نتوانست صدا را پخش کند. بلندی صدای رسانه را بررسی کن."
             )
-        } else {
-            completionCallbacks.remove(utteranceId)
-        }
+        } else completionCallbacks.remove(utteranceId)
     }
 
-    fun stop() = stopUtterance(clearLastText = true)
+    fun stop() = stopUtterance()
 
-    private fun stopUtterance(clearLastText: Boolean) {
-        // Invalidate the utterance before calling stop(), because some TTS
-        // engines report cancellation through onError asynchronously.
+    private fun stopUtterance() {
         activeUtteranceId = null
         completionCallbacks.clear()
         engine?.stop()
-        if (clearLastText) lastText = null
     }
 
     fun setSpeechRate(value: Float) {

@@ -1,8 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Phase 0: no permissions required. USB MIDI (PHASE 3) will add
-         android.hardware.usb.host here. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
+    <!-- No microphone, network, or storage permissions are required. -->
 
     <application
         android:allowBackup="true"
