@@ -203,6 +203,14 @@ fun LessonPlayerScreen(
     LaunchedEffect(lesson.id, pianoReady) {
         if (pianoReady && !pianoRunning) onPianoStart()
     }
+    LaunchedEffect(step.id, pianoRunning) {
+        val listen = step as? LessonStep.Listen
+        if (listen != null && pianoRunning && listen.midiNotes.isNotEmpty() && playedReferenceStep != step.id) {
+            playedReferenceStep = step.id
+            onPlayReferenceNotes(listen.midiNotes, listen.noteDurationMs)
+        }
+    }
+
     val targetNotes = when (step) {
         is LessonStep.Explanation -> entries.previewNotesAt(stepIndex)
         is LessonStep.Listen -> step.midiNotes
@@ -244,14 +252,6 @@ fun LessonPlayerScreen(
                     trackColor = PianovaSage
                 )
             }
-
-            LessonVoiceControls(
-                step = step,
-                feedback = if (playable) evaluation.feedbackFa else null,
-                pianoRunning = pianoRunning,
-                onPlayReferenceNotes = onPlayReferenceNotes,
-                modifier = Modifier.fillMaxWidth()
-            )
 
             Card(
                 modifier = Modifier.weight(1f, fill = false).fillMaxWidth(),
