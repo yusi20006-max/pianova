@@ -257,8 +257,6 @@ fun LessonPlayerScreen(
                     LessonVoiceControls(
                         step = step,
                         feedback = if (playable) evaluation.feedbackFa else null,
-                        pianoRunning = pianoRunning,
-                        onPlayReferenceNotes = onPlayReferenceNotes,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
