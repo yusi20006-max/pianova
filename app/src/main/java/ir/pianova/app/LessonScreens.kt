@@ -162,7 +162,7 @@ fun LessonPlayerScreen(
 ) {
     val context = LocalContext.current
     val attemptStore = remember(context) { SkillAttemptStore(context.applicationContext) }
-    val masterySessionId = remember(lesson.id) { UUID.randomUUID().toString() }
+    val masterySessionId = remember(lesson.id, startChapterId) { UUID.randomUUID().toString() }
     val entries = remember(lesson) { lesson.flattenedSteps() }
     val startIndex = remember(lesson.id, startChapterId, entries) {
         entries.indexOfFirst { it.chapterId == startChapterId }.takeIf { it >= 0 } ?: 0
@@ -213,7 +213,18 @@ fun LessonPlayerScreen(
     var scaffoldingSuggestion by remember(lesson.id, step.id) { mutableStateOf<Int?>(null) }
     var consecutiveErrors by remember(lesson.id, step.id) { mutableIntStateOf(0) }
     var consecutiveSuccesses by remember(lesson.id, step.id) { mutableIntStateOf(0) }
-    var answerRevealingHintUsed by remember(lesson.id, step.id) { mutableStateOf(false) }
+    var activityVersion by remember(lesson.id, step.id) { mutableIntStateOf(0) }
+    var answerRevealingHintUsed by remember(lesson.id, step.id) {
+        val initialLevel = lesson.pedagogy?.visualGuidance?.defaultLevel ?: 2
+        val initialHint = step.scaffolding?.let { scaffold ->
+            when (initialLevel) {
+                1 -> scaffold.level1
+                3 -> scaffold.level3
+                else -> scaffold.level2
+            }
+        }
+        mutableStateOf(initialHint?.revealsAnswer == true)
+    }
 
     LaunchedEffect(step.id, evaluation.isComplete) {
         val skillId = step.skillId
@@ -254,10 +265,11 @@ fun LessonPlayerScreen(
         }
     }
 
-    LaunchedEffect(step.id) {
+    LaunchedEffect(step.id, activityVersion, evaluation.isComplete) {
         val seconds = lesson.pedagogy?.visualGuidance?.inactivitySuggestionSeconds ?: 8
         delay(seconds * 1000L)
-        if (lesson.pedagogy?.visualGuidance?.automaticSuggestionsEnabled == true &&
+        if (!evaluation.isComplete &&
+            lesson.pedagogy?.visualGuidance?.automaticSuggestionsEnabled == true &&
             scaffoldingSuggestion == null
         ) scaffoldingSuggestion = (scaffoldingLevel - 1).coerceAtLeast(1)
     }
@@ -446,8 +458,14 @@ fun LessonPlayerScreen(
                     firstMidi = keyboardStart,
                     labelMode = 0,
                     enabled = pianoRunning && playable,
-                    onNoteOn = onNoteOn,
-                    onNoteOff = onNoteOff,
+                    onNoteOn = { note, velocity ->
+                        activityVersion++
+                        onNoteOn(note, velocity)
+                    },
+                    onNoteOff = { note ->
+                        activityVersion++
+                        onNoteOff(note)
+                    },
                     highlightedNotes = targetNotes.toSet(),
                     noteCount = keyboardCount,
                     modifier = Modifier.fillMaxWidth().height(150.dp)
