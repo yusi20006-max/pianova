@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,16 +51,20 @@ import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
 import ir.pianova.app.data.lesson.LessonRepository
+import ir.pianova.app.data.lesson.SkillAttemptStore
 import ir.pianova.app.domain.evaluation.EvaluationEngine
 import ir.pianova.app.domain.evaluation.EvaluationSession
 import ir.pianova.app.domain.evaluation.EvaluationState
 import ir.pianova.app.domain.evaluation.EvaluationStatus
 import ir.pianova.app.domain.lesson.flattenedSteps
+import ir.pianova.app.domain.lesson.SkillAttempt
 import ir.pianova.app.domain.lesson.previewNotesAt
 import ir.pianova.app.domain.lesson.targetMidiNotes
 import ir.pianova.app.domain.model.Lesson
 import ir.pianova.app.domain.model.LessonStep
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import java.util.UUID
 
 @Composable
 fun LessonListScreen(
@@ -155,6 +160,9 @@ fun LessonPlayerScreen(
     onPlayReferenceNotes: (List<Int>, Long) -> Unit,
     onExit: () -> Unit
 ) {
+    val context = LocalContext.current
+    val attemptStore = remember(context) { SkillAttemptStore(context.applicationContext) }
+    val masterySessionId = remember(lesson.id, startChapterId) { UUID.randomUUID().toString() }
     val entries = remember(lesson) { lesson.flattenedSteps() }
     val startIndex = remember(lesson.id, startChapterId, entries) {
         entries.indexOfFirst { it.chapterId == startChapterId }.takeIf { it >= 0 } ?: 0
@@ -162,6 +170,7 @@ fun LessonPlayerScreen(
     var stepIndex by remember(lesson.id, startChapterId) { mutableIntStateOf(startIndex) }
     var completedStepIds by remember(lesson.id, startChapterId) { mutableStateOf(emptySet<String>()) }
     var showCompleteDialog by remember(lesson.id, startChapterId) { mutableStateOf(false) }
+    var masteryRefresh by remember(lesson.id) { mutableIntStateOf(0) }
 
     val entry = entries.getOrNull(stepIndex)
     if (entry == null) {
@@ -198,11 +207,77 @@ fun LessonPlayerScreen(
     }
     val evaluationFlow = session?.state ?: fallbackState
     val evaluation by evaluationFlow.collectAsState()
+    var scaffoldingLevel by remember(lesson.id, step.id) {
+        mutableIntStateOf(lesson.pedagogy?.visualGuidance?.defaultLevel ?: 2)
+    }
+    var scaffoldingSuggestion by remember(lesson.id, step.id) { mutableStateOf<Int?>(null) }
+    var consecutiveErrors by remember(lesson.id) { mutableIntStateOf(0) }
+    var consecutiveSuccesses by remember(lesson.id) { mutableIntStateOf(0) }
+    var activityVersion by remember(lesson.id, step.id) { mutableIntStateOf(0) }
+    var answerRevealingHintUsed by remember(lesson.id, step.id) {
+        val initialLevel = lesson.pedagogy?.visualGuidance?.defaultLevel ?: 2
+        val initialHint = step.scaffolding?.let { scaffold ->
+            when (initialLevel) {
+                1 -> scaffold.level1
+                3 -> scaffold.level3
+                else -> scaffold.level2
+            }
+        }
+        mutableStateOf(initialHint?.revealsAnswer == true)
+    }
+
+    LaunchedEffect(step.id, evaluation.isComplete) {
+        val skillId = step.skillId
+        if (evaluation.isComplete && !skillId.isNullOrBlank()) {
+            attemptStore.record(
+                SkillAttempt(
+                    attemptId = UUID.randomUUID().toString(),
+                    sessionId = masterySessionId,
+                    lessonId = lesson.id,
+                    skillId = skillId,
+                    successful = true,
+                    answerRevealingHintUsed = answerRevealingHintUsed,
+                    occurredAtEpochMillis = System.currentTimeMillis()
+                )
+            )
+            masteryRefresh++
+        }
+    }
+
+    LaunchedEffect(step.id, evaluation.status, evaluation.receivedNotes.size) {
+        val settings = lesson.pedagogy?.visualGuidance
+        when (evaluation.status) {
+            EvaluationStatus.CORRECT -> {
+                consecutiveSuccesses++
+                consecutiveErrors = 0
+                if (settings?.automaticSuggestionsEnabled == true &&
+                    consecutiveSuccesses >= settings.suggestLessHelpAfterConsecutiveSuccesses
+                ) scaffoldingSuggestion = (scaffoldingLevel + 1).coerceAtMost(3)
+            }
+            EvaluationStatus.WRONG_NOTE, EvaluationStatus.MISSING_NOTE, EvaluationStatus.EXTRA_NOTE -> {
+                consecutiveErrors++
+                consecutiveSuccesses = 0
+                if (settings?.automaticSuggestionsEnabled == true &&
+                    consecutiveErrors >= settings.suggestMoreHelpAfterConsecutiveErrors
+                ) scaffoldingSuggestion = (scaffoldingLevel - 1).coerceAtLeast(1)
+            }
+            else -> Unit
+        }
+    }
+
+    LaunchedEffect(step.id, activityVersion, evaluation.isComplete) {
+        val seconds = lesson.pedagogy?.visualGuidance?.inactivitySuggestionSeconds ?: 8
+        delay(seconds * 1000L)
+        if (!evaluation.isComplete &&
+            lesson.pedagogy?.visualGuidance?.automaticSuggestionsEnabled == true &&
+            scaffoldingSuggestion == null
+        ) scaffoldingSuggestion = (scaffoldingLevel - 1).coerceAtLeast(1)
+    }
 
     LaunchedEffect(lesson.id, pianoReady) {
         if (pianoReady && !pianoRunning) onPianoStart()
     }
-    val targetNotes = when (step) {
+    val targetNotes = if (step.skillId != null) emptyList() else when (step) {
         is LessonStep.Explanation -> entries.previewNotesAt(stepIndex)
         is LessonStep.Listen -> step.midiNotes
         is LessonStep.PlayNote, is LessonStep.PlaySequence, is LessonStep.PlayChord ->
@@ -213,6 +288,12 @@ fun LessonPlayerScreen(
         .coerceAtLeast(12).coerceAtMost(24)
     val progress = (stepIndex + 1).toFloat() / entries.size.coerceAtLeast(1)
     val canAdvance = !playable || evaluation.isComplete
+    val requiredSkillIds = entries.mapNotNull { it.step.skillId }.toSet()
+    val masteredSkillIds = remember(lesson.id, masteryRefresh, requiredSkillIds) {
+        lesson.masteryCriteria?.let { criteria ->
+            attemptStore.masteredSkillIds(lesson.id, requiredSkillIds, criteria)
+        }.orEmpty()
+    }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
@@ -268,7 +349,47 @@ fun LessonPlayerScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = PianovaGreen
                     )
-                    Text(step.title, style = MaterialTheme.typography.headlineSmall, color = PianovaInk, fontWeight = FontWeight.Bold)
+                    Text(step.displayText ?: step.title, style = MaterialTheme.typography.headlineSmall, color = PianovaInk, fontWeight = FontWeight.Bold)
+                    step.scaffolding?.let { scaffolding ->
+                        val selectedHint = when (scaffoldingLevel) {
+                            1 -> scaffolding.level1
+                            3 -> scaffolding.level3
+                            else -> scaffolding.level2
+                        }
+                        if (lesson.pedagogy?.visualGuidance?.manualSelectionEnabled != false) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                (1..3).forEach { level ->
+                                    TextButton(onClick = {
+                                        scaffoldingLevel = level
+                                        scaffoldingSuggestion = null
+                                        val hint = when (level) {
+                                            1 -> scaffolding.level1
+                                            3 -> scaffolding.level3
+                                            else -> scaffolding.level2
+                                        }
+                                        if (hint.revealsAnswer) answerRevealingHintUsed = true
+                                    }) { Text("راهنمایی $level") }
+                                }
+                            }
+                        }
+                        Text(selectedHint.hintText, style = MaterialTheme.typography.bodyMedium, color = PianovaMuted)
+                        scaffoldingSuggestion?.let { suggested ->
+                            TextButton(onClick = {
+                                scaffoldingLevel = suggested
+                                scaffoldingSuggestion = null
+                                val hint = when (suggested) {
+                                    1 -> scaffolding.level1
+                                    3 -> scaffolding.level3
+                                    else -> scaffolding.level2
+                                }
+                                if (hint.revealsAnswer) answerRevealingHintUsed = true
+                            }) { Text("پیشنهاد تغییر به سطح $suggested") }
+                        }
+                    }
                     when (step) {
                         is LessonStep.Explanation -> {
                             Text(step.body, style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
@@ -290,7 +411,9 @@ fun LessonPlayerScreen(
                             }
                         }
                         is LessonStep.PlayNote -> {
-                            Text("نت هدف را بنواز: ${midiNoteLabel(step.midiNote)}", style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
+                            if (step.skillId == null) {
+                                Text("نت هدف را بنواز: ${midiNoteLabel(step.midiNote)}", style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
+                            }
                             if (step.repetitionCount > 1) Text("تعداد تکرار: ${step.repetitionCount}", color = PianovaMuted)
                         }
                         is LessonStep.PlaySequence -> {
@@ -337,8 +460,14 @@ fun LessonPlayerScreen(
                     firstMidi = keyboardStart,
                     labelMode = 0,
                     enabled = pianoRunning && playable,
-                    onNoteOn = onNoteOn,
-                    onNoteOff = onNoteOff,
+                    onNoteOn = { note, velocity ->
+                        activityVersion++
+                        onNoteOn(note, velocity)
+                    },
+                    onNoteOff = { note ->
+                        activityVersion++
+                        onNoteOff(note)
+                    },
                     highlightedNotes = targetNotes.toSet(),
                     noteCount = keyboardCount,
                     modifier = Modifier.fillMaxWidth().height(150.dp)
@@ -374,7 +503,7 @@ fun LessonPlayerScreen(
             onDismissRequest = { showCompleteDialog = false },
             title = { Text("درس را به پایان رساندی!") },
             text = {
-                Text("در این جلسه ${completedStepIds.size} مرحله را تکمیل کردی. پیشرفت بلندمدت پس از آماده‌شدن ذخیره‌سازی محلی ثبت خواهد شد.")
+                Text("در این جلسه ${completedStepIds.size} مرحله را تکمیل کردی. تسلط ثبت‌شده: ${masteredSkillIds.size} از ${requiredSkillIds.size} مهارت.")
             },
             confirmButton = {
                 Button(onClick = onExit) { Text("بازگشت به درس‌ها") }

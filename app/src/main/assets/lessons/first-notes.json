@@ -1,112 +1,114 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "first-notes",
   "title": "کلیدهای سفید و سیاه",
-  "description": "الگوی دو و سه کلید سیاه را پیدا کن و تفاوت کلیدهای سفید و سیاه را بشناس.",
+  "description": "با شنیدن و پیدا کردن کلیدهای سفید و سیاه، الگوی صفحه‌کلید پیانو را بشناس.",
+  "language": "fa-IR",
+  "pedagogy": {
+    "teacherPersonality": "adaptive",
+    "learningPace": "adaptive",
+    "notationProgression": "gradual",
+    "waitModeByDefault": true,
+    "visualGuidance": {
+      "automaticSuggestionsEnabled": true,
+      "manualSelectionEnabled": true,
+      "defaultLevel": 2,
+      "suggestMoreHelpAfterConsecutiveErrors": 2,
+      "suggestLessHelpAfterConsecutiveSuccesses": 2,
+      "inactivitySuggestionSeconds": 8
+    }
+  },
+  "completionCriteria": {
+    "minimumAccuracyPercent": 80,
+    "requireAllSteps": true
+  },
+  "masteryCriteria": {
+    "successfulIndependentAttempts": 3,
+    "minimumDistinctSessions": 2
+  },
   "chapters": [
     {
       "id": "chapter-1-keyboard",
       "title": "فصل اول: آشنایی با پیانو",
-      "description": "صفحه‌کلید پیانو از الگوهای تکرارشونده ساخته شده است.",
+      "description": "الگوی کلیدهای سفید و سیاه را بشناس.",
       "steps": [
         {
           "type": "explanation",
           "id": "keyboard-pattern-intro",
           "title": "الگوی کلیدهای پیانو",
-          "body": "به صفحه‌کلید نگاه کن. کلیدهای سفید در یک ردیف قرار دارند و کلیدهای سیاه به شکل گروه‌های دوتایی و سه‌تایی تکرار می‌شوند. با پیدا کردن این گروه‌ها می‌توانی نت‌ها را راحت‌تر بشناسی."
+          "displayText": "کلیدهای سفید و سیاه چه الگویی دارند؟",
+          "narrationText": "به صفحه‌کلید پیانو نگاه کن. کلیدهای سیاه در گروه‌های دوتایی و سه‌تایی تکرار می‌شوند و کلیدهای سفید میان آن‌ها قرار دارند.",
+          "body": "کلیدهای سیاه به شکل گروه‌های دوتایی و سه‌تایی تکرار می‌شوند. کلیدهای سفید در فاصله میان آن‌ها قرار دارند."
         },
         {
           "type": "listen",
-          "id": "hear-two-black-keys",
-          "title": "دو کلید سیاه را بشنو",
-          "prompt": "به دو صدای کوتاه گروه دوتایی گوش کن. این دو کلید کنار هم قرار دارند.",
-          "midiNotes": [
-            61,
-            63
-          ],
-          "noteDurationMs": 650
-        },
-        {
-          "type": "play_sequence",
-          "id": "play-two-black-keys",
-          "title": "گروه دوتایی را بنواز",
-          "midiNotes": [
-            61,
-            63
-          ],
-          "tempoBpm": 70
-        },
-        {
-          "type": "explanation",
-          "id": "three-black-keys-intro",
-          "title": "حالا گروه سه‌تایی",
-          "body": "کمی جلوتر سه کلید سیاه کنار هم می‌بینی. این گروه هم مرتب در طول پیانو تکرار می‌شود. به صدای هر سه کلید گوش کن و جای آن‌ها را پیدا کن."
-        },
-        {
-          "type": "listen",
-          "id": "hear-three-black-keys",
-          "title": "سه کلید سیاه را بشنو",
-          "prompt": "این بار سه نت گروه سه‌تایی را به ترتیب بشنو.",
-          "midiNotes": [
-            66,
-            68,
-            70
-          ],
-          "noteDurationMs": 600
-        },
-        {
-          "type": "play_sequence",
-          "id": "play-three-black-keys",
-          "title": "گروه سه‌تایی را بنواز",
-          "midiNotes": [
-            66,
-            68,
-            70
-          ],
-          "tempoBpm": 70
-        },
-        {
-          "type": "explanation",
-          "id": "white-keys-intro",
-          "title": "کلیدهای سفید",
-          "body": "بین گروه‌های سیاه، کلیدهای سفید قرار دارند. نت‌های سفید پشت سر هم نام‌های دو، ر، می، فا، سل، لا و سی دارند. فعلاً فقط به صدای پیوسته آن‌ها گوش کن."
-        },
-        {
-          "type": "listen",
-          "id": "hear-white-key-row",
-          "title": "هفت کلید سفید را بشنو",
+          "id": "hear-white-keys",
+          "title": "صدای کلیدهای سفید",
+          "displayText": "به صدای هفت کلید سفید گوش کن.",
+          "narrationText": "ابتدا صدای هفت کلید سفید را از بم به زیر بشنو. به فاصله میان صداها توجه کن.",
           "prompt": "هفت نت سفید را از بم به زیر بشنو.",
-          "midiNotes": [
-            60,
-            62,
-            64,
-            65,
-            67,
-            69,
-            71
-          ],
+          "midiNotes": [60, 62, 64, 65, 67, 69, 71],
           "noteDurationMs": 420
         },
         {
-          "type": "play_sequence",
-          "id": "play-white-key-row",
-          "title": "هفت کلید سفید را بنواز",
-          "midiNotes": [
-            60,
-            62,
-            64,
-            65,
-            67,
-            69,
-            71
-          ],
-          "tempoBpm": 65
+          "type": "listen",
+          "id": "hear-black-keys",
+          "title": "صدای کلیدهای سیاه",
+          "displayText": "به صدای گروه‌های دوتایی و سه‌تایی کلیدهای سیاه گوش کن.",
+          "narrationText": "حالا صدای کلیدهای سیاه را بشنو. ابتدا دو کلید کنار هم و سپس گروه سه‌تایی را دنبال کن.",
+          "prompt": "به دو نت گروه دوتایی و سه نت گروه سه‌تایی گوش کن.",
+          "midiNotes": [61, 63, 66, 68, 70],
+          "noteDurationMs": 520
+        },
+        {
+          "type": "play_note",
+          "id": "find-white-key",
+          "title": "یک کلید سفید پیدا کن",
+          "displayText": "روی پیانو یک کلید سفید را پیدا کن و بنواز.",
+          "narrationText": "یک کلید سفید را روی صفحه‌کلید پیدا کن و فقط همان کلید را بنواز.",
+          "skillId": "identify-white-keys",
+          "scaffolding": {
+            "level1": {
+              "hintText": "کلید دو را پیدا کن. این یک کلید سفید است.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "به کلیدهای سفید کنار گروه دوتایی کلیدهای سیاه نگاه کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "به الگوی کلیدهای سیاه توجه کن و یک کلید سفید انتخاب کن.",
+              "revealsAnswer": false
+            }
+          },
+          "midiNote": 60,
+          "acceptedPitchClasses": [0, 2, 4, 5, 7, 9, 11]
+        },
+        {
+          "type": "play_note",
+          "id": "find-black-key",
+          "title": "یک کلید سیاه پیدا کن",
+          "displayText": "روی پیانو یک کلید سیاه را پیدا کن و بنواز.",
+          "narrationText": "حالا یک کلید سیاه را روی صفحه‌کلید پیدا کن و بنواز. به گروه‌های دوتایی و سه‌تایی توجه کن.",
+          "skillId": "identify-black-keys",
+          "scaffolding": {
+            "level1": {
+              "hintText": "کلید دو دیز را پیدا کن. این یک کلید سیاه است.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "کلیدهای سیاه را در گروه دوتایی یا سه‌تایی پیدا کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "از الگوی کلیدهای سیاه برای پیدا کردن یکی از آن‌ها کمک بگیر.",
+              "revealsAnswer": false
+            }
+          },
+          "midiNote": 61,
+          "acceptedPitchClasses": [1, 3, 6, 8, 10]
         }
       ]
     }
-  ],
-  "completionCriteria": {
-    "minimumAccuracyPercent": 80,
-    "requireAllSteps": true
-  }
+  ]
 }
