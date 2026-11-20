@@ -52,10 +52,9 @@ jobs:
       - name: Run EvaluationEngine tests
         run: timeout 7m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --tests 'ir.pianova.app.domain.evaluation.EvaluationEngineTest' --info --stacktrace
 
-      # Keep input, parser, and lesson-navigation logic isolated from the
-      # evaluator suite while still running every unit test class explicitly.
-      - name: Run MIDI, lesson parser, and lesson navigation tests
-        run: timeout 7m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --tests 'ir.pianova.app.core.midi.VirtualKeyboardInputTest' --tests 'ir.pianova.app.data.lesson.JsonLessonParserTest' --tests 'ir.pianova.app.domain.lesson.LessonProgressTest' --tests 'ir.pianova.app.data.lesson.BundledLessonContentTest' --info --stacktrace
+      # Keep input, parser, lesson-navigation, and voice selection tests explicit.
+      - name: Run MIDI, lesson, and voice coach tests
+        run: timeout 7m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --tests 'ir.pianova.app.core.midi.VirtualKeyboardInputTest' --tests 'ir.pianova.app.data.lesson.JsonLessonParserTest' --tests 'ir.pianova.app.domain.lesson.LessonProgressTest' --tests 'ir.pianova.app.data.lesson.BundledLessonContentTest' --tests 'ir.pianova.app.core.voice.LessonNarrationTextTest' --tests 'ir.pianova.app.core.voice.LessonVoiceEngineTest' --info --stacktrace
 
       - name: Build debug APK
         run: gradle --no-daemon --console=plain assembleDebug --stacktrace
