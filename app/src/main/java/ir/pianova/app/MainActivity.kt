@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
     private var engineStatus by mutableStateOf("در حال آماده‌سازی بانک صدای پیانو…")
     private var engineReady by mutableStateOf(false)
     private var engineRunning by mutableStateOf(false)
+    private var outputVolume = 0.8f
     private var previousOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private val audioOperationMutex = Mutex()
     private var isInForeground = false
@@ -48,7 +49,7 @@ class MainActivity : ComponentActivity() {
                         onNoteOn = { note, velocity -> audioEngine?.noteOn(note, velocity) == true },
                         onNoteOff = { note -> audioEngine?.noteOff(note) },
                         onSustain = { enabled -> audioEngine?.setSustain(enabled) },
-                        onVolume = { volume -> audioEngine?.setVolume(volume) }
+                        onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) }
                     )
                 }
             }
@@ -91,7 +92,7 @@ class MainActivity : ComponentActivity() {
                     false
                 } else {
                     withContext(Dispatchers.IO) {
-                        engine.start().also { if (it) engine.setVolume(0.8f) }
+                        engine.start().also { if (it) engine.setVolume(outputVolume) }
                     }.also { opened ->
                         if (opened && !isInForeground) {
                             withContext(Dispatchers.IO) {
