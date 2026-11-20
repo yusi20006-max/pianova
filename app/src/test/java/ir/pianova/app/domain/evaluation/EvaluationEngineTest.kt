@@ -75,6 +75,26 @@ class EvaluationEngineTest {
     }
 
     @Test
+    fun exactMidiSkillRejectsSamePitchClassInAnotherOctave() = runBlocking {
+        val input = FakePianoInput()
+        val session = EvaluationEngine(input).start(
+            LessonStep.PlayNote(
+                id = "middle-c-only",
+                title = "دو میانی",
+                midiNote = 60,
+                acceptedMidiNotes = listOf(60)
+            ),
+            this
+        )
+        yield()
+        input.emit(PianoEvent.NoteOn(72, 0.8f, 1L))
+        assertEquals(EvaluationStatus.WRONG_NOTE, awaitStatus(session, EvaluationStatus.WRONG_NOTE).status)
+        input.emit(PianoEvent.NoteOff(72, 2L))
+        input.emit(PianoEvent.NoteOn(60, 0.8f, 3L))
+        assertTrue(awaitStatus(session, EvaluationStatus.CORRECT).isComplete)
+    }
+
+    @Test
     fun blackKeySkillAcceptsAllBlackPitchClasses() = runBlocking {
         val input = FakePianoInput()
         val session = EvaluationEngine(input).start(
