@@ -253,6 +253,12 @@ fun LessonPlayerScreen(
                 )
             }
 
+            LessonVoiceControls(
+                step = step,
+                feedback = if (playable) evaluation.feedbackFa else null,
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Card(
                 modifier = Modifier.weight(1f, fill = false).fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
