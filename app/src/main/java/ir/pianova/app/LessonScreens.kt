@@ -59,6 +59,7 @@ import ir.pianova.app.domain.lesson.previewNotesAt
 import ir.pianova.app.domain.lesson.targetMidiNotes
 import ir.pianova.app.domain.model.Lesson
 import ir.pianova.app.domain.model.LessonStep
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 
 @Composable
@@ -198,6 +199,42 @@ fun LessonPlayerScreen(
     }
     val evaluationFlow = session?.state ?: fallbackState
     val evaluation by evaluationFlow.collectAsState()
+    var scaffoldingLevel by remember(lesson.id, step.id) {
+        mutableIntStateOf(lesson.pedagogy?.visualGuidance?.defaultLevel ?: 2)
+    }
+    var scaffoldingSuggestion by remember(lesson.id, step.id) { mutableStateOf<Int?>(null) }
+    var consecutiveErrors by remember(lesson.id, step.id) { mutableIntStateOf(0) }
+    var consecutiveSuccesses by remember(lesson.id, step.id) { mutableIntStateOf(0) }
+    var answerRevealingHintUsed by remember(lesson.id, step.id) { mutableStateOf(false) }
+
+    LaunchedEffect(step.id, evaluation.status) {
+        val settings = lesson.pedagogy?.visualGuidance
+        when (evaluation.status) {
+            EvaluationStatus.CORRECT -> {
+                consecutiveSuccesses++
+                consecutiveErrors = 0
+                if (settings?.automaticSuggestionsEnabled == true &&
+                    consecutiveSuccesses >= settings.suggestLessHelpAfterConsecutiveSuccesses
+                ) scaffoldingSuggestion = (scaffoldingLevel + 1).coerceAtMost(3)
+            }
+            EvaluationStatus.WRONG_NOTE, EvaluationStatus.MISSING_NOTE, EvaluationStatus.EXTRA_NOTE -> {
+                consecutiveErrors++
+                consecutiveSuccesses = 0
+                if (settings?.automaticSuggestionsEnabled == true &&
+                    consecutiveErrors >= settings.suggestMoreHelpAfterConsecutiveErrors
+                ) scaffoldingSuggestion = (scaffoldingLevel - 1).coerceAtLeast(1)
+            }
+            else -> Unit
+        }
+    }
+
+    LaunchedEffect(step.id) {
+        val seconds = lesson.pedagogy?.visualGuidance?.inactivitySuggestionSeconds ?: 8
+        delay(seconds * 1000L)
+        if (lesson.pedagogy?.visualGuidance?.automaticSuggestionsEnabled == true &&
+            scaffoldingSuggestion == null
+        ) scaffoldingSuggestion = (scaffoldingLevel - 1).coerceAtLeast(1)
+    }
 
     LaunchedEffect(lesson.id, pianoReady) {
         if (pianoReady && !pianoRunning) onPianoStart()
@@ -268,7 +305,47 @@ fun LessonPlayerScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = PianovaGreen
                     )
-                    Text(step.title, style = MaterialTheme.typography.headlineSmall, color = PianovaInk, fontWeight = FontWeight.Bold)
+                    Text(step.displayText ?: step.title, style = MaterialTheme.typography.headlineSmall, color = PianovaInk, fontWeight = FontWeight.Bold)
+                    step.scaffolding?.let { scaffolding ->
+                        val selectedHint = when (scaffoldingLevel) {
+                            1 -> scaffolding.level1
+                            3 -> scaffolding.level3
+                            else -> scaffolding.level2
+                        }
+                        if (lesson.pedagogy?.visualGuidance?.manualSelectionEnabled != false) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                (1..3).forEach { level ->
+                                    TextButton(onClick = {
+                                        scaffoldingLevel = level
+                                        scaffoldingSuggestion = null
+                                        val hint = when (level) {
+                                            1 -> scaffolding.level1
+                                            3 -> scaffolding.level3
+                                            else -> scaffolding.level2
+                                        }
+                                        if (hint.revealsAnswer) answerRevealingHintUsed = true
+                                    }) { Text("راهنمایی $level") }
+                                }
+                            }
+                        }
+                        Text(selectedHint.hintText, style = MaterialTheme.typography.bodyMedium, color = PianovaMuted)
+                        scaffoldingSuggestion?.let { suggested ->
+                            TextButton(onClick = {
+                                scaffoldingLevel = suggested
+                                scaffoldingSuggestion = null
+                                val hint = when (suggested) {
+                                    1 -> scaffolding.level1
+                                    3 -> scaffolding.level3
+                                    else -> scaffolding.level2
+                                }
+                                if (hint.revealsAnswer) answerRevealingHintUsed = true
+                            }) { Text("پیشنهاد تغییر به سطح $suggested") }
+                        }
+                    }
                     when (step) {
                         is LessonStep.Explanation -> {
                             Text(step.body, style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
