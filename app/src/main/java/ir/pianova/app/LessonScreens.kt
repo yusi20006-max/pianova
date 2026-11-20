@@ -376,7 +376,7 @@ fun LessonPlayerScreen(
             onDismissRequest = { showCompleteDialog = false },
             title = { Text("درس را به پایان رساندی!") },
             text = {
-                Text("همه ${completedStepIds.size} مرحله این درس در این جلسه تکمیل شد. پیشرفت بلندمدت پس از آماده‌شدن ذخیره‌سازی محلی ثبت خواهد شد.")
+                Text("در این جلسه ${completedStepIds.size} مرحله را تکمیل کردی. پیشرفت بلندمدت پس از آماده‌شدن ذخیره‌سازی محلی ثبت خواهد شد.")
             },
             confirmButton = {
                 Button(onClick = onExit) { Text("بازگشت به درس‌ها") }
