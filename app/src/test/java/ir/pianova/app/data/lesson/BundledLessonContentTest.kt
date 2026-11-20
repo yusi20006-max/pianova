@@ -64,12 +64,19 @@ class BundledLessonContentTest {
         )
 
         val keyboard = lesson("first-notes")
-        val blackKeySequences = keyboard.chapters.flatMap { it.steps }
-            .filterIsInstance<LessonStep.PlaySequence>()
-            .map { it.midiNotes }
-        assertTrue(listOf(61, 63) in blackKeySequences)
-        assertTrue(listOf(66, 68, 70) in blackKeySequences)
-        assertTrue(listOf(60, 62, 64, 65, 67, 69, 71) in blackKeySequences)
+        val keyboardSteps = keyboard.chapters.flatMap { it.steps }
+        assertEquals(2, keyboard.schemaVersion)
+        assertEquals(5, keyboardSteps.size)
+        assertEquals(
+            setOf("identify-white-keys", "identify-black-keys"),
+            keyboardSteps.mapNotNull { it.skillId }.toSet()
+        )
+        assertTrue(keyboardSteps.filterIsInstance<LessonStep.Listen>().any {
+            it.midiNotes == listOf(60, 62, 64, 65, 67, 69, 71)
+        })
+        assertTrue(keyboardSteps.filterIsInstance<LessonStep.Listen>().any {
+            it.midiNotes == listOf(61, 63, 66, 68, 70)
+        })
 
         val middleC = lesson("lesson-02-middle-c")
         assertTrue(middleC.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlayNote>().any { it.midiNote == 60 })
