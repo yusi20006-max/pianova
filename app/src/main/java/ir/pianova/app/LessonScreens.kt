@@ -71,6 +71,11 @@ fun LessonListScreen(
             runCatching { repository.getLesson(id) }.getOrNull()
         }
     }
+    val chapterGroups = remember(lessons) {
+        lessons.flatMap { lesson ->
+            lesson.chapters.map { chapter -> lesson to chapter }
+        }.groupBy { (_, chapter) -> chapter.title }
+    }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         if (lessons.isEmpty()) {
@@ -94,20 +99,17 @@ fun LessonListScreen(
                         Text("درس‌ها را فصل‌به‌فصل پیش ببر و هر نت را با پیانو تجربه کن.", color = PianovaMuted, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-                lessons.forEach { lesson ->
-                    item(key = "lesson-${lesson.id}") {
+                chapterGroups.forEach { (chapterTitle, entries) ->
+                    item(key = "chapter-$chapterTitle") {
                         Text(
-                            lesson.title,
+                            chapterTitle,
                             style = MaterialTheme.typography.titleLarge,
                             color = PianovaGreen,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 8.dp)
+                            modifier = Modifier.padding(top = 12.dp)
                         )
-                        lesson.description?.let {
-                            Text(it, style = MaterialTheme.typography.bodyMedium, color = PianovaMuted)
-                        }
                     }
-                    items(lesson.chapters, key = { "${lesson.id}-${it.id}" }) { chapter ->
+                    items(entries, key = { (lesson, chapter) -> "${lesson.id}-${chapter.id}" }) { (lesson, chapter) ->
                         Card(
                             onClick = { onStartChapter(lesson.id, chapter.id) },
                             modifier = Modifier.fillMaxWidth(),
@@ -119,8 +121,8 @@ fun LessonListScreen(
                                 modifier = Modifier.fillMaxWidth().padding(18.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(chapter.title, style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.SemiBold)
-                                chapter.description?.let {
+                                Text(lesson.title, style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.SemiBold)
+                                lesson.description?.let {
                                     Text(it, style = MaterialTheme.typography.bodySmall, color = PianovaMuted)
                                 }
                                 Row(
@@ -129,7 +131,7 @@ fun LessonListScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("${chapter.steps.size} مرحله آموزشی", style = MaterialTheme.typography.labelMedium, color = PianovaMuted)
-                                    Text("شروع فصل  ←", style = MaterialTheme.typography.labelLarge, color = PianovaGreen)
+                                    Text("شروع درس  ←", style = MaterialTheme.typography.labelLarge, color = PianovaGreen)
                                 }
                             }
                         }
