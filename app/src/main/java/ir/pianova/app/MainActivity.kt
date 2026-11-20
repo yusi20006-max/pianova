@@ -115,7 +115,7 @@ class MainActivity : ComponentActivity() {
         val engine = audioEngine ?: return
         lifecycleScope.launch {
             val started = withContext(Dispatchers.IO) {
-                engine.start() && engine.setVolume(0.8f)
+                engine.start().also { if (it) engine.setVolume(0.8f) }
             }
             engineRunning = started
             engineStatus = if (started) {
@@ -238,9 +238,7 @@ private fun AudioEngineTestScreen(
                         black = isBlack,
                         enabled = running,
                         onPress = {
-                            if (onNoteOn(note, if (isBlack) 0.72f else 0.82f)) {
-                                onNoteOff(note)
-                            }
+                            onNoteOn(note, if (isBlack) 0.72f else 0.82f)
                         },
                         onRelease = { onNoteOff(note) }
                     )
