@@ -42,7 +42,10 @@ class BundledLessonContentTest {
         }
 
         lessons.forEach { lesson ->
+            assertEquals(2, lesson.schemaVersion)
             val steps = lesson.chapters.flatMap { it.steps }
+            assertTrue("${lesson.id} needs explicit display text on every step", steps.all { !it.displayText.isNullOrBlank() })
+            assertTrue("${lesson.id} needs explicit narration text on every step", steps.all { !it.narrationText.isNullOrBlank() })
             assertTrue("${lesson.id} needs an explanation", steps.any { it is LessonStep.Explanation })
             assertTrue("${lesson.id} needs a listen step", steps.any { it is LessonStep.Listen })
             assertTrue(
@@ -79,7 +82,9 @@ class BundledLessonContentTest {
         })
 
         val middleC = lesson("lesson-02-middle-c")
-        assertTrue(middleC.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlayNote>().any { it.midiNote == 60 })
+        val middleCSteps = middleC.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlayNote>()
+        assertTrue(middleCSteps.any { it.midiNote == 60 })
+        assertTrue(middleCSteps.all { it.skillId == "find-middle-c" && it.acceptedMidiNotes == listOf(60) })
 
         val doReMi = lesson("lesson-03-do-re-mi")
         assertTrue(doReMi.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlaySequence>().any { it.midiNotes == listOf(60, 62, 64) })
