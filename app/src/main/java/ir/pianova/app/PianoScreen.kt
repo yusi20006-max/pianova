@@ -2,7 +2,6 @@ package ir.pianova.app
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitPointerEvent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,8 +37,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
@@ -195,6 +193,7 @@ private fun PianoPlayableKeys(
     val currentEnabled by rememberUpdatedState(enabled)
     val currentStart by rememberUpdatedState(firstMidi)
     val currentLabelMode by rememberUpdatedState(labelMode)
+    val pressedNotes = remember { mutableStateMapOf<Int, Int>() }
 
     Canvas(
         modifier = modifier
@@ -202,6 +201,15 @@ private fun PianoPlayableKeys(
             .padding(3.dp)
             .pointerInput(enabled, firstMidi) {
                 val active = mutableMapOf<PointerId, Int>()
+                fun release(note: Int) {
+                    val count = pressedNotes[note] ?: 0
+                    if (count <= 1) pressedNotes.remove(note) else pressedNotes[note] = count - 1
+                    currentOff(note)
+                }
+                fun press(note: Int, velocity: Float) {
+                    pressedNotes[note] = (pressedNotes[note] ?: 0) + 1
+                    currentOn(note, velocity)
+                }
                 fun noteAt(x: Float, y: Float, width: Float, height: Float): Int? {
                     val start = currentStart
                     val end = (start + 23).coerceAtMost(108)
@@ -233,28 +241,28 @@ private fun PianoPlayableKeys(
                             event.changes.forEach { change ->
                                 val id = change.id
                                 if (!currentEnabled) {
-                                    active.remove(id)?.let(currentOff)
+                                    active.remove(id)?.let(::release)
                                     return@forEach
                                 }
                                 if (change.pressed) {
                                     val next = noteAt(change.position.x, change.position.y, w, h)
                                     val previous = active[id]
                                     if (next != previous) {
-                                        if (previous != null) currentOff(previous)
+                                        if (previous != null) release(previous)
                                         if (next != null) {
-                                            currentOn(next, if (next % 12 in blackPitchClasses) 0.72f else 0.82f)
+                                            press(next, if (next % 12 in blackPitchClasses) 0.72f else 0.82f)
                                             active[id] = next
                                         } else active.remove(id)
                                     }
                                 } else {
                                     active.remove(id)?.let(currentOff)
                                 }
-                                if (change.positionChange() != Offset.Zero) change.consume()
+                                change.consume()
                             }
                         }
                     }
                 } finally {
-                    active.values.toSet().forEach(currentOff)
+                    active.values.toSet().forEach(::release)
                     active.clear()
                 }
             }
@@ -274,7 +282,7 @@ private fun PianoPlayableKeys(
         }
         whites.forEachIndexed { index, note ->
             val left = index * whiteWidth
-            val pressed = false // pressed visuals are drawn by the pointer-owned overlay below.
+            val pressed = pressedNotes.containsKey(note)
             drawRoundRect(
                 color = if (pressed) PianoPressed else PianoWhite,
                 topLeft = Offset(left + 1f, 1f),
@@ -302,7 +310,7 @@ private fun PianoPlayableKeys(
             if (whiteIndex < 0) continue
             val left = (whiteIndex + 1) * whiteWidth - blackWidth / 2f
             drawRoundRect(
-                color = PianoBlack,
+                color = if (pressedNotes.containsKey(note)) PianoPressed else PianoBlack,
                 topLeft = Offset(left, 0f),
                 size = Size(blackWidth, blackHeight),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
