@@ -74,6 +74,7 @@ class JsonLessonParser(
             is LessonStep.PlayNote -> {
                 require(step.midiNote in 0..127) { "MIDI note must be between 0 and 127" }
                 require(step.durationMs > 0) { "Note duration must be positive" }
+                require(step.repetitionCount in 1..100) { "Repetition count must be between 1 and 100" }
             }
             is LessonStep.PlaySequence -> {
                 require(step.midiNotes.isNotEmpty()) { "Sequence must contain notes" }
