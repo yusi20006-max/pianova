@@ -208,6 +208,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.navigation:navigation-compose:2.8.3")
 
     // Low-latency audio (Phase 1 engine, Phase 0 smoke test).
     implementation("com.google.oboe:oboe:1.9.0")

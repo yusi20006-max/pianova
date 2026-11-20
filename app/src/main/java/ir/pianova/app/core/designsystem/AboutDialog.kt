@@ -76,7 +76,7 @@ fun AboutDialog(
             TextButton(onClick = onDismiss) {
                 Text(
                     text = "بستن",
-                    color = ElectricBlue
+                    color = PianovaGreen
                 )
             }
         }
