@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 
 struct tsf;
 
@@ -139,7 +140,11 @@ private:
         alignas(64) std::atomic<size_t> dequeuePosition_{0};
     };
 
+    bool startLocked();
     void applyPendingCommands() noexcept;
+    std::mutex streamMutex_;
+    std::atomic<bool> recoveryEnabled_{false};
+    std::atomic<float> currentVolume_{1.0f};
 
     static constexpr int kMaxVoices = 64;
     CommandQueue<256> commands_;

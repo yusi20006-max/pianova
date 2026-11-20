@@ -15,6 +15,8 @@ import ir.pianova.app.core.audio.OboePianoAudioEngine
 import ir.pianova.app.core.designsystem.PianovaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
@@ -23,7 +25,12 @@ class MainActivity : ComponentActivity() {
     private var engineStatus by mutableStateOf("در حال آماده‌سازی بانک صدای پیانو…")
     private var engineReady by mutableStateOf(false)
     private var engineRunning by mutableStateOf(false)
+    private var outputVolume = 0.8f
     private var previousOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    private val audioOperationMutex = Mutex()
+    private var isInForeground = false
+    private var audioStartPending = false
+    private var resumeAudioAfterPause = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,7 +49,7 @@ class MainActivity : ComponentActivity() {
                         onNoteOn = { note, velocity -> audioEngine?.noteOn(note, velocity) == true },
                         onNoteOff = { note -> audioEngine?.noteOff(note) },
                         onSustain = { enabled -> audioEngine?.setSustain(enabled) },
-                        onVolume = { volume -> audioEngine?.setVolume(volume) }
+                        onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) }
                     )
                 }
             }
@@ -78,41 +85,85 @@ class MainActivity : ComponentActivity() {
 
     private fun startAudioEngine() {
         val engine = audioEngine ?: return
+        audioStartPending = true
         lifecycleScope.launch {
-            val started = withContext(Dispatchers.IO) {
-                engine.start().also { if (it) engine.setVolume(0.8f) }
+            val started = audioOperationMutex.withLock {
+                if (!isInForeground || audioEngine !== engine) {
+                    false
+                } else {
+                    withContext(Dispatchers.IO) {
+                        engine.start().also { if (it) engine.setVolume(outputVolume) }
+                    }.also { opened ->
+                        if (opened && !isInForeground) {
+                            withContext(Dispatchers.IO) {
+                                engine.stopAllNotes()
+                                engine.stop()
+                            }
+                        }
+                    } && isInForeground
+                }
             }
-            engineRunning = started
-            engineStatus = if (started) "موتور فعال است؛ کلاویه‌ها را لمس کنید" else "شروع خروجی صوتی ناموفق بود"
+            audioStartPending = false
+            if (audioEngine === engine && isInForeground) {
+                engineRunning = started
+                engineStatus = if (started) {
+                    "موتور فعال است؛ کلاویه‌ها را لمس کنید"
+                } else {
+                    "شروع خروجی صوتی ناموفق بود"
+                }
+            }
         }
     }
 
     private fun stopAudioEngine() {
-        val engine = audioEngine ?: return
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                engine.stopAllNotes()
-                engine.stop()
-            }
+        stopAudioEngine("موتور متوقف است")
+    }
+
+    private fun stopAudioEngine(statusMessage: String) {
+        val engine = audioEngine ?: run {
             engineRunning = false
-            engineStatus = "موتور متوقف است"
+            return
+        }
+        engineRunning = false
+        lifecycleScope.launch {
+            audioOperationMutex.withLock {
+                withContext(Dispatchers.IO) {
+                    engine.stopAllNotes()
+                    engine.stop()
+                }
+            }
+            if (audioEngine === engine) engineStatus = statusMessage
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        isInForeground = true
+        if (resumeAudioAfterPause) {
+            resumeAudioAfterPause = false
+            startAudioEngine()
+        }
+    }
+
+    override fun onPause() {
+        isInForeground = false
+        if (engineRunning || audioStartPending) {
+            resumeAudioAfterPause = true
+            stopAudioEngine("با خروج برنامه از پیش‌زمینه، صدا متوقف شد")
+        }
+        super.onPause()
+    }
+
     override fun onStop() {
-        val engine = audioEngine
-        if (engine != null && engineRunning) {
-            engineRunning = false
-            lifecycleScope.launch(Dispatchers.IO) {
-                engine.stopAllNotes()
-                engine.stop()
-            }
-            engineStatus = "با رفتن برنامه به پس‌زمینه، صدا متوقف شد"
+        if (engineRunning || audioStartPending) {
+            stopAudioEngine("با رفتن برنامه به پس‌زمینه، صدا متوقف شد")
         }
         super.onStop()
     }
 
     override fun onDestroy() {
+        isInForeground = false
+        resumeAudioAfterPause = false
         val engine = audioEngine
         audioEngine = null
         if (engine != null) engine.close()

@@ -22,6 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,6 +85,13 @@ fun PianoScreen(
     var sustain by remember { mutableStateOf(false) }
     var volume by remember { mutableStateOf(0.8f) }
     var labelMode by remember { mutableStateOf(1) }
+
+    LaunchedEffect(running) {
+        if (!running && sustain) {
+            sustain = false
+            onSustain(false)
+        }
+    }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
@@ -203,13 +211,18 @@ private fun PianoPlayableKeys(
             .pointerInput(enabled, firstMidi) {
                 val active = mutableMapOf<PointerId, Int>()
                 fun release(note: Int) {
-                    val count = pressedNotes[note] ?: 0
-                    if (count <= 1) pressedNotes.remove(note) else pressedNotes[note] = count - 1
-                    currentOff(note)
+                    val count = pressedNotes[note] ?: return
+                    if (count <= 1) {
+                        pressedNotes.remove(note)
+                        currentOff(note)
+                    } else {
+                        pressedNotes[note] = count - 1
+                    }
                 }
                 fun press(note: Int, velocity: Float) {
-                    pressedNotes[note] = (pressedNotes[note] ?: 0) + 1
-                    currentOn(note, velocity)
+                    val count = pressedNotes[note] ?: 0
+                    pressedNotes[note] = count + 1
+                    if (count == 0) currentOn(note, velocity)
                 }
                 fun noteAt(x: Float, y: Float, width: Float, height: Float): Int? {
                     val start = currentStart
@@ -256,14 +269,14 @@ private fun PianoPlayableKeys(
                                         } else active.remove(id)
                                     }
                                 } else {
-                                    active.remove(id)?.let(currentOff)
+                                    active.remove(id)?.let(::release)
                                 }
                                 change.consume()
                             }
                         }
                     }
                 } finally {
-                    active.values.toSet().forEach(::release)
+                    active.values.forEach(::release)
                     active.clear()
                 }
             }
