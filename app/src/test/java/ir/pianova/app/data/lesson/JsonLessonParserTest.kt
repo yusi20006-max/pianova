@@ -34,14 +34,14 @@ class JsonLessonParserTest {
 
     @Test
     fun rejectsUnknownStepType() {
-        val input = VALID_LESSON.replace("\"type\": \"explanation\"", "\"type\": \"surprise\"")
+        val input = VALID_LESSON.replace("\"type\":\"explanation\"", "\"type\":\"surprise\"")
         assertThrows(LessonFormatException::class.java) { parser.parse(input) }
     }
 
     @Test
     fun rejectsInvalidMidiNote() {
-        val input = VALID_LESSON.replace("\"midiNote\": 60", "\"midiNote\": 200")
-        assertThrows(IllegalArgumentException::class.java) { parser.parse(input) }
+        val input = VALID_LESSON.replace("\"midiNote\":60", "\"midiNote\":200")
+        assertThrows(LessonFormatException::class.java) { parser.parse(input) }
     }
 
     @Test
