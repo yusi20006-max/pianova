@@ -76,8 +76,9 @@ class JsonLessonParser(
         lesson.chapters.flatMap { it.steps }.forEach { step ->
             require(!step.displayText.isNullOrBlank()) { "Step ${step.id} requires displayText" }
             require(!step.narrationText.isNullOrBlank()) { "Step ${step.id} requires narrationText" }
-            if (step.skillId != null) {
-                require(step.skillId.isNotBlank()) { "skillId must not be blank" }
+            val skillId = step.skillId
+            if (skillId != null) {
+                require(skillId.isNotBlank()) { "skillId must not be blank" }
                 requireNotNull(step.scaffolding) { "Assessable step ${step.id} requires three scaffolding levels" }
             }
             if (step is LessonStep.PlayNote) {
