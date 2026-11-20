@@ -138,10 +138,11 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
     fun stop() = stopUtterance(clearLastText = true)
 
     private fun stopUtterance(clearLastText: Boolean) {
-        engine?.stop()
-        activeUtteranceId?.let(completionCallbacks::remove)
+        // Invalidate the utterance before calling stop(), because some TTS
+        // engines report cancellation through onError asynchronously.
         activeUtteranceId = null
         completionCallbacks.clear()
+        engine?.stop()
         if (clearLastText) lastText = null
     }
 
