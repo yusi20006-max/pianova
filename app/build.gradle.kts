@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
+import java.security.MessageDigest
 
 plugins {
     id("com.android.application")
@@ -48,6 +49,73 @@ tasks.register("downloadDastkhatFonts") {
 tasks.matching { it.name.startsWith("preBuild") || (it.name.startsWith("merge") && it.name.contains("Resources")) }
     .configureEach { dependsOn("downloadDastkhatFonts") }
 
+// ---------------------------------------------------------------------------
+// Reproducible native audio dependencies.
+// TinySoundFont is MIT; ChaosBank v1.9 is CC0-1.0 and includes GM piano.
+// Both downloads are pinned to immutable upstream commits and verified using
+// their Git blob SHA-1 before being written into the source asset directories.
+// ---------------------------------------------------------------------------
+val audioDependencies = listOf(
+    arrayOf(
+        "src/main/cpp/tsf.h",
+        "https://raw.githubusercontent.com/schellingb/TinySoundFont/a3621a19c6504885cd9583e6e26c35bc954fc8ec/tsf.h",
+        "92719",
+        "a81f25d5ca2e210720d646dec2dbfaeb119acb09"
+    ),
+    arrayOf(
+        "src/main/assets/soundfonts/pianova.sf2",
+        "https://raw.githubusercontent.com/bratpeki/soundfonts/e1dcd9da45cc7454b4e3bfae613f4020d6a0b4f7/SF2/GM/ChaosBank.sf2",
+        "12038662",
+        "e21fc1948628f6a208804cdd893975b593b287b4"
+    )
+)
+
+fun gitBlobSha1(bytes: ByteArray): String {
+    val digest = MessageDigest.getInstance("SHA-1")
+    digest.update("blob ${bytes.size}\u0000".toByteArray(Charsets.UTF_8))
+    digest.update(bytes)
+    return digest.digest().joinToString("") { "%02x".format(it) }
+}
+
+tasks.register("downloadAudioDependencies") {
+    group = "audio"
+    description = "Fetch pinned TinySoundFont and CC0 piano SoundFont dependencies"
+    outputs.files(audioDependencies.map { layout.projectDirectory.file(it[0]) })
+    doLast {
+        audioDependencies.forEach { dependency ->
+            val (relativePath, url, expectedSize, expectedSha) = dependency
+            val destination = layout.projectDirectory.file(relativePath).asFile
+            destination.parentFile.mkdirs()
+            val existing = if (destination.isFile) destination.readBytes() else null
+            val existingIsValid = existing != null &&
+                existing.size.toString() == expectedSize &&
+                gitBlobSha1(existing) == expectedSha
+            if (!existingIsValid) {
+                logger.lifecycle("Downloading pinned audio dependency: $relativePath")
+                val bytes = URI(url).toURL().openStream().use { it.readBytes() }
+                check(bytes.size.toString() == expectedSize) {
+                    "Unexpected size for $relativePath: ${bytes.size}"
+                }
+                check(gitBlobSha1(bytes) == expectedSha) {
+                    "Git blob SHA-1 verification failed for $relativePath"
+                }
+                destination.writeBytes(bytes)
+            } else {
+                logger.lifecycle("Verified cached audio dependency: $relativePath")
+            }
+        }
+    }
+}
+
+// Native CMake configuration and Android resource merging must see the files.
+tasks.matching {
+    it.name.startsWith("preBuild") ||
+        it.name.startsWith("configureCMake") ||
+        (it.name.startsWith("merge") && it.name.contains("Assets"))
+}.configureEach {
+    dependsOn("downloadAudioDependencies")
+}
+
 android {
     namespace = "ir.pianova.app"
     compileSdk = 35
@@ -71,6 +139,8 @@ android {
 
         buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
         buildConfigField("int", "BUILD_NUMBER", "$runNumber")
+
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
 
         // liboboe.so declares DT_NEEDED libc++_shared.so (its prefab abi.json
         // says "stl": "c++_shared"), so the app must build & package the shared
