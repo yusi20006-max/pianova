@@ -55,7 +55,8 @@ sealed class LessonStep {
         override val id: String,
         override val title: String,
         val midiNote: Int,
-        val durationMs: Long = 800
+        val durationMs: Long = 800,
+        val repetitionCount: Int = 1
     ) : LessonStep()
 
     @Serializable
