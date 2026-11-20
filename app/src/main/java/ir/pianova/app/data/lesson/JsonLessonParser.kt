@@ -9,7 +9,6 @@ import ir.pianova.app.domain.model.MasteryCriteria
 import ir.pianova.app.domain.model.ScaffoldingLevel
 import ir.pianova.app.domain.model.StepScaffolding
 import ir.pianova.app.domain.model.VisualGuidanceSettings
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
@@ -213,12 +212,6 @@ private data class LessonV2Step(
     val tempoBpm: Int? = null
 ) {
     fun toDomain(): LessonStep {
-        val common = mapOf(
-            "displayText" to displayText,
-            "narrationText" to narrationText,
-            "skillId" to skillId,
-            "scaffolding" to scaffolding
-        )
         return when (type) {
             "explanation" -> LessonStep.Explanation(
                 id, title, body ?: throw LessonFormatException("Explanation step $id requires body"),
