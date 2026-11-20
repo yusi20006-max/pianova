@@ -32,6 +32,19 @@ class LessonNarrationTextTest {
     }
 
     @Test
+    fun versionTwoUsesOnlyItsExplicitNarrationText() {
+        val step = LessonStep.PlayNote(
+            id = "v2-step",
+            title = "عنوان داخلی",
+            midiNote = 60,
+            displayText = "متن نمایشی مستقل",
+            narrationText = "متن مخصوص گویندگی"
+        )
+        val spoken = LessonNarrationText.forStep(step, interactive = false)
+        assertTrue(spoken == "متن مخصوص گویندگی")
+    }
+
+    @Test
     fun feedbackIsTrimmed() {
         assertTrue(LessonNarrationText.feedback("  درست بود  ") == "درست بود")
     }
