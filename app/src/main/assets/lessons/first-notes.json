@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "first-notes",
+  "title": "اولین نت‌ها",
+  "description": "آشنایی با نت دو و جایگاه آن روی پیانو",
+  "chapters": [
+    {
+      "id": "find-middle-c",
+      "title": "پیدا کردن نت دو",
+      "description": "گروه دو کلید سیاه را پیدا کن و کلید سفید سمت چپ آن را بشناس.",
+      "steps": [
+        {
+          "type": "explanation",
+          "id": "middle-c-intro",
+          "title": "نت دو وسط",
+          "body": "دو وسط نزدیک مرکز صفحه‌کلید قرار دارد. آن را پیدا کن."
+        },
+        {
+          "type": "listen",
+          "id": "hear-middle-c",
+          "title": "به صدای دو گوش کن",
+          "audioAsset": "audio/notes/c4.ogg",
+          "prompt": "به صدای نت دو با دقت گوش کن."
+        },
+        {
+          "type": "play_note",
+          "id": "play-middle-c",
+          "title": "حالا تو بنواز",
+          "midiNote": 60,
+          "durationMs": 900
+        }
+      ]
+    }
+  ],
+  "completionCriteria": {
+    "minimumAccuracyPercent": 80,
+    "requireAllSteps": true
+  }
+}

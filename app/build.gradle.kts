@@ -7,6 +7,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     // Kotlin 2.0.x: the Compose compiler is shipped as a standalone Gradle plugin.
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 // ---------------------------------------------------------------------------
@@ -199,6 +200,9 @@ dependencies {
 
     // Explicit source-independent event stream dependency.
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+
+    // Versioned, polymorphic lesson content.
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     // Low-latency audio (Phase 1 engine, Phase 0 smoke test).
     implementation("com.google.oboe:oboe:1.9.0")
