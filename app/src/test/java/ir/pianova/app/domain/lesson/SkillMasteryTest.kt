@@ -73,6 +73,7 @@ class SkillMasteryTest {
     ) = SkillAttempt(
         attemptId = id,
         sessionId = session,
+        lessonId = "first-notes",
         skillId = skillId,
         successful = successful,
         answerRevealingHintUsed = answerRevealingHintUsed,
