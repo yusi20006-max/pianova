@@ -51,7 +51,10 @@
               "hintText": "از الگوی دو کلید سیاه کمک بگیر و کلید سفید کنار آن‌ها را پیدا کن.",
               "revealsAnswer": false
             }
-          }
+          },
+          "acceptedMidiNotes": [
+            60
+          ]
         },
         {
           "type": "explanation",
@@ -95,7 +98,10 @@
               "hintText": "جایگاه دو میانی را از روی الگوی کلیدهای سیاه به یاد بیاور.",
               "revealsAnswer": false
             }
-          }
+          },
+          "acceptedMidiNotes": [
+            60
+          ]
         }
       ]
     }
