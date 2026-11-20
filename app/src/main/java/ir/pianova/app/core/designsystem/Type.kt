@@ -9,8 +9,7 @@ import androidx.compose.ui.unit.sp
 import ir.pianova.app.R
 
 /**
- * Dastkhat font family (SIL OFL 1.1) — open-source Persian/Latin typeface
- * optimized for digital products. Weights: Regular (400), Medium (500), Bold (700).
+ * Dastkhat font family (SIL OFL 1.1), used consistently for Persian and Latin text.
  * Source: https://github.com/dastyar-io/dastkhat-font
  */
 val DastkhatFontFamily = FontFamily(
@@ -20,15 +19,17 @@ val DastkhatFontFamily = FontFamily(
 )
 
 /**
- * Full Material 3 Typography scale using Dastkhat for all styles.
+ * Full Material 3 typography scale using Dastkhat.
+ *
+ * Letter spacing is intentionally omitted: added tracking can break connected
+ * Persian glyphs and reduce readability.
  */
 val PianovaTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = DastkhatFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 57.sp,
-        lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp
+        lineHeight = 64.sp
     ),
     displayMedium = TextStyle(
         fontFamily = DastkhatFontFamily,
@@ -70,56 +71,48 @@ val PianovaTypography = Typography(
         fontFamily = DastkhatFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.15.sp
+        lineHeight = 24.sp
     ),
     titleSmall = TextStyle(
         fontFamily = DastkhatFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        lineHeight = 20.sp
     ),
     bodyLarge = TextStyle(
         fontFamily = DastkhatFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 24.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = DastkhatFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
+        lineHeight = 20.sp
     ),
     bodySmall = TextStyle(
         fontFamily = DastkhatFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.4.sp
+        lineHeight = 16.sp
     ),
     labelLarge = TextStyle(
         fontFamily = DastkhatFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        lineHeight = 20.sp
     ),
     labelMedium = TextStyle(
         fontFamily = DastkhatFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 16.sp
     ),
     labelSmall = TextStyle(
         fontFamily = DastkhatFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        lineHeight = 16.sp
     )
 )
