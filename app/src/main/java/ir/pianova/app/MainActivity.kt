@@ -10,7 +10,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import ir.pianova.app.core.audio.OboePianoAudioEngine
 import ir.pianova.app.core.designsystem.PianovaTheme
+import ir.pianova.app.core.midi.PianoEvent
+import ir.pianova.app.core.midi.VirtualKeyboardInput
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -18,6 +21,7 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private var audioEngine: OboePianoAudioEngine? = null
+    private val virtualKeyboardInput = VirtualKeyboardInput()
     private var engineLoading = false
     private var engineStatus by mutableStateOf("در حال آماده‌سازی بانک صدای پیانو…")
     private var engineReady by mutableStateOf(false)
@@ -33,6 +37,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         previousOrientation = requestedOrientation
 
+        // The UI emits source-independent events. Only this collector knows
+        // about the concrete audio engine, keeping input and playback decoupled.
+        lifecycleScope.launch {
+            virtualKeyboardInput.events.collect { event ->
+                val engine = audioEngine ?: return@collect
+                when (event) {
+                    is PianoEvent.NoteOn -> engine.noteOn(event.midiNote, event.velocity)
+                    is PianoEvent.NoteOff -> engine.noteOff(event.midiNote)
+                    is PianoEvent.Sustain -> engine.setSustain(event.enabled)
+                }
+            }
+        }
+
         setContent {
             PianovaTheme {
                 PianovaApp(
@@ -41,9 +58,9 @@ class MainActivity : ComponentActivity() {
                     pianoRunning = engineRunning,
                     onPianoStart = ::startAudioEngine,
                     onPianoStop = ::stopAudioEngine,
-                    onNoteOn = { note, velocity -> audioEngine?.noteOn(note, velocity) == true },
-                    onNoteOff = { note -> audioEngine?.noteOff(note) },
-                    onSustain = { enabled -> audioEngine?.setSustain(enabled) },
+                    onNoteOn = { note, velocity -> virtualKeyboardInput.noteOn(note, velocity) },
+                    onNoteOff = { note -> virtualKeyboardInput.noteOff(note) },
+                    onSustain = { enabled -> virtualKeyboardInput.sustain(enabled) },
                     onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) },
                     onPianoVisibilityChanged = { visible ->
                         requestedOrientation = if (visible) {
