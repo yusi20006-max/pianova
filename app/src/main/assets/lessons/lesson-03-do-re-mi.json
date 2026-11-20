@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "id": "lesson-03-do-re-mi",
+  "title": "نت‌های دو، ر و می",
+  "description": "سه نت سفید کنار هم را بشناس و به ترتیب بنواز.",
+  "chapters": [
+    {
+      "id": "chapter-2-first-notes",
+      "title": "فصل دوم: نت‌های موسیقی",
+      "description": "با سه نت اول در محدوده دو میانی آشنا شو.",
+      "steps": [
+        {
+          "type": "explanation",
+          "id": "do-re-mi-intro",
+          "title": "سه نت کنار هم",
+          "body": "از نت دو میانی شروع کن. کلید سفید بعد از آن ر است و کلید سفید بعدی می است. پس ترتیب آن‌ها دو، ر، می یا C، D، E است."
+        },
+        {
+          "type": "listen",
+          "id": "do-re-mi-listen",
+          "title": "به دو، ر و می گوش کن",
+          "prompt": "سه نت را با فاصله‌ای کوتاه و به ترتیب بشنو.",
+          "midiNotes": [
+            60,
+            62,
+            64
+          ],
+          "noteDurationMs": 700
+        },
+        {
+          "type": "play_sequence",
+          "id": "do-re-mi-play",
+          "title": "دو، ر، می را به ترتیب بنواز",
+          "midiNotes": [
+            60,
+            62,
+            64
+          ],
+          "tempoBpm": 65
+        },
+        {
+          "type": "explanation",
+          "id": "do-re-mi-review",
+          "title": "ترتیب را به خاطر بسپار",
+          "body": "دو پایین‌تر است، ر در وسط قرار دارد و می بالاترینِ این سه نت است. آن‌ها را از چپ به راست روی صفحه‌کلید پیدا کن."
+        },
+        {
+          "type": "listen",
+          "id": "do-re-mi-review-listen",
+          "title": "یک بار دیگر بشنو",
+          "prompt": "ترتیب دو، ر و می را دوباره گوش کن.",
+          "midiNotes": [
+            60,
+            62,
+            64
+          ],
+          "noteDurationMs": 650
+        },
+        {
+          "type": "play_sequence",
+          "id": "do-re-mi-review-play",
+          "title": "سه نت را دوباره اجرا کن",
+          "midiNotes": [
+            60,
+            62,
+            64
+          ],
+          "tempoBpm": 70
+        }
+      ]
+    }
+  ],
+  "completionCriteria": {
+    "minimumAccuracyPercent": 80,
+    "requireAllSteps": true
+  }
+}

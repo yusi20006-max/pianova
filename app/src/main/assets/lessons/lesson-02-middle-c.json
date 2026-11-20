@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "lesson-02-middle-c",
+  "title": "پیدا کردن نت دو میانی",
+  "description": "با کمک گروه دو کلید سیاه، نت دو وسط را روی پیانو پیدا کن.",
+  "chapters": [
+    {
+      "id": "chapter-1-middle-c",
+      "title": "فصل اول: آشنایی با پیانو",
+      "description": "جای نت دو میانی را بشناس و آن را با دست خودت بنواز.",
+      "steps": [
+        {
+          "type": "explanation",
+          "id": "middle-c-location",
+          "title": "دو میانی کجاست؟",
+          "body": "یک گروه دو‌تایی از کلیدهای سیاه پیدا کن. کلید سفید بلافاصله در سمت چپِ اولین کلید سیاه، نت دو است. دو میانی یا C4 نزدیک مرکز پیانو قرار دارد."
+        },
+        {
+          "type": "listen",
+          "id": "middle-c-reference",
+          "title": "صدای دو میانی",
+          "prompt": "به صدای نت دو میانی گوش کن و جای آن را به خاطر بسپار.",
+          "midiNotes": [
+            60
+          ],
+          "noteDurationMs": 1000
+        },
+        {
+          "type": "play_note",
+          "id": "play-middle-c-once",
+          "title": "دو میانی را پیدا کن",
+          "midiNote": 60,
+          "durationMs": 900
+        },
+        {
+          "type": "explanation",
+          "id": "middle-c-repeat",
+          "title": "یک بار دیگر بررسی کن",
+          "body": "آفرین. برای مطمئن‌شدن، همان کلید سفید را دوباره پیدا کن. نام آن دو یا C4 است."
+        },
+        {
+          "type": "listen",
+          "id": "middle-c-repeat-listen",
+          "title": "دوباره گوش کن",
+          "prompt": "یک بار دیگر صدای دو میانی را بشنو.",
+          "midiNotes": [
+            60
+          ],
+          "noteDurationMs": 900
+        },
+        {
+          "type": "play_note",
+          "id": "play-middle-c-again",
+          "title": "دو را دوباره بنواز",
+          "midiNote": 60,
+          "durationMs": 900
+        }
+      ]
+    }
+  ],
+  "completionCriteria": {
+    "minimumAccuracyPercent": 80,
+    "requireAllSteps": true
+  }
+}

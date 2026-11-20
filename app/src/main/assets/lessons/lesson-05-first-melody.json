@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "lesson-05-first-melody",
+  "title": "اجرای اولین ملودی هفت‌نتی",
+  "description": "با نت‌های آموخته‌شده، نخستین ملودی کوتاه خودت را بنواز.",
+  "chapters": [
+    {
+      "id": "chapter-2-first-melody",
+      "title": "فصل دوم: نت‌های موسیقی",
+      "description": "یک ملودی ساده با هفت ضربه‌ی پی‌درپی.",
+      "steps": [
+        {
+          "type": "explanation",
+          "id": "first-melody-intro",
+          "title": "ملودی هفت‌نتی ما",
+          "body": "حالا نت‌های دو، ر، می، فا، سل، لا و سی را می‌شناسی. در این تمرین یک ملودی کوتاه هفت‌نتی می‌نوازیم: دو، ر، می، سل، می، ر، دو. عجله نکن و هر نت را جداگانه بزن."
+        },
+        {
+          "type": "listen",
+          "id": "first-melody-listen",
+          "title": "اول به ملودی گوش کن",
+          "prompt": "ملودی هفت‌نتی را یک بار کامل بشنو. به بالا رفتن صدا و برگشت آن دقت کن.",
+          "midiNotes": [
+            60,
+            62,
+            64,
+            67,
+            64,
+            62,
+            60
+          ],
+          "noteDurationMs": 520
+        },
+        {
+          "type": "play_sequence",
+          "id": "first-melody-play",
+          "title": "ملودی خودت را بنواز",
+          "midiNotes": [
+            60,
+            62,
+            64,
+            67,
+            64,
+            62,
+            60
+          ],
+          "tempoBpm": 70
+        },
+        {
+          "type": "explanation",
+          "id": "first-melody-review",
+          "title": "یک اجرای آرام دیگر",
+          "body": "اگر ملودی سخت بود، اشکالی ندارد. این بار به ترتیب نت‌ها فکر کن: دو، ر، می، سل، می، ر، دو. هر نت را بشنو و بعد سراغ نت بعدی برو."
+        },
+        {
+          "type": "listen",
+          "id": "first-melody-review-listen",
+          "title": "ملودی را دوباره بشنو",
+          "prompt": "یک بار دیگر به ملودی گوش کن و ترتیب هفت نت را دنبال کن.",
+          "midiNotes": [
+            60,
+            62,
+            64,
+            67,
+            64,
+            62,
+            60
+          ],
+          "noteDurationMs": 600
+        },
+        {
+          "type": "play_sequence",
+          "id": "first-melody-review-play",
+          "title": "اجرای پایانی",
+          "midiNotes": [
+            60,
+            62,
+            64,
+            67,
+            64,
+            62,
+            60
+          ],
+          "tempoBpm": 60
+        }
+      ]
+    }
+  ],
+  "completionCriteria": {
+    "minimumAccuracyPercent": 80,
+    "requireAllSteps": true
+  }
+}

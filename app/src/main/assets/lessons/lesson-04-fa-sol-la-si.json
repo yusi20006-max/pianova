@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "lesson-04-fa-sol-la-si",
+  "title": "نت‌های فا، سل، لا و سی",
+  "description": "چهار نت سفید بعدی را پیدا کن و به ترتیب اجرا کن.",
+  "chapters": [
+    {
+      "id": "chapter-2-next-notes",
+      "title": "فصل دوم: نت‌های موسیقی",
+      "description": "شناخت نت‌های فا، سل، لا و سی در اکتاو چهارم.",
+      "steps": [
+        {
+          "type": "explanation",
+          "id": "fa-sol-la-si-intro",
+          "title": "چهار نت بعدی",
+          "body": "بعد از می، نت فا قرار دارد. سپس سل، لا و سی می‌آیند. این چهار کلید سفید را به ترتیب پیدا کن: F4، G4، A4 و B4."
+        },
+        {
+          "type": "listen",
+          "id": "fa-sol-la-si-listen",
+          "title": "به چهار نت گوش کن",
+          "prompt": "صدای فا، سل، لا و سی را به ترتیب بشنو.",
+          "midiNotes": [
+            65,
+            67,
+            69,
+            71
+          ],
+          "noteDurationMs": 650
+        },
+        {
+          "type": "play_sequence",
+          "id": "fa-sol-la-si-play",
+          "title": "فا، سل، لا، سی را بنواز",
+          "midiNotes": [
+            65,
+            67,
+            69,
+            71
+          ],
+          "tempoBpm": 65
+        },
+        {
+          "type": "explanation",
+          "id": "fa-sol-la-si-review",
+          "title": "حرکت رو به بالا",
+          "body": "هر بار که از فا به سل، لا و سی می‌روی، روی صفحه‌کلید به سمت راست حرکت می‌کنی و صدای نت‌ها زیرتر می‌شود."
+        },
+        {
+          "type": "listen",
+          "id": "fa-sol-la-si-review-listen",
+          "title": "دوباره گوش کن",
+          "prompt": "چهار نت را یک بار دیگر از پایین به بالا بشنو.",
+          "midiNotes": [
+            65,
+            67,
+            69,
+            71
+          ],
+          "noteDurationMs": 600
+        },
+        {
+          "type": "play_sequence",
+          "id": "fa-sol-la-si-review-play",
+          "title": "چهار نت را دوباره اجرا کن",
+          "midiNotes": [
+            65,
+            67,
+            69,
+            71
+          ],
+          "tempoBpm": 70
+        }
+      ]
+    }
+  ],
+  "completionCriteria": {
+    "minimumAccuracyPercent": 80,
+    "requireAllSteps": true
+  }
+}
