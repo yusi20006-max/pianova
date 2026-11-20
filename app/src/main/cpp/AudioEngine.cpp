@@ -78,6 +78,11 @@ bool AudioEngine::loadSoundFont(AAssetManager* assets, const char* assetPath) {
 }
 
 bool AudioEngine::start() {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return startLocked();
+}
+
+bool AudioEngine::startLocked() {
     if (!synth_) return false;
     if (started_.load(std::memory_order_acquire)) return true;
 
@@ -109,6 +114,8 @@ bool AudioEngine::start() {
 
     tsf_set_output(synth_.get(), TSF_STEREO_INTERLEAVED,
                    stream_->getSampleRate(), kInitialGainDb);
+    tsf_channel_set_volume(synth_.get(), 0,
+                           currentVolume_.load(std::memory_order_relaxed));
 
     result = stream_->requestStart();
     if (result != oboe::Result::OK) {
@@ -121,6 +128,7 @@ bool AudioEngine::start() {
     }
 
     started_.store(true, std::memory_order_release);
+    recoveryEnabled_.store(true, std::memory_order_release);
     __android_log_print(ANDROID_LOG_INFO, kTag,
                         "Audio started: %d Hz, %d channels, %s",
                         stream_->getSampleRate(), stream_->getChannelCount(),
@@ -130,6 +138,8 @@ bool AudioEngine::start() {
 }
 
 void AudioEngine::stop() {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    recoveryEnabled_.store(false, std::memory_order_release);
     if (stream_) {
         stream_->requestStop();
         stream_->close();
@@ -137,6 +147,7 @@ void AudioEngine::stop() {
     }
     started_.store(false, std::memory_order_release);
     if (synth_) {
+        tsf_channel_set_sustain(synth_.get(), 0, 0);
         tsf_channel_sounds_off_all(synth_.get(), 0);
     }
     Command discarded;
@@ -161,8 +172,9 @@ bool AudioEngine::setSustain(bool enabled) noexcept {
 
 bool AudioEngine::setVolume(float volume) noexcept {
     if (!std::isfinite(volume)) return false;
-    return commands_.push(
-        {CommandType::Volume, 0, std::clamp(volume, 0.0f, 1.0f)});
+    const float bounded = std::clamp(volume, 0.0f, 1.0f);
+    currentVolume_.store(bounded, std::memory_order_relaxed);
+    return commands_.push({CommandType::Volume, 0, bounded});
 }
 
 bool AudioEngine::stopAllNotes() noexcept {
@@ -211,10 +223,23 @@ oboe::DataCallbackResult AudioEngine::onAudioReady(
 
 void AudioEngine::onErrorAfterClose(oboe::AudioStream* /* stream */,
                                     oboe::Result error) {
+    std::lock_guard<std::mutex> lock(streamMutex_);
     started_.store(false, std::memory_order_release);
     __android_log_print(ANDROID_LOG_ERROR, kTag,
                         "Oboe stream error after close: %s",
                         oboe::convertToText(error));
+
+    // Oboe has already stopped and closed the disconnected stream. Reopen a
+    // fresh stream on this error-callback thread only while playback is still
+    // desired; an explicit lifecycle stop disables recovery before closing.
+    stream_.reset();
+    if (recoveryEnabled_.load(std::memory_order_acquire)) {
+        if (!startLocked()) {
+            recoveryEnabled_.store(false, std::memory_order_release);
+            __android_log_print(ANDROID_LOG_ERROR, kTag,
+                                "Unable to recover Oboe stream after device change");
+        }
+    }
 }
 
 } // namespace pianova
