@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pianova.app/schemas/lesson-v2.schema.json",
+  "title": "Pianova Lesson JSON v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "title", "language", "pedagogy", "masteryCriteria", "chapters"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "language": { "const": "fa-IR" },
+    "pedagogy": { "$ref": "#/$defs/pedagogy" },
+    "completionCriteria": { "$ref": "#/$defs/completionCriteria" },
+    "masteryCriteria": { "$ref": "#/$defs/masteryCriteria" },
+    "chapters": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/chapter" } }
+  },
+  "$defs": {
+    "pedagogy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teacherPersonality", "learningPace", "notationProgression", "waitModeByDefault", "visualGuidance"],
+      "properties": {
+        "teacherPersonality": { "const": "adaptive" },
+        "learningPace": { "const": "adaptive" },
+        "notationProgression": { "const": "gradual" },
+        "waitModeByDefault": { "type": "boolean" },
+        "visualGuidance": { "$ref": "#/$defs/visualGuidance" }
+      }
+    },
+    "visualGuidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["automaticSuggestionsEnabled", "manualSelectionEnabled", "defaultLevel", "suggestMoreHelpAfterConsecutiveErrors", "suggestLessHelpAfterConsecutiveSuccesses", "inactivitySuggestionSeconds"],
+      "properties": {
+        "automaticSuggestionsEnabled": { "type": "boolean" },
+        "manualSelectionEnabled": { "type": "boolean" },
+        "defaultLevel": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "suggestMoreHelpAfterConsecutiveErrors": { "type": "integer", "minimum": 1 },
+        "suggestLessHelpAfterConsecutiveSuccesses": { "type": "integer", "minimum": 1 },
+        "inactivitySuggestionSeconds": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "completionCriteria": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minimumAccuracyPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "requireAllSteps": { "type": "boolean" }
+      }
+    },
+    "masteryCriteria": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["successfulIndependentAttempts", "minimumDistinctSessions"],
+      "properties": {
+        "successfulIndependentAttempts": { "const": 3 },
+        "minimumDistinctSessions": { "const": 2 }
+      }
+    },
+    "chapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "steps"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "title", "displayText", "narrationText"],
+      "properties": {
+        "type": { "enum": ["explanation", "listen", "play_note", "play_sequence", "play_chord"] },
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "displayText": { "type": "string", "minLength": 1 },
+        "narrationText": { "type": "string", "minLength": 1 },
+        "skillId": { "type": "string", "minLength": 1 },
+        "scaffolding": { "$ref": "#/$defs/scaffolding" },
+        "body": { "type": "string" },
+        "prompt": { "type": "string" },
+        "audioAsset": { "type": "string" },
+        "midiNote": { "type": "integer", "minimum": 0, "maximum": 127 },
+        "midiNotes": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 127 } },
+        "durationMs": { "type": "integer", "minimum": 1 },
+        "noteDurationMs": { "type": "integer", "minimum": 1 },
+        "repetitionCount": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "tempoBpm": { "type": "integer", "minimum": 20, "maximum": 300 }
+      }
+    },
+    "scaffolding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level1", "level2", "level3"],
+      "properties": {
+        "level1": { "$ref": "#/$defs/scaffoldingLevel" },
+        "level2": { "$ref": "#/$defs/scaffoldingLevel" },
+        "level3": { "$ref": "#/$defs/scaffoldingLevel" }
+      }
+    },
+    "scaffoldingLevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hintText", "revealsAnswer"],
+      "properties": {
+        "hintText": { "type": "string", "minLength": 1 },
+        "revealsAnswer": { "type": "boolean" }
+      }
+    }
+  }
+}
