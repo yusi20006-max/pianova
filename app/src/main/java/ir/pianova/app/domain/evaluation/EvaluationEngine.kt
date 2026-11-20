@@ -84,7 +84,24 @@ class EvaluationSession internal constructor(
 
         when (event) {
             is PianoEvent.NoteOn -> onNoteOn(event.midiNote)
-            is PianoEvent.NoteOff -> heldNotes.remove(event.midiNote)
+            is PianoEvent.NoteOff -> {
+                heldNotes.remove(event.midiNote)
+                if (step is LessonStep.PlayChord) {
+                    val expected = step.midiNotes.distinct()
+                    val chordHeld = expected.all { it in heldNotes }
+                    val hasExtraHeld = heldNotes.any { it !in expected }
+                    if (chordHeld && !hasExtraHeld) {
+                        publish(
+                            status = EvaluationStatus.CORRECT,
+                            expected = emptyList(),
+                            feedback = "آفرین، آکورد را درست نواختی!",
+                            complete = true,
+                            completed = expected.size,
+                            total = expected.size
+                        )
+                    }
+                }
+            }
             is PianoEvent.Sustain -> Unit
         }
     }
@@ -184,11 +201,22 @@ class EvaluationSession internal constructor(
         }
 
         chordNotesSeen += note
-        val complete = expected.all { it in heldNotes }
+        val allChordNotesHeld = expected.all { it in heldNotes }
+        val hasExtraHeld = heldNotes.any { it !in expected }
+        val complete = allChordNotesHeld && !hasExtraHeld
+        val hasExtra = allChordNotesHeld && hasExtraHeld
         publish(
-            status = if (complete) EvaluationStatus.CORRECT else EvaluationStatus.IN_PROGRESS,
+            status = when {
+                complete -> EvaluationStatus.CORRECT
+                hasExtra -> EvaluationStatus.EXTRA_NOTE
+                else -> EvaluationStatus.IN_PROGRESS
+            },
             expected = expected.filterNot { it in heldNotes },
-            feedback = if (complete) "آفرین، آکورد را درست نواختی!" else "خوب است؛ بقیه نت‌های آکورد را هم بنواز.",
+            feedback = when {
+                complete -> "آفرین، آکورد را درست نواختی!"
+                hasExtra -> "نت اضافه را رها کن تا آکورد بررسی شود."
+                else -> "خوب است؛ بقیه نت‌های آکورد را هم بنواز."
+            },
             complete = complete,
             completed = chordNotesSeen.size,
             total = expected.size
