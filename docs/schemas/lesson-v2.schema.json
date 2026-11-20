@@ -91,6 +91,7 @@
         "noteDurationMs": { "type": "integer", "minimum": 1 },
         "repetitionCount": { "type": "integer", "minimum": 1, "maximum": 100 },
         "acceptedPitchClasses": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 11 }, "uniqueItems": true },
+        "acceptedMidiNotes": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 127 }, "uniqueItems": true },
         "tempoBpm": { "type": "integer", "minimum": 20, "maximum": 300 }
       },
       "allOf": [
@@ -103,7 +104,12 @@
             "properties": { "type": { "const": "play_note" } },
             "required": ["type", "skillId"]
           },
-          "then": { "required": ["acceptedPitchClasses"] }
+          "then": {
+            "anyOf": [
+              { "required": ["acceptedPitchClasses"] },
+              { "required": ["acceptedMidiNotes"] }
+            ]
+          }
         }
       ]
     },
