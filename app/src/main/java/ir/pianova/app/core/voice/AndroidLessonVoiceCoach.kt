@@ -1,11 +1,12 @@
 package ir.pianova.app.core.voice
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -22,7 +23,7 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
     private var rate = DEFAULT_RATE
     private var lastText: String? = null
     private var initialized = false
-    private var activeUtteranceId: String? = null
+    @Volatile private var activeUtteranceId: String? = null
     private val completionCallbacks = ConcurrentHashMap<String, () -> Unit>()
 
     init {
@@ -31,7 +32,8 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
             override fun onDone(utteranceId: String) {
                 if (activeUtteranceId == utteranceId) {
                     activeUtteranceId = null
-                    completionCallbacks.remove(utteranceId)?.invoke()
+                    val callback = completionCallbacks.remove(utteranceId)
+                    if (callback != null) Handler(Looper.getMainLooper()).post(callback)
                 } else {
                     completionCallbacks.remove(utteranceId)
                 }
