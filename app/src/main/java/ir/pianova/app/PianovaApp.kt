@@ -32,6 +32,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +47,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import ir.pianova.app.core.designsystem.AboutDialog
 import ir.pianova.app.core.designsystem.PianovaFuture
 import ir.pianova.app.core.designsystem.PianovaGreen
 import ir.pianova.app.core.designsystem.PianovaInk
@@ -75,6 +79,7 @@ fun PianovaApp(
     onPianoVisibilityChanged: (Boolean) -> Unit
 ) {
     val navController = rememberNavController()
+    var showAboutDialog by remember { mutableStateOf(false) }
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "home"
 
@@ -131,11 +136,12 @@ fun PianovaApp(
                 )
             }
             composable("library") { LibraryScreen() }
-            composable("more") { MoreScreen(navController) }
+            composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
             composable("progress") { ProgressScreen() }
-            composable("settings") { SettingsScreen() }
+            composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
         }
     }
+    if (showAboutDialog) AboutDialog(onDismiss = { showAboutDialog = false })
 }
 
 @Composable
@@ -264,13 +270,13 @@ private fun ProgressScreen() {
 }
 
 @Composable
-private fun SettingsScreen() {
+private fun SettingsScreen(onAboutClick: () -> Unit) {
     PageColumn {
         PageTitle("تنظیمات", "تنظیم تجربه یادگیری و صدای پیانو")
         StatusCard("صدای پیانو و خروجی صوتی", "آماده")
         StatusCard("زبان و شیوه نمایش نت‌ها", "آماده")
         StatusCard("تم و نمایش", "آماده")
-        StatusCard("درباره Pianova و نسخه نصب‌شده", "آماده")
+        TextButton(onClick = onAboutClick) { Text("درباره Pianova و نسخه نصب‌شده") }
         StatusCard("پشتیبان‌گیری از پیشرفت", "برنامه‌ریزی‌شده", planned = true)
     }
 }
@@ -278,7 +284,7 @@ private fun SettingsScreen() {
 private data class MenuEntry(val title: String, val status: String, val route: String? = null, val future: Boolean = false)
 
 @Composable
-private fun MoreScreen(navController: NavHostController) {
+private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Unit) {
     val groups = listOf(
         "یادگیری و تمرین" to listOf(
             MenuEntry("خانه و داشبورد", "آماده", "home"),
@@ -322,6 +328,7 @@ private fun MoreScreen(navController: NavHostController) {
                 })
             }
         }
+        item { TextButton(onClick = onAboutClick) { Text("درباره Pianova و اطلاعات نسخه") } }
         item {
             Text(
                 "وضعیت‌ها: آماده، در حال توسعه، برنامه‌ریزی‌شده و آینده",
