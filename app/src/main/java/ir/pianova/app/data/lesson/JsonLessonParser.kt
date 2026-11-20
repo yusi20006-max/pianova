@@ -84,8 +84,13 @@ class JsonLessonParser(
                 require(step.acceptedPitchClasses.all { it in 0..11 }) {
                     "acceptedPitchClasses must contain pitch classes from 0 to 11"
                 }
-                if (step.skillId != null) require(step.acceptedPitchClasses.isNotEmpty()) {
-                    "Assessable play_note step ${step.id} must define acceptedPitchClasses"
+                require(step.acceptedMidiNotes.all { it in 0..127 }) {
+                    "acceptedMidiNotes must contain MIDI notes from 0 to 127"
+                }
+                if (step.skillId != null) require(
+                    step.acceptedPitchClasses.isNotEmpty() || step.acceptedMidiNotes.isNotEmpty()
+                ) {
+                    "Assessable play_note step ${step.id} must define acceptedPitchClasses or acceptedMidiNotes"
                 }
             }
             step.scaffolding?.let { scaffold ->
@@ -210,6 +215,7 @@ private data class LessonV2Step(
     val noteDurationMs: Long? = null,
     val repetitionCount: Int? = null,
     val acceptedPitchClasses: List<Int>? = null,
+    val acceptedMidiNotes: List<Int>? = null,
     val tempoBpm: Int? = null
 ) {
     fun toDomain(): LessonStep {
@@ -224,7 +230,8 @@ private data class LessonV2Step(
             )
             "play_note" -> LessonStep.PlayNote(
                 id, title, midiNote ?: throw LessonFormatException("Play-note step $id requires midiNote"),
-                durationMs ?: 800L, repetitionCount ?: 1, acceptedPitchClasses.orEmpty(), displayText, narrationText, skillId, scaffolding
+                durationMs ?: 800L, repetitionCount ?: 1, acceptedPitchClasses.orEmpty(), displayText, narrationText, skillId, scaffolding,
+                acceptedMidiNotes.orEmpty()
             )
             "play_sequence" -> LessonStep.PlaySequence(
                 id, title, midiNotes ?: throw LessonFormatException("Sequence step $id requires midiNotes"),
