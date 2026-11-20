@@ -16,7 +16,7 @@
 ## 2. Tech Stack & Architecture
 - **Platform:** Native Android (Min SDK 26 / Android 8.0, Target SDK 35).
 - **Language:** Kotlin + C++ (JNI/NDK for Audio).
-- **UI:** Jetpack Compose, Material 3, Navigation Compose, Vazirmatn font.
+- **UI:** Jetpack Compose, Material 3, Navigation Compose, Dastkhat font.
 - **Architecture:** **Single-Module (app)** Clean Architecture with strict package boundaries, MVVM, Hilt (DI), Coroutines & Flow.
 - **Persistence:** Room Database (progress, XP, streaks) + DataStore Preferences (settings).
 - **Content:** Versioned JSON files bundled in assets/lessons/ and assets/songs/ parsed via Kotlinx Serialization.
@@ -28,7 +28,7 @@
     │   ├── midi/           # PianoInput interface, UsbMidiInput, VirtualKeyboardInput
     │   ├── database/       # Room DB, Entities, DAOs
     │   ├── datastore/      # User settings (volume, labels, octave, haptic)
-    │   └── designsystem/   # Theme (Dark Navy/Purple/Electric Blue/Gold), RTL utils, Vazirmatn
+    │   └── designsystem/   # Theme (Dark Navy/Purple/Electric Blue/Gold), RTL utils, Dastkhat
     ├── domain/
     │   ├── model/          # Note, Chord, Lesson, Step, EvaluationResult, Song
     │   └── evaluation/     # Pitch, sequence, and timing evaluator
@@ -104,7 +104,7 @@ Lessons are stored as versioned JSON files in assets/lessons/.
 
 ### Phase 0: Foundation & CI
 - Initialize single-module Android project (Kotlin, Compose, Hilt, Room, CMake/NDK).
-- Set up dark theme, Vazirmatn font, and RTL layout wrapper.
+- Set up dark theme, Dastkhat font, and RTL layout wrapper.
 - Configure **GitHub Actions** to build a debug APK automatically.
 - **Exit Criteria:** Clean green build & downloadable APK from GitHub Actions.
 
