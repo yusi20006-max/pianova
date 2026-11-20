@@ -92,7 +92,20 @@
         "repetitionCount": { "type": "integer", "minimum": 1, "maximum": 100 },
         "acceptedPitchClasses": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 11 }, "uniqueItems": true },
         "tempoBpm": { "type": "integer", "minimum": 20, "maximum": 300 }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["skillId"] },
+          "then": { "required": ["scaffolding"] }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "play_note" } },
+            "required": ["type", "skillId"]
+          },
+          "then": { "required": ["acceptedPitchClasses"] }
+        }
+      ]
     },
     "scaffolding": {
       "type": "object",
