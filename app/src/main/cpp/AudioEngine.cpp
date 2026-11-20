@@ -233,6 +233,13 @@ void AudioEngine::onErrorAfterClose(oboe::AudioStream* /* stream */,
     // fresh stream on this error-callback thread only while playback is still
     // desired; an explicit lifecycle stop disables recovery before closing.
     stream_.reset();
+    if (synth_) {
+        tsf_channel_set_sustain(synth_.get(), 0, 0);
+        tsf_channel_sounds_off_all(synth_.get(), 0);
+    }
+    Command discarded;
+    while (commands_.pop(discarded)) {}
+
     if (recoveryEnabled_.load(std::memory_order_acquire)) {
         if (!startLocked()) {
             recoveryEnabled_.store(false, std::memory_order_release);
