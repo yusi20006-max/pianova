@@ -88,6 +88,7 @@ class EvaluationEngineTest {
         input.emit(PianoEvent.NoteOff(62, 2L))
         input.emit(PianoEvent.NoteOn(70, 0.8f, 3L))
         assertEquals(EvaluationStatus.EXTRA_NOTE, awaitStatus(session, EvaluationStatus.EXTRA_NOTE).status)
+        session.cancel()
     }
 
     @Test
@@ -121,6 +122,7 @@ class EvaluationEngineTest {
 
         input.emit(PianoEvent.NoteOn(72, 0.8f, 1L))
         assertEquals(EvaluationStatus.EXTRA_NOTE, awaitStatus(session, EvaluationStatus.EXTRA_NOTE).status)
+        session.cancel()
     }
 
     @Test
