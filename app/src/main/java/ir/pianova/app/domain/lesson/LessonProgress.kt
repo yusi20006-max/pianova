@@ -1,6 +1,5 @@
 package ir.pianova.app.domain.lesson
 
-import ir.pianova.app.domain.model.Chapter
 import ir.pianova.app.domain.model.Lesson
 import ir.pianova.app.domain.model.LessonStep
 
