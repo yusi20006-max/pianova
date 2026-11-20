@@ -5,14 +5,7 @@ import ir.pianova.app.domain.model.LessonStep
 object LessonNarrationText {
     fun forStep(step: LessonStep, interactive: Boolean): String {
         val explicitNarration = step.narrationText?.trim()?.takeIf(String::isNotEmpty)
-        if (explicitNarration != null) {
-            if (!interactive) return explicitNarration
-            return when (step) {
-                is LessonStep.Explanation, is LessonStep.Listen -> explicitNarration
-                is LessonStep.PlayNote, is LessonStep.PlaySequence, is LessonStep.PlayChord ->
-                    "$explicitNarration حالا نوبت توست."
-            }
-        }
+        if (explicitNarration != null) return explicitNarration
 
         // Version 1 lessons retain their historical narration composition.
         val title = step.title.trim()
