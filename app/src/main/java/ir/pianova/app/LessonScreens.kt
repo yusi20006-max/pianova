@@ -211,8 +211,8 @@ fun LessonPlayerScreen(
         mutableIntStateOf(lesson.pedagogy?.visualGuidance?.defaultLevel ?: 2)
     }
     var scaffoldingSuggestion by remember(lesson.id, step.id) { mutableStateOf<Int?>(null) }
-    var consecutiveErrors by remember(lesson.id, step.id) { mutableIntStateOf(0) }
-    var consecutiveSuccesses by remember(lesson.id, step.id) { mutableIntStateOf(0) }
+    var consecutiveErrors by remember(lesson.id) { mutableIntStateOf(0) }
+    var consecutiveSuccesses by remember(lesson.id) { mutableIntStateOf(0) }
     var activityVersion by remember(lesson.id, step.id) { mutableIntStateOf(0) }
     var answerRevealingHintUsed by remember(lesson.id, step.id) {
         val initialLevel = lesson.pedagogy?.visualGuidance?.defaultLevel ?: 2
