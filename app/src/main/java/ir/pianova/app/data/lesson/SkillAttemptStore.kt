@@ -5,8 +5,9 @@ import ir.pianova.app.domain.lesson.SkillAttempt
 import ir.pianova.app.domain.lesson.hasMasteryFor
 import ir.pianova.app.domain.model.MasteryCriteria
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.util.UUID
 
 /**
  * Small, local-only attempt store for the JSON v2 cross-session mastery rule.
