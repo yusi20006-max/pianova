@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "lesson-03-do-re-mi",
   "title": "نت‌های دو، ر و می",
   "description": "سه نت سفید کنار هم را بشناس و به ترتیب بنواز.",
@@ -13,7 +13,9 @@
           "type": "explanation",
           "id": "do-re-mi-intro",
           "title": "سه نت کنار هم",
-          "body": "از نت دو میانی شروع کن. کلید سفید بعد از آن ر است و کلید سفید بعدی می است. پس ترتیب آن‌ها دو، ر، می یا C، D، E است."
+          "body": "از نت دو میانی شروع کن. کلید سفید بعد از آن ر است و کلید سفید بعدی می است. پس ترتیب آن‌ها دو، ر، می یا C، D، E است.",
+          "displayText": "سه نت کنار هم را بشناس.",
+          "narrationText": "از نت دو میانی شروع کن. کلید سفید بعد از آن ر است و کلید سفید بعدی می است. ترتیب آن‌ها دو، ر، می یا C، D، E است."
         },
         {
           "type": "listen",
@@ -25,7 +27,9 @@
             62,
             64
           ],
-          "noteDurationMs": 700
+          "noteDurationMs": 700,
+          "displayText": "به دو، ر و می گوش کن.",
+          "narrationText": "سه نت دو، ر و می را با فاصله‌ای کوتاه و به همین ترتیب بشنو."
         },
         {
           "type": "play_sequence",
@@ -36,13 +40,32 @@
             62,
             64
           ],
-          "tempoBpm": 65
+          "tempoBpm": 65,
+          "displayText": "دو، ر، می را به ترتیب بنواز.",
+          "narrationText": "حالا دو، ر، می را به ترتیب بنواز. نت‌ها را با دقت و بدون عجله اجرا کن.",
+          "skillId": "play-do-re-mi",
+          "scaffolding": {
+            "level1": {
+              "hintText": "ابتدا دو، سپس ر و بعد می را به ترتیب بنواز.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "به فاصله یک کلید سفید میان نت‌ها توجه کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "از دو شروع کن و سه نت را آرام و پیوسته اجرا کن.",
+              "revealsAnswer": false
+            }
+          }
         },
         {
           "type": "explanation",
           "id": "do-re-mi-review",
           "title": "ترتیب را به خاطر بسپار",
-          "body": "دو پایین‌تر است، ر در وسط قرار دارد و می بالاترینِ این سه نت است. آن‌ها را از چپ به راست روی صفحه‌کلید پیدا کن."
+          "body": "دو پایین‌تر است، ر در وسط قرار دارد و می بالاترینِ این سه نت است. آن‌ها را از چپ به راست روی صفحه‌کلید پیدا کن.",
+          "displayText": "ترتیب نت‌ها را به خاطر بسپار.",
+          "narrationText": "دو پایین‌تر است، ر در وسط قرار دارد و می بالاترین این سه نت است. آن‌ها را از چپ به راست روی صفحه‌کلید پیدا کن."
         },
         {
           "type": "listen",
@@ -54,7 +77,9 @@
             62,
             64
           ],
-          "noteDurationMs": 650
+          "noteDurationMs": 650,
+          "displayText": "یک بار دیگر ترتیب را بشنو.",
+          "narrationText": "ترتیب دو، ر و می را دوباره گوش کن و حرکت صداها را دنبال کن."
         },
         {
           "type": "play_sequence",
@@ -65,7 +90,24 @@
             62,
             64
           ],
-          "tempoBpm": 70
+          "tempoBpm": 70,
+          "displayText": "سه نت را دوباره اجرا کن.",
+          "narrationText": "حالا سه نت را دوباره اجرا کن. نت‌ها را با دقت و بدون عجله اجرا کن.",
+          "skillId": "play-do-re-mi",
+          "scaffolding": {
+            "level1": {
+              "hintText": "دو، ر و می را دوباره به ترتیب بنواز.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "به ترتیب سه نت و فاصله آن‌ها توجه کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "از دو شروع کن و تا می پیش برو.",
+              "revealsAnswer": false
+            }
+          }
         }
       ]
     }
@@ -73,5 +115,24 @@
   "completionCriteria": {
     "minimumAccuracyPercent": 80,
     "requireAllSteps": true
+  },
+  "language": "fa-IR",
+  "pedagogy": {
+    "teacherPersonality": "adaptive",
+    "learningPace": "adaptive",
+    "notationProgression": "gradual",
+    "waitModeByDefault": true,
+    "visualGuidance": {
+      "automaticSuggestionsEnabled": true,
+      "manualSelectionEnabled": true,
+      "defaultLevel": 2,
+      "suggestMoreHelpAfterConsecutiveErrors": 2,
+      "suggestLessHelpAfterConsecutiveSuccesses": 2,
+      "inactivitySuggestionSeconds": 8
+    }
+  },
+  "masteryCriteria": {
+    "successfulIndependentAttempts": 3,
+    "minimumDistinctSessions": 2
   }
 }
