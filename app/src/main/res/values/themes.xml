@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base platform theme (no AppCompat/Material Components dependency —
+         the UI is 100% Jetpack Compose). -->
+    <style name="Theme.Pianova" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/pianova_background</item>
+        <item name="android:statusBarColor">@color/pianova_background</item>
+        <item name="android:navigationBarColor">@color/pianova_background</item>
+    </style>
+</resources>
