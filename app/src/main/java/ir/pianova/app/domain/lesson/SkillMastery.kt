@@ -1,11 +1,13 @@
 package ir.pianova.app.domain.lesson
 
 import ir.pianova.app.domain.model.MasteryCriteria
+import kotlinx.serialization.Serializable
 
 /**
  * A completed evaluation attempt. Persistence is deliberately supplied by the
  * caller so this rule can be tested independently of any storage technology.
  */
+@Serializable
 data class SkillAttempt(
     val attemptId: String,
     val sessionId: String,
