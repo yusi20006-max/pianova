@@ -1,13 +1,9 @@
 package ir.pianova.app.core.designsystem
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
 /** Pianova brand palette (SPEC §6 — Visual Direction). */
 val DarkNavy = Color(0xFF0F172A)      // #0F172A background
@@ -25,7 +21,7 @@ private val ErrorRed = Color(0xFFF87171)
 
 /**
  * Dark-first Material 3 color scheme. Pianova is a dark-themed app by design,
- * so the dark scheme is the only scheme required for Phase 0.
+ * so the dark scheme is the only scheme required for Phase 0 / v1.0.
  */
 private val PianovaColorScheme = darkColorScheme(
     primary = DeepPurple,
@@ -54,20 +50,9 @@ private val PianovaColorScheme = darkColorScheme(
     onError = Slate900
 )
 
-private val PianovaTypography = Typography(
-    displayLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 40.sp),
-    headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 26.sp),
-    titleLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp),
-    titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 17.sp),
-    bodyLarge = TextStyle(fontWeight = FontWeight.Normal, fontSize = 16.sp),
-    bodyMedium = TextStyle(fontWeight = FontWeight.Normal, fontSize = 14.sp),
-    labelLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-)
-
 /**
  * App theme: Material 3, dark color scheme (Dark Navy / Deep Purple /
- * Electric Blue / Gold). The Vazirmatn font family is introduced together
- * with the full UI in Phase 1.
+ * Electric Blue / Gold) with Dastkhat typography for all Persian and Latin text.
  */
 @Composable
 fun PianovaTheme(content: @Composable () -> Unit) {

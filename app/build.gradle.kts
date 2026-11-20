@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.net.URI
 
 plugins {
     id("com.android.application")
@@ -6,6 +7,46 @@ plugins {
     // Kotlin 2.0.x: the Compose compiler is shipped as a standalone Gradle plugin.
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+// ---------------------------------------------------------------------------
+// Download Dastkhat font files (SIL OFL) into res/font if missing.
+// Source: https://github.com/dastyar-io/dastkhat-font (FaNum, square dots).
+// ---------------------------------------------------------------------------
+val dastkhatFonts = mapOf(
+    "dastkhat_regular.ttf" to
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/FaNum/DastkhatFaNum/TTF/DastkhatFaNum-Regular.ttf",
+    "dastkhat_medium.ttf" to
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/FaNum/DastkhatFaNum/TTF/DastkhatFaNum-Medium.ttf",
+    "dastkhat_bold.ttf" to
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/FaNum/DastkhatFaNum/TTF/DastkhatFaNum-Bold.ttf"
+)
+
+val fontDir = layout.projectDirectory.dir("src/main/res/font")
+
+tasks.register("downloadDastkhatFonts") {
+    group = "fonts"
+    description = "Download Dastkhat Regular/Medium/Bold TTF into res/font"
+    outputs.dir(fontDir)
+    doLast {
+        fontDir.asFile.mkdirs()
+        dastkhatFonts.forEach { (name, url) ->
+            val dest = fontDir.file(name).asFile
+            if (!dest.exists() || dest.length() < 1000) {
+                logger.lifecycle("Downloading $name …")
+                URI(url).toURL().openStream().use { input ->
+                    dest.outputStream().use { output -> input.copyTo(output) }
+                }
+                logger.lifecycle("  → ${dest.length()} bytes")
+            } else {
+                logger.lifecycle("Skip $name (already present, ${dest.length()} bytes)")
+            }
+        }
+    }
+}
+
+// Ensure fonts exist before Android merges resources / compiles.
+tasks.matching { it.name.startsWith("preBuild") || (it.name.startsWith("merge") && it.name.contains("Resources")) }
+    .configureEach { dependsOn("downloadDastkhatFonts") }
 
 android {
     namespace = "ir.pianova.app"
