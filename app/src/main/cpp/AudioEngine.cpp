@@ -6,6 +6,7 @@
 #include <android/log.h>
 
 #include <algorithm>
+#include <cmath>
 #include <climits>
 #include <cstdint>
 #include <vector>
