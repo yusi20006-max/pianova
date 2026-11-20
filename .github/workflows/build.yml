@@ -33,8 +33,29 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Run unit tests
-        run: gradle --no-daemon --console=plain testDebugUnitTest --stacktrace
+      - name: Configure per-test diagnostic logging
+        shell: bash
+        run: |
+          cat > /tmp/pianova-test-logging.gradle <<'EOF'
+          allprojects {
+            tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+              testLogging {
+                events "started", "passed", "failed", "skipped"
+                showStandardStreams = true
+              }
+            }
+          }
+          EOF
+
+      # Run the new evaluator tests separately with a hard bound. This reveals
+      # the last test started if a coroutine-based test ever stalls.
+      - name: Run EvaluationEngine tests
+        run: timeout 7m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --tests 'ir.pianova.app.domain.evaluation.EvaluationEngineTest' --info --stacktrace
+
+      # Run the existing MIDI and lesson-parser suites independently from the
+      # evaluator suite, so a hang can be attributed to a specific test class.
+      - name: Run MIDI and lesson parser tests
+        run: timeout 7m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --tests 'ir.pianova.app.core.midi.VirtualKeyboardInputTest' --tests 'ir.pianova.app.data.lesson.JsonLessonParserTest' --info --stacktrace
 
       - name: Build debug APK
         run: gradle --no-daemon --console=plain assembleDebug --stacktrace
