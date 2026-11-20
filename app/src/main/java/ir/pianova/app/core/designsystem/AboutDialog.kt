@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-ir.pianova.app.BuildConfig
+import ir.pianova.app.BuildConfig
 
 /**
  * Reusable About / Version dialog showing app name, version, build number and
