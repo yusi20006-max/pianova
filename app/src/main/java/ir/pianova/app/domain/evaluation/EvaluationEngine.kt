@@ -132,6 +132,19 @@ class EvaluationSession internal constructor(
         return result
     }
 
+    /**
+     * Stops collecting when the caller abandons an attempt, without
+     * converting an unfinished attempt into a MissingNote result.
+     */
+    fun cancel() {
+        synchronized(this) {
+            if (!_state.value.isFinished) {
+                _state.value = _state.value.copy(isFinished = true)
+            }
+        }
+        collectorJob?.cancel()
+    }
+
     private fun onNoteOn(note: Int) {
         if (!heldNotes.add(note)) return
         receivedNotes += note
@@ -264,6 +277,9 @@ class EvaluationSession internal constructor(
             isComplete = complete,
             isFinished = complete
         )
+        // A successful session is terminal. Stop collecting immediately so
+        // the parent scope is not kept alive by an idle SharedFlow collector.
+        if (complete) collectorJob?.cancel()
     }
 
     companion object {
