@@ -81,7 +81,8 @@
               "revealsAnswer": false
             }
           },
-          "midiNote": 60
+          "midiNote": 60,
+          "acceptedPitchClasses": [0, 2, 4, 5, 7, 9, 11]
         },
         {
           "type": "play_note",
@@ -104,7 +105,8 @@
               "revealsAnswer": false
             }
           },
-          "midiNote": 61
+          "midiNote": 61,
+          "acceptedPitchClasses": [1, 3, 6, 8, 10]
         }
       ]
     }
