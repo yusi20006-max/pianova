@@ -1,34 +1,106 @@
 {
   "schemaVersion": 1,
   "id": "first-notes",
-  "title": "اولین نت‌ها",
-  "description": "آشنایی با نت دو و جایگاه آن روی پیانو",
+  "title": "کلیدهای سفید و سیاه",
+  "description": "الگوی دو و سه کلید سیاه را پیدا کن و تفاوت کلیدهای سفید و سیاه را بشناس.",
   "chapters": [
     {
-      "id": "find-middle-c",
-      "title": "پیدا کردن نت دو",
-      "description": "گروه دو کلید سیاه را پیدا کن و کلید سفید سمت چپ آن را بشناس.",
+      "id": "chapter-1-keyboard",
+      "title": "فصل اول: آشنایی با پیانو",
+      "description": "صفحه‌کلید پیانو از الگوهای تکرارشونده ساخته شده است.",
       "steps": [
         {
           "type": "explanation",
-          "id": "middle-c-intro",
-          "title": "نت دو وسط",
-          "body": "دو وسط نزدیک مرکز صفحه‌کلید قرار دارد. آن را پیدا کن."
+          "id": "keyboard-pattern-intro",
+          "title": "الگوی کلیدهای پیانو",
+          "body": "به صفحه‌کلید نگاه کن. کلیدهای سفید در یک ردیف قرار دارند و کلیدهای سیاه به شکل گروه‌های دوتایی و سه‌تایی تکرار می‌شوند. با پیدا کردن این گروه‌ها می‌توانی نت‌ها را راحت‌تر بشناسی."
         },
         {
           "type": "listen",
-          "id": "hear-middle-c",
-          "title": "به صدای دو گوش کن",
-          "prompt": "به صدای نت دو با دقت گوش کن.",
-          "midiNotes": [60],
-          "noteDurationMs": 900
+          "id": "hear-two-black-keys",
+          "title": "دو کلید سیاه را بشنو",
+          "prompt": "به دو صدای کوتاه گروه دوتایی گوش کن. این دو کلید کنار هم قرار دارند.",
+          "midiNotes": [
+            61,
+            63
+          ],
+          "noteDurationMs": 650
         },
         {
-          "type": "play_note",
-          "id": "play-middle-c",
-          "title": "حالا تو بنواز",
-          "midiNote": 60,
-          "durationMs": 900
+          "type": "play_sequence",
+          "id": "play-two-black-keys",
+          "title": "گروه دوتایی را بنواز",
+          "midiNotes": [
+            61,
+            63
+          ],
+          "tempoBpm": 70
+        },
+        {
+          "type": "explanation",
+          "id": "three-black-keys-intro",
+          "title": "حالا گروه سه‌تایی",
+          "body": "کمی جلوتر سه کلید سیاه کنار هم می‌بینی. این گروه هم مرتب در طول پیانو تکرار می‌شود. به صدای هر سه کلید گوش کن و جای آن‌ها را پیدا کن."
+        },
+        {
+          "type": "listen",
+          "id": "hear-three-black-keys",
+          "title": "سه کلید سیاه را بشنو",
+          "prompt": "این بار سه نت گروه سه‌تایی را به ترتیب بشنو.",
+          "midiNotes": [
+            66,
+            68,
+            70
+          ],
+          "noteDurationMs": 600
+        },
+        {
+          "type": "play_sequence",
+          "id": "play-three-black-keys",
+          "title": "گروه سه‌تایی را بنواز",
+          "midiNotes": [
+            66,
+            68,
+            70
+          ],
+          "tempoBpm": 70
+        },
+        {
+          "type": "explanation",
+          "id": "white-keys-intro",
+          "title": "کلیدهای سفید",
+          "body": "بین گروه‌های سیاه، کلیدهای سفید قرار دارند. نت‌های سفید پشت سر هم نام‌های دو، ر، می، فا، سل، لا و سی دارند. فعلاً فقط به صدای پیوسته آن‌ها گوش کن."
+        },
+        {
+          "type": "listen",
+          "id": "hear-white-key-row",
+          "title": "هفت کلید سفید را بشنو",
+          "prompt": "هفت نت سفید را از بم به زیر بشنو.",
+          "midiNotes": [
+            60,
+            62,
+            64,
+            65,
+            67,
+            69,
+            71
+          ],
+          "noteDurationMs": 420
+        },
+        {
+          "type": "play_sequence",
+          "id": "play-white-key-row",
+          "title": "هفت کلید سفید را بنواز",
+          "midiNotes": [
+            60,
+            62,
+            64,
+            65,
+            67,
+            69,
+            71
+          ],
+          "tempoBpm": 65
         }
       ]
     }
