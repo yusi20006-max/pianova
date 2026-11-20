@@ -76,7 +76,18 @@ class JsonLessonParser(
         lesson.chapters.flatMap { it.steps }.forEach { step ->
             require(!step.displayText.isNullOrBlank()) { "Step ${step.id} requires displayText" }
             require(!step.narrationText.isNullOrBlank()) { "Step ${step.id} requires narrationText" }
-            if (step.skillId != null) require(step.skillId.isNotBlank()) { "skillId must not be blank" }
+            if (step.skillId != null) {
+                require(step.skillId.isNotBlank()) { "skillId must not be blank" }
+                requireNotNull(step.scaffolding) { "Assessable step ${step.id} requires three scaffolding levels" }
+            }
+            if (step is LessonStep.PlayNote) {
+                require(step.acceptedPitchClasses.all { it in 0..11 }) {
+                    "acceptedPitchClasses must contain pitch classes from 0 to 11"
+                }
+                if (step.skillId != null) require(step.acceptedPitchClasses.isNotEmpty()) {
+                    "Assessable play_note step ${step.id} must define acceptedPitchClasses"
+                }
+            }
             step.scaffolding?.let { scaffold ->
                 listOf(scaffold.level1, scaffold.level2, scaffold.level3).forEach { level ->
                     require(level.hintText.isNotBlank()) { "Scaffolding hintText must not be blank" }
@@ -218,7 +229,7 @@ private data class LessonV2Step(
             )
             "play_note" -> LessonStep.PlayNote(
                 id, title, midiNote ?: throw LessonFormatException("Play-note step $id requires midiNote"),
-                durationMs ?: 800L, repetitionCount ?: 1, displayText, narrationText, skillId, scaffolding
+                durationMs ?: 800L, repetitionCount ?: 1, acceptedPitchClasses.orEmpty(), displayText, narrationText, skillId, scaffolding
             )
             "play_sequence" -> LessonStep.PlaySequence(
                 id, title, midiNotes ?: throw LessonFormatException("Sequence step $id requires midiNotes"),
