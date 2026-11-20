@@ -98,7 +98,7 @@ fun PianovaApp(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (route != "practice") {
+            if (route != "practice" && !route.startsWith("lesson/")) {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     mainTabs.forEach { tab ->
                         NavigationBarItem(
