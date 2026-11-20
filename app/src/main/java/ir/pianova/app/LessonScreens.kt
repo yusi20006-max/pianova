@@ -2,11 +2,9 @@ package ir.pianova.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,7 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import ir.pianova.app.core.designsystem.PianovaBorder
 import ir.pianova.app.core.designsystem.PianovaGreen
 import ir.pianova.app.core.designsystem.PianovaInk
@@ -356,7 +353,7 @@ fun LessonPlayerScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onExit, modifier = Modifier.weight(1f)) { Text("بعداً ادامه می‌دهم") }
+                TextButton(onClick = onExit, modifier = Modifier.weight(1f)) { Text("خروج از درس") }
                 Button(
                     onClick = {
                         completedStepIds = completedStepIds + step.id
