@@ -19,8 +19,17 @@ android {
         applicationId = "ir.pianova.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+
+        // CI versioning: GITHUB_RUN_NUMBER / GITHUB_SHA (fallback for local builds).
+        val runNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
+        val gitSha = (System.getenv("GITHUB_SHA") ?: "local").take(7)
+        val isCi = System.getenv("GITHUB_ACTIONS") == "true"
+
+        versionCode = runNumber
+        versionName = if (isCi) "0.1.0-b$runNumber" else "0.1.0-local"
+
+        buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
+        buildConfigField("int", "BUILD_NUMBER", "$runNumber")
 
         // liboboe.so declares DT_NEEDED libc++_shared.so (its prefab abi.json
         // says "stl": "c++_shared"), so the app must build & package the shared
@@ -53,6 +62,8 @@ android {
         compose = true
         // Consume the Oboe prefab package published by com.google.oboe:oboe.
         prefab = true
+        // Generate BuildConfig with GIT_SHA and BUILD_NUMBER.
+        buildConfig = true
     }
 
     externalNativeBuild {
@@ -85,6 +96,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
 
     // Low-latency audio (Phase 1 engine, Phase 0 smoke test).
     implementation("com.google.oboe:oboe:1.9.0")
