@@ -12,7 +12,6 @@ target_compile_features(pianova_audio PRIVATE cxx_std_17)
 target_compile_options(pianova_audio PRIVATE
         -Wall
         -Wextra
-        -Werror
         -fvisibility=hidden)
 
 target_include_directories(pianova_audio PRIVATE
