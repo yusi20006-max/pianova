@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,17 +51,20 @@ import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
 import ir.pianova.app.data.lesson.LessonRepository
+import ir.pianova.app.data.lesson.SkillAttemptStore
 import ir.pianova.app.domain.evaluation.EvaluationEngine
 import ir.pianova.app.domain.evaluation.EvaluationSession
 import ir.pianova.app.domain.evaluation.EvaluationState
 import ir.pianova.app.domain.evaluation.EvaluationStatus
 import ir.pianova.app.domain.lesson.flattenedSteps
+import ir.pianova.app.domain.lesson.SkillAttempt
 import ir.pianova.app.domain.lesson.previewNotesAt
 import ir.pianova.app.domain.lesson.targetMidiNotes
 import ir.pianova.app.domain.model.Lesson
 import ir.pianova.app.domain.model.LessonStep
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import java.util.UUID
 
 @Composable
 fun LessonListScreen(
@@ -156,6 +160,9 @@ fun LessonPlayerScreen(
     onPlayReferenceNotes: (List<Int>, Long) -> Unit,
     onExit: () -> Unit
 ) {
+    val context = LocalContext.current
+    val attemptStore = remember(context) { SkillAttemptStore(context.applicationContext) }
+    val masterySessionId = remember(lesson.id) { UUID.randomUUID().toString() }
     val entries = remember(lesson) { lesson.flattenedSteps() }
     val startIndex = remember(lesson.id, startChapterId, entries) {
         entries.indexOfFirst { it.chapterId == startChapterId }.takeIf { it >= 0 } ?: 0
@@ -163,6 +170,7 @@ fun LessonPlayerScreen(
     var stepIndex by remember(lesson.id, startChapterId) { mutableIntStateOf(startIndex) }
     var completedStepIds by remember(lesson.id, startChapterId) { mutableStateOf(emptySet<String>()) }
     var showCompleteDialog by remember(lesson.id, startChapterId) { mutableStateOf(false) }
+    var masteryRefresh by remember(lesson.id) { mutableIntStateOf(0) }
 
     val entry = entries.getOrNull(stepIndex)
     if (entry == null) {
@@ -207,6 +215,24 @@ fun LessonPlayerScreen(
     var consecutiveSuccesses by remember(lesson.id, step.id) { mutableIntStateOf(0) }
     var answerRevealingHintUsed by remember(lesson.id, step.id) { mutableStateOf(false) }
 
+    LaunchedEffect(step.id, evaluation.isComplete) {
+        val skillId = step.skillId
+        if (evaluation.isComplete && !skillId.isNullOrBlank()) {
+            attemptStore.record(
+                SkillAttempt(
+                    attemptId = UUID.randomUUID().toString(),
+                    sessionId = masterySessionId,
+                    lessonId = lesson.id,
+                    skillId = skillId,
+                    successful = true,
+                    answerRevealingHintUsed = answerRevealingHintUsed,
+                    occurredAtEpochMillis = System.currentTimeMillis()
+                )
+            )
+            masteryRefresh++
+        }
+    }
+
     LaunchedEffect(step.id, evaluation.status) {
         val settings = lesson.pedagogy?.visualGuidance
         when (evaluation.status) {
@@ -250,6 +276,12 @@ fun LessonPlayerScreen(
         .coerceAtLeast(12).coerceAtMost(24)
     val progress = (stepIndex + 1).toFloat() / entries.size.coerceAtLeast(1)
     val canAdvance = !playable || evaluation.isComplete
+    val requiredSkillIds = entries.mapNotNull { it.step.skillId }.toSet()
+    val masteredSkillIds = remember(lesson.id, masteryRefresh, requiredSkillIds) {
+        lesson.masteryCriteria?.let { criteria ->
+            attemptStore.masteredSkillIds(lesson.id, requiredSkillIds, criteria)
+        }.orEmpty()
+    }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
@@ -451,7 +483,7 @@ fun LessonPlayerScreen(
             onDismissRequest = { showCompleteDialog = false },
             title = { Text("درس را به پایان رساندی!") },
             text = {
-                Text("در این جلسه ${completedStepIds.size} مرحله را تکمیل کردی. پیشرفت بلندمدت پس از آماده‌شدن ذخیره‌سازی محلی ثبت خواهد شد.")
+                Text("در این جلسه ${completedStepIds.size} مرحله را تکمیل کردی. تسلط ثبت‌شده: ${masteredSkillIds.size} از ${requiredSkillIds.size} مهارت.")
             },
             confirmButton = {
                 Button(onClick = onExit) { Text("بازگشت به درس‌ها") }
