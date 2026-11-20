@@ -112,6 +112,7 @@ sealed class LessonStep {
         val midiNote: Int,
         val durationMs: Long = 800,
         val repetitionCount: Int = 1,
+        val acceptedPitchClasses: List<Int> = emptyList(),
         override val displayText: String? = null,
         override val narrationText: String? = null,
         override val skillId: String? = null,
