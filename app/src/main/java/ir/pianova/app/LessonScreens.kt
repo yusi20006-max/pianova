@@ -244,7 +244,7 @@ fun LessonPlayerScreen(
         }
     }
 
-    LaunchedEffect(step.id, evaluation.status) {
+    LaunchedEffect(step.id, evaluation.status, evaluation.receivedNotes.size) {
         val settings = lesson.pedagogy?.visualGuidance
         when (evaluation.status) {
             EvaluationStatus.CORRECT -> {
