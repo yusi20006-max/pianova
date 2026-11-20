@@ -45,8 +45,10 @@ sealed class LessonStep {
     data class Listen(
         override val id: String,
         override val title: String,
-        val audioAsset: String,
-        val prompt: String? = null
+        val audioAsset: String? = null,
+        val prompt: String? = null,
+        val midiNotes: List<Int> = emptyList(),
+        val noteDurationMs: Long = 700
     ) : LessonStep()
 
     @Serializable
