@@ -12,7 +12,12 @@ object LessonNarrationText {
             is LessonStep.PlaySequence -> "نت‌ها را به ترتیب بنواز."
             is LessonStep.PlayChord -> "همه نت‌ها را هم‌زمان بنواز و نگه دار."
         }.trim()
-        return if (interactive) "$title. $instruction" else "$title. $instruction"
+        if (!interactive) return "$title. $instruction"
+        return when (step) {
+            is LessonStep.Explanation, is LessonStep.Listen -> "$title. $instruction"
+            is LessonStep.PlayNote, is LessonStep.PlaySequence, is LessonStep.PlayChord ->
+                "$title. $instruction حالا نوبت توست."
+        }
     }
 
     fun feedback(text: String): String = text.trim()
