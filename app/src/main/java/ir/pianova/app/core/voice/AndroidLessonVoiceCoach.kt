@@ -97,7 +97,7 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
         if (onDone != null) completionCallbacks[id] = onDone
         val result = tts.speak(clean, TextToSpeech.QUEUE_FLUSH, null, id)
         if (result == TextToSpeech.ERROR) {
-            completionCallbacks.remove(id)
+            completionCallbacks.remove(id)?.invoke()
             activeUtteranceId = null
         }
     }
