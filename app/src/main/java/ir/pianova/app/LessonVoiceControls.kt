@@ -63,7 +63,7 @@ fun LessonVoiceControls(
                         add(LessonNarrationText.forStep(step, interactive))
                         if (!feedback.isNullOrBlank()) add(LessonNarrationText.feedback(feedback))
                     }
-                    playing = coach.speak(parts.joinToString(separator = ". "))
+                    playing = coach.speak(parts.joinToString(separator = ". ")) { playing = false }
                 },
                 enabled = canSpeak
             ) { Text(if (playing) "پخش دوباره راهنما" else "پخش راهنمای صوتی") }
