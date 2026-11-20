@@ -56,7 +56,7 @@ fun LessonVoiceControls(
             paused = false
             val listen = step as? LessonStep.Listen
             coach.speak(LessonNarrationText.forStep(step, interactive)) {
-                if (listen != null && pianoRunning && referencePlayedFor != step.id) {
+                if (listen != null && listen.midiNotes.isNotEmpty() && pianoRunning && referencePlayedFor != step.id) {
                     referencePlayedFor = step.id
                     onPlayReferenceNotes(listen.midiNotes, listen.noteDurationMs)
                 }
@@ -66,7 +66,7 @@ fun LessonVoiceControls(
 
     LaunchedEffect(step.id, pianoRunning, enabled, status) {
         val listen = step as? LessonStep.Listen
-        if (listen != null && pianoRunning && (!enabled || status is VoiceCoachStatus.Unavailable) &&
+        if (listen != null && listen.midiNotes.isNotEmpty() && pianoRunning && (!enabled || status is VoiceCoachStatus.Unavailable) &&
             referencePlayedFor != step.id
         ) {
             referencePlayedFor = step.id
