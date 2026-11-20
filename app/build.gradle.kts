@@ -119,10 +119,6 @@ tasks.matching {
 android {
     namespace = "ir.pianova.app"
     compileSdk = 35
-    // ndkVersion is intentionally NOT pinned: AGP resolves the NDK that ships with /
-    // is installed into the local Android SDK. This keeps the GitHub Actions
-    // ubuntu-latest image (which rotates its preinstalled NDK versions) working
-    // without maintenance.
 
     defaultConfig {
         applicationId = "ir.pianova.app"
@@ -142,9 +138,6 @@ android {
 
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
 
-        // liboboe.so declares DT_NEEDED libc++_shared.so (its prefab abi.json
-        // says "stl": "c++_shared"), so the app must build & package the shared
-        // STL — see Oboe's "Getting Started" guide.
         externalNativeBuild {
             cmake {
                 arguments("-DANDROID_STL=c++_shared")
@@ -169,19 +162,14 @@ android {
     }
 
     buildFeatures {
-        // Jetpack Compose (Kotlin 2.0 compiler plugin handles @Composable codegen).
         compose = true
-        // Consume the Oboe prefab package published by com.google.oboe:oboe.
         prefab = true
-        // Generate BuildConfig with GIT_SHA and BUILD_NUMBER.
         buildConfig = true
     }
 
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            // No explicit version: uses the SDK's default CMake (3.22.1),
-            // which is preinstalled on GitHub-hosted runners.
         }
     }
 
@@ -199,7 +187,6 @@ kotlin {
 }
 
 dependencies {
-    // Compose BOM keeps all androidx.compose.* artifacts on a matching version.
     implementation(platform("androidx.compose:compose-bom:2024.10.01"))
 
     implementation("androidx.core:core-ktx:1.13.1")
@@ -210,8 +197,12 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.8.3")
 
+    // Explicit source-independent event stream dependency.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+
     // Low-latency audio (Phase 1 engine, Phase 0 smoke test).
     implementation("com.google.oboe:oboe:1.9.0")
 
+    testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
