@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,12 +17,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import ir.pianova.app.core.audio.NativeAudioBridge
+import ir.pianova.app.core.designsystem.AboutDialog
 import ir.pianova.app.core.designsystem.DeepPurple
 import ir.pianova.app.core.designsystem.ElectricBlue
 import ir.pianova.app.core.designsystem.Gold
@@ -37,7 +46,7 @@ import ir.pianova.app.core.designsystem.PianovaTheme
 
 /**
  * Phase 0 entry point: a single RTL Persian screen that renders the live status
- * reported by the native Oboe smoke test.
+ * reported by the native Oboe smoke test, plus an About dialog for version info.
  */
 class MainActivity : ComponentActivity() {
 
@@ -59,55 +68,77 @@ private fun PhaseZeroScreen(modifier: Modifier = Modifier) {
     // Loads libpianova_audio.so on first access and asks the native side
     // for its status ("Oboe Native Engine Ready").
     val engineStatus = remember { NativeAudioBridge.getEngineStatus() }
+    var showAbout by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .safeDrawingPadding()
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+    Box(modifier = modifier.fillMaxSize()) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
-            PaletteBar()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .safeDrawingPadding()
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "پیانوا",
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "پیانوا — فاز ۰",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center
+                PaletteBar()
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "یادگیری پیانو به صورت آفلاین و تعاملی",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                StatusCard(
+                    label = "وضعیت موتور صدا",
+                    status = engineStatus,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "oboe 1.9.0 • CMake • JNI",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        // Info (i) button in the top bar area
+        IconButton(
+            onClick = { showAbout = true },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .safeDrawingPadding()
+                .padding(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Info,
+                contentDescription = "درباره برنامه",
+                tint = ElectricBlue
             )
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "پایه‌سازی پروژه، تم تاریک و یکپارچه‌سازی موتور صدا",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            StatusCard(
-                label = "وضعیت موتور صدا",
-                status = engineStatus,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "oboe 1.9.0 • CMake • JNI",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                textAlign = TextAlign.Center
-            )
+        if (showAbout) {
+            AboutDialog(onDismiss = { showAbout = false })
         }
     }
 }
