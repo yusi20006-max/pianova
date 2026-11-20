@@ -269,7 +269,7 @@ private fun PianoPlayableKeys(
                                         } else active.remove(id)
                                     }
                                 } else {
-                                    active.remove(id)?.let(currentOff)
+                                    active.remove(id)?.let(::release)
                                 }
                                 change.consume()
                             }
