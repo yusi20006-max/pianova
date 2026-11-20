@@ -162,7 +162,6 @@ fun LessonPlayerScreen(
     var stepIndex by remember(lesson.id, startChapterId) { mutableIntStateOf(startIndex) }
     var completedStepIds by remember(lesson.id, startChapterId) { mutableStateOf(emptySet<String>()) }
     var showCompleteDialog by remember(lesson.id, startChapterId) { mutableStateOf(false) }
-    var playedReferenceStep by remember(lesson.id) { mutableStateOf<String?>(null) }
 
     val entry = entries.getOrNull(stepIndex)
     if (entry == null) {
@@ -203,14 +202,6 @@ fun LessonPlayerScreen(
     LaunchedEffect(lesson.id, pianoReady) {
         if (pianoReady && !pianoRunning) onPianoStart()
     }
-    LaunchedEffect(step.id, pianoRunning) {
-        val listen = step as? LessonStep.Listen
-        if (listen != null && pianoRunning && listen.midiNotes.isNotEmpty() && playedReferenceStep != step.id) {
-            playedReferenceStep = step.id
-            onPlayReferenceNotes(listen.midiNotes, listen.noteDurationMs)
-        }
-    }
-
     val targetNotes = when (step) {
         is LessonStep.Explanation -> entries.previewNotesAt(stepIndex)
         is LessonStep.Listen -> step.midiNotes
@@ -263,6 +254,13 @@ fun LessonPlayerScreen(
                     modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    LessonVoiceControls(
+                        step = step,
+                        feedback = if (playable) evaluation.feedbackFa else null,
+                        pianoRunning = pianoRunning,
+                        onPlayReferenceNotes = onPlayReferenceNotes,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Text(
                         when (step) {
                             is LessonStep.Explanation -> "یاد بگیر"
