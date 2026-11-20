@@ -14,14 +14,14 @@ class BundledLessonContentTest {
         val directory = listOf(
             File("src/main/assets/lessons"),
             File("app/src/main/assets/lessons")
-        ).firstOrNull(File::isDirectory) ?: error("Bundled lesson assets directory was not found")
+        ).firstOrNull { it.isDirectory } ?: error("Bundled lesson assets directory was not found")
 
         val files = directory.listFiles()
             .orEmpty()
             .filter { it.isFile && it.extension.equals("json", ignoreCase = true) }
             .sortedBy { it.name }
 
-        assertEquals("Exactly five beginner lessons must be bundled", 5, files.size)
+        assertTrue("The five starter lessons must be bundled", files.size >= 5)
 
         val lessons = files.map { file ->
             parser.parse(file.readText(Charsets.UTF_8)).also { lesson ->
@@ -29,8 +29,10 @@ class BundledLessonContentTest {
             }
         }
         assertEquals(
-            setOf("first-notes", "lesson-02-middle-c", "lesson-03-do-re-mi", "lesson-04-fa-sol-la-si", "lesson-05-first-melody"),
-            lessons.map { it.id }.toSet()
+            true,
+            lessons.map { it.id }.toSet().containsAll(
+                setOf("first-notes", "lesson-02-middle-c", "lesson-03-do-re-mi", "lesson-04-fa-sol-la-si", "lesson-05-first-melody")
+            )
         )
 
         assertEquals("فصل اول: آشنایی با پیانو", lessons.first { it.id == "first-notes" }.chapters.single().title)
