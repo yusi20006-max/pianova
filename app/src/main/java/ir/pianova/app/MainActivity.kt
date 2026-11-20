@@ -7,9 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.lifecycleScope
 import ir.pianova.app.core.audio.OboePianoAudioEngine
 import ir.pianova.app.core.designsystem.PianovaTheme
@@ -35,23 +32,27 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         previousOrientation = requestedOrientation
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 
         setContent {
             PianovaTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    PianoScreen(
-                        status = engineStatus,
-                        ready = engineReady,
-                        running = engineRunning,
-                        onStart = ::startAudioEngine,
-                        onStop = ::stopAudioEngine,
-                        onNoteOn = { note, velocity -> audioEngine?.noteOn(note, velocity) == true },
-                        onNoteOff = { note -> audioEngine?.noteOff(note) },
-                        onSustain = { enabled -> audioEngine?.setSustain(enabled) },
-                        onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) }
-                    )
-                }
+                PianovaApp(
+                    pianoStatus = engineStatus,
+                    pianoReady = engineReady,
+                    pianoRunning = engineRunning,
+                    onPianoStart = ::startAudioEngine,
+                    onPianoStop = ::stopAudioEngine,
+                    onNoteOn = { note, velocity -> audioEngine?.noteOn(note, velocity) == true },
+                    onNoteOff = { note -> audioEngine?.noteOff(note) },
+                    onSustain = { enabled -> audioEngine?.setSustain(enabled) },
+                    onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) },
+                    onPianoVisibilityChanged = { visible ->
+                        requestedOrientation = if (visible) {
+                            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                        } else {
+                            previousOrientation
+                        }
+                    }
+                )
             }
         }
         loadAudioEngine()
