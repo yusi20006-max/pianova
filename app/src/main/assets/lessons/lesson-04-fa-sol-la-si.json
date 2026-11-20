@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "lesson-04-fa-sol-la-si",
   "title": "نت‌های فا، سل، لا و سی",
   "description": "چهار نت سفید بعدی را پیدا کن و به ترتیب اجرا کن.",
@@ -13,7 +13,9 @@
           "type": "explanation",
           "id": "fa-sol-la-si-intro",
           "title": "چهار نت بعدی",
-          "body": "بعد از می، نت فا قرار دارد. سپس سل، لا و سی می‌آیند. این چهار کلید سفید را به ترتیب پیدا کن: F4، G4، A4 و B4."
+          "body": "بعد از می، نت فا قرار دارد. سپس سل، لا و سی می‌آیند. این چهار کلید سفید را به ترتیب پیدا کن: F4، G4، A4 و B4.",
+          "displayText": "چهار نت بعدی را بشناس.",
+          "narrationText": "بعد از می، نت فا قرار دارد. سپس سل، لا و سی می‌آیند. این چهار کلید سفید را به ترتیب پیدا کن: F4، G4، A4 و B4."
         },
         {
           "type": "listen",
@@ -26,7 +28,9 @@
             69,
             71
           ],
-          "noteDurationMs": 650
+          "noteDurationMs": 650,
+          "displayText": "به چهار نت گوش کن.",
+          "narrationText": "صدای فا، سل، لا و سی را به ترتیب بشنو و به بالاتر رفتن صدا توجه کن."
         },
         {
           "type": "play_sequence",
@@ -38,13 +42,32 @@
             69,
             71
           ],
-          "tempoBpm": 65
+          "tempoBpm": 65,
+          "displayText": "فا، سل، لا، سی را بنواز.",
+          "narrationText": "حالا فا، سل، لا، سی را بنواز. نت‌ها را با دقت و بدون عجله اجرا کن.",
+          "skillId": "play-fa-sol-la-si",
+          "scaffolding": {
+            "level1": {
+              "hintText": "فا، سل، لا و سی را به ترتیب بنواز.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "به حرکت رو به بالای نت‌ها توجه کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "چهار نت سفید را از چپ به راست پیدا کن و اجرا کن.",
+              "revealsAnswer": false
+            }
+          }
         },
         {
           "type": "explanation",
           "id": "fa-sol-la-si-review",
           "title": "حرکت رو به بالا",
-          "body": "هر بار که از فا به سل، لا و سی می‌روی، روی صفحه‌کلید به سمت راست حرکت می‌کنی و صدای نت‌ها زیرتر می‌شود."
+          "body": "هر بار که از فا به سل، لا و سی می‌روی، روی صفحه‌کلید به سمت راست حرکت می‌کنی و صدای نت‌ها زیرتر می‌شود.",
+          "displayText": "حرکت رو به بالا را دنبال کن.",
+          "narrationText": "هر بار که از فا به سل، لا و سی می‌روی، روی صفحه‌کلید به سمت راست حرکت می‌کنی و صدای نت‌ها زیرتر می‌شود."
         },
         {
           "type": "listen",
@@ -57,7 +80,9 @@
             69,
             71
           ],
-          "noteDurationMs": 600
+          "noteDurationMs": 600,
+          "displayText": "چهار نت را دوباره بشنو.",
+          "narrationText": "چهار نت فا، سل، لا و سی را یک بار دیگر از پایین به بالا گوش کن."
         },
         {
           "type": "play_sequence",
@@ -69,7 +94,24 @@
             69,
             71
           ],
-          "tempoBpm": 70
+          "tempoBpm": 70,
+          "displayText": "چهار نت را دوباره اجرا کن.",
+          "narrationText": "حالا چهار نت را دوباره اجرا کن. نت‌ها را با دقت و بدون عجله اجرا کن.",
+          "skillId": "play-fa-sol-la-si",
+          "scaffolding": {
+            "level1": {
+              "hintText": "فا، سل، لا و سی را دوباره به ترتیب اجرا کن.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "به ترتیب نت‌ها دقت کن.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "از فا شروع کن و به سمت راست حرکت کن.",
+              "revealsAnswer": false
+            }
+          }
         }
       ]
     }
@@ -77,5 +119,24 @@
   "completionCriteria": {
     "minimumAccuracyPercent": 80,
     "requireAllSteps": true
+  },
+  "language": "fa-IR",
+  "pedagogy": {
+    "teacherPersonality": "adaptive",
+    "learningPace": "adaptive",
+    "notationProgression": "gradual",
+    "waitModeByDefault": true,
+    "visualGuidance": {
+      "automaticSuggestionsEnabled": true,
+      "manualSelectionEnabled": true,
+      "defaultLevel": 2,
+      "suggestMoreHelpAfterConsecutiveErrors": 2,
+      "suggestLessHelpAfterConsecutiveSuccesses": 2,
+      "inactivitySuggestionSeconds": 8
+    }
+  },
+  "masteryCriteria": {
+    "successfulIndependentAttempts": 3,
+    "minimumDistinctSessions": 2
   }
 }
