@@ -29,6 +29,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -36,7 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import ir.pianova.app.core.audio.OboePianoAudioEngine
@@ -63,7 +68,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PianovaTheme {
-                AudioEngineTestScreen(
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                    AudioEngineTestScreen(
                     status = engineStatus,
                     ready = engineReady,
                     running = engineRunning,
@@ -75,10 +81,11 @@ class MainActivity : ComponentActivity() {
                     onNoteOff = { note -> audioEngine?.noteOff(note) },
                     onSustain = { enabled -> audioEngine?.setSustain(enabled) },
                     onVolume = { volume -> audioEngine?.setVolume(volume) },
-                    onAbout = { showAbout = true }
-                )
-                if (showAbout) {
-                    AboutDialog(onDismiss = { showAbout = false })
+                        onAbout = { showAbout = true }
+                    )
+                    if (showAbout) {
+                        AboutDialog(onDismiss = { showAbout = false })
+                    }
                 }
             }
         }
@@ -224,24 +231,26 @@ private fun AudioEngineTestScreen(
             )
             Spacer(Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                noteNames.forEachIndexed { index, label ->
-                    val note = 60 + index
-                    val isBlack = index in blackNotes
-                    PianoTestKey(
-                        label = label,
-                        black = isBlack,
-                        enabled = running,
-                        onPress = {
-                            onNoteOn(note, if (isBlack) 0.72f else 0.82f)
-                        },
-                        onRelease = { onNoteOff(note) }
-                    )
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    noteNames.forEachIndexed { index, label ->
+                        val note = 60 + index
+                        val isBlack = index in blackNotes
+                        PianoTestKey(
+                            label = label,
+                            black = isBlack,
+                            enabled = running,
+                            onPress = {
+                                onNoteOn(note, if (isBlack) 0.72f else 0.82f)
+                            },
+                            onRelease = { onNoteOff(note) }
+                        )
+                    }
                 }
             }
 
