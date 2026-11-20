@@ -109,7 +109,7 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
     }
 
     fun resume() {
-        lastText?.let(::speak)
+        lastText?.let { speak(it) }
     }
 
     fun replay() {
