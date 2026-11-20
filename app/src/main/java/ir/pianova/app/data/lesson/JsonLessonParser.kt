@@ -68,8 +68,16 @@ class JsonLessonParser(
             is LessonStep.Explanation -> require(step.body.isNotBlank()) {
                 "Explanation step ${step.id} must have a body"
             }
-            is LessonStep.Listen -> require(step.audioAsset.isNotBlank()) {
-                "Listen step ${step.id} must specify an audio asset"
+            is LessonStep.Listen -> {
+                require(step.audioAsset?.isNotBlank() == true || step.midiNotes.isNotEmpty()) {
+                    "Listen step ${step.id} must specify an audio asset or reference MIDI notes"
+                }
+                require(step.midiNotes.all { it in 0..127 }) {
+                    "Listen step ${step.id} contains an invalid MIDI note"
+                }
+                require(step.noteDurationMs > 0) {
+                    "Listen step ${step.id} note duration must be positive"
+                }
             }
             is LessonStep.PlayNote -> {
                 require(step.midiNote in 0..127) { "MIDI note must be between 0 and 127" }
