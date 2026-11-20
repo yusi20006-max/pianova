@@ -14,7 +14,6 @@
 namespace pianova {
 namespace {
 constexpr char kTag[] = "PianovaAudio";
-constexpr char kSoundFontAsset[] = "soundfonts/pianova.sf2";
 constexpr float kInitialGainDb = -6.0f;
 }
 
