@@ -54,6 +54,44 @@ class EvaluationEngineTest {
     }
 
     @Test
+    fun skillStepAcceptsAnyPitchClassInItsAllowedSet() = runBlocking {
+        val input = FakePianoInput()
+        val session = EvaluationEngine(input).start(
+            LessonStep.PlayNote(
+                id = "any-white-key",
+                title = "کلید سفید",
+                midiNote = 60,
+                acceptedPitchClasses = listOf(0, 2, 4, 5, 7, 9, 11)
+            ),
+            this
+        )
+        yield()
+
+        input.emit(PianoEvent.NoteOn(61, 0.8f, 1L))
+        assertEquals(EvaluationStatus.WRONG_NOTE, awaitStatus(session, EvaluationStatus.WRONG_NOTE).status)
+        input.emit(PianoEvent.NoteOff(61, 2L))
+        input.emit(PianoEvent.NoteOn(62, 0.8f, 3L))
+        assertTrue(awaitStatus(session, EvaluationStatus.CORRECT).isComplete)
+    }
+
+    @Test
+    fun blackKeySkillAcceptsAllBlackPitchClasses() = runBlocking {
+        val input = FakePianoInput()
+        val session = EvaluationEngine(input).start(
+            LessonStep.PlayNote(
+                id = "any-black-key",
+                title = "کلید سیاه",
+                midiNote = 61,
+                acceptedPitchClasses = listOf(1, 3, 6, 8, 10)
+            ),
+            this
+        )
+        yield()
+        input.emit(PianoEvent.NoteOn(66, 0.8f, 1L))
+        assertTrue(awaitStatus(session, EvaluationStatus.CORRECT).isComplete)
+    }
+
+    @Test
     fun evaluatesSequenceInOrderWithoutTimingPenalty() = runBlocking {
         val input = FakePianoInput()
         val session = EvaluationEngine(input).start(
