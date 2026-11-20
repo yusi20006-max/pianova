@@ -28,7 +28,11 @@ class JsonLessonParser(
             throw LessonFormatException("Lesson JSON could not be decoded", error)
         }
 
-        validate(lesson)
+        try {
+            validate(lesson)
+        } catch (error: IllegalArgumentException) {
+            throw LessonFormatException(error.message ?: "Lesson content failed validation", error)
+        }
         return lesson
     }
 
