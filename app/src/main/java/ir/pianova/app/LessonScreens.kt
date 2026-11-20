@@ -277,7 +277,7 @@ fun LessonPlayerScreen(
     LaunchedEffect(lesson.id, pianoReady) {
         if (pianoReady && !pianoRunning) onPianoStart()
     }
-    val targetNotes = when (step) {
+    val targetNotes = if (step.skillId != null) emptyList() else when (step) {
         is LessonStep.Explanation -> entries.previewNotesAt(stepIndex)
         is LessonStep.Listen -> step.midiNotes
         is LessonStep.PlayNote, is LessonStep.PlaySequence, is LessonStep.PlayChord ->
@@ -411,7 +411,9 @@ fun LessonPlayerScreen(
                             }
                         }
                         is LessonStep.PlayNote -> {
-                            Text("نت هدف را بنواز: ${midiNoteLabel(step.midiNote)}", style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
+                            if (step.skillId == null) {
+                                Text("نت هدف را بنواز: ${midiNoteLabel(step.midiNote)}", style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
+                            }
                             if (step.repetitionCount > 1) Text("تعداد تکرار: ${step.repetitionCount}", color = PianovaMuted)
                         }
                         is LessonStep.PlaySequence -> {
