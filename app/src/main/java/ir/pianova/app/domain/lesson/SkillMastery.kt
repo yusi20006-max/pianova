@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
 data class SkillAttempt(
     val attemptId: String,
     val sessionId: String,
+    val lessonId: String,
     val skillId: String,
     val successful: Boolean,
     val answerRevealingHintUsed: Boolean,
