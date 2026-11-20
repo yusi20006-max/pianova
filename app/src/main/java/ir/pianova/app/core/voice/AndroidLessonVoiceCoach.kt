@@ -103,7 +103,7 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
         statusMutable.value = VoiceCoachStatus.Ready(offlineAvailable = false)
     }
 
-    fun speak(text: String): Boolean {
+    fun speak(text: String, onDone: (() -> Unit)? = null): Boolean {
         val clean = text.trim()
         val tts = engine ?: return false
         if (!initialized || clean.isEmpty()) return false
@@ -113,6 +113,7 @@ class AndroidLessonVoiceCoach(context: Context) : TextToSpeech.OnInitListener {
         tts.setSpeechRate(rate)
         val id = UUID.randomUUID().toString()
         activeUtteranceId = id
+        if (onDone != null) completionCallbacks[id] = onDone
         val result = tts.speak(clean, TextToSpeech.QUEUE_FLUSH, null, id)
         if (result == TextToSpeech.ERROR) {
             activeUtteranceId = null
