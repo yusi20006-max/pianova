@@ -22,6 +22,28 @@ class JsonLessonParserTest {
     }
 
     @Test
+    fun parsesListenStepWithSynthesizedReferenceNotes() {
+        val input = VALID_LESSON.replace(
+            "\"audioAsset\":\"audio/c4.ogg\"",
+            "\"midiNotes\":[60],\"noteDurationMs\":900"
+        )
+        val lesson = parser.parse(input)
+        val listen = lesson.chapters.single().steps[1] as LessonStep.Listen
+        assertEquals(listOf(60), listen.midiNotes)
+        assertEquals(900L, listen.noteDurationMs)
+        assertEquals(null, listen.audioAsset)
+    }
+
+    @Test
+    fun rejectsInvalidListenReferenceNote() {
+        val input = VALID_LESSON.replace(
+            "\"audioAsset\":\"audio/c4.ogg\"",
+            "\"midiNotes\":[200]"
+        )
+        assertThrows(LessonFormatException::class.java) { parser.parse(input) }
+    }
+
+    @Test
     fun rejectsUnsupportedSchemaVersion() {
         val input = VALID_LESSON.replace("\"schemaVersion\": 1", "\"schemaVersion\": 2")
         assertThrows(LessonFormatException::class.java) { parser.parse(input) }
