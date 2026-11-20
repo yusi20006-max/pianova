@@ -19,7 +19,7 @@ class BundledLessonContentTest {
         val files = directory.listFiles()
             .orEmpty()
             .filter { it.isFile && it.extension.equals("json", ignoreCase = true) }
-            .sortedBy(File::getName)
+            .sortedBy { it.name }
 
         assertEquals("Exactly five beginner lessons must be bundled", 5, files.size)
 
@@ -32,6 +32,12 @@ class BundledLessonContentTest {
             setOf("first-notes", "lesson-02-middle-c", "lesson-03-do-re-mi", "lesson-04-fa-sol-la-si", "lesson-05-first-melody"),
             lessons.map { it.id }.toSet()
         )
+
+        assertEquals("فصل اول: آشنایی با پیانو", lessons.first { it.id == "first-notes" }.chapters.single().title)
+        assertEquals("فصل اول: آشنایی با پیانو", lessons.first { it.id == "lesson-02-middle-c" }.chapters.single().title)
+        listOf("lesson-03-do-re-mi", "lesson-04-fa-sol-la-si", "lesson-05-first-melody").forEach { id ->
+            assertEquals("فصل دوم: نت‌های موسیقی", lessons.first { it.id == id }.chapters.single().title)
+        }
 
         lessons.forEach { lesson ->
             val steps = lesson.chapters.flatMap { it.steps }
