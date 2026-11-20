@@ -64,13 +64,13 @@ class JsonLessonParserTest {
 
     @Test
     fun rejectsVersionTwoWithoutExplicitNarrationText() {
-        val input = VALID_V2_LESSON.replace("یک کلید را بنواز.", "")
+        val input = VALID_V2_LESSON.replace("\"narrationText\": \"یک کلید را بنواز.\",", "")
         assertThrows(LessonFormatException::class.java) { parser.parse(input) }
     }
 
     @Test
     fun rejectsUnknownVersionTwoFields() {
-        val input = VALID_V2_LESSON.replace("آزمون", "آزمون\", \"unexpected\": true")
+        val input = VALID_V2_LESSON.replace("\"title\": \"آزمون\",", "\"title\": \"آزمون\", \"unexpected\": true,")
         assertThrows(LessonFormatException::class.java) { parser.parse(input) }
     }
 
