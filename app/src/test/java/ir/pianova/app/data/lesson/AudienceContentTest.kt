@@ -4,6 +4,9 @@ import ir.pianova.app.domain.model.LessonAudience
 import ir.pianova.app.domain.model.Lesson
 import ir.pianova.app.domain.model.Chapter
 import ir.pianova.app.domain.model.LessonStep
+import ir.pianova.app.domain.model.AudienceContent
+import ir.pianova.app.domain.model.AudienceCopy
+import ir.pianova.app.core.voice.LessonNarrationText
 import ir.pianova.app.domain.model.displayTextFor
 import ir.pianova.app.domain.model.narrationTextFor
 import ir.pianova.app.domain.model.titleFor
@@ -43,6 +46,28 @@ class AudienceContentTest {
                 assertTrue(!step.narrationTextFor(LessonAudience.ADULTS).isNullOrBlank())
             }
         }
+    }
+
+    @Test
+    fun adultVoiceUsesAdultNarrationInsteadOfChildNarration() {
+        val step = LessonStep.PlayNote(
+            id = "adult-voice",
+            title = "عنوان پایه",
+            midiNote = 60,
+            displayText = "متن پایه",
+            narrationText = "گویندگی پایه",
+            audienceContent = AudienceContent(
+                adults = AudienceCopy(narrationText = "گویندگی بزرگسال")
+            )
+        )
+        assertEquals(
+            "گویندگی بزرگسال",
+            LessonNarrationText.forStep(step, interactive = true, audience = LessonAudience.ADULTS)
+        )
+        assertEquals(
+            "گویندگی پایه",
+            LessonNarrationText.forStep(step, interactive = true, audience = LessonAudience.CHILDREN)
+        )
     }
 
     @Test
