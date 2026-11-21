@@ -29,10 +29,12 @@ import ir.pianova.app.core.voice.AndroidLessonVoiceCoach
 import ir.pianova.app.core.voice.LessonNarrationText
 import ir.pianova.app.core.voice.VoiceCoachStatus
 import ir.pianova.app.domain.model.LessonStep
+import ir.pianova.app.domain.model.LessonAudience
 
 @Composable
 fun LessonVoiceControls(
     step: LessonStep,
+    audience: LessonAudience,
     feedback: String?,
     modifier: Modifier = Modifier
 ) {
@@ -49,7 +51,7 @@ fun LessonVoiceControls(
 
     // A step change always cancels the previous utterance. Nothing is spoken
     // automatically: the learner explicitly starts each narration.
-    LaunchedEffect(step.id) {
+    LaunchedEffect(step.id, audience) {
         coach.stop()
         playing = false
     }
@@ -60,7 +62,7 @@ fun LessonVoiceControls(
             Button(
                 onClick = {
                     val parts = buildList {
-                        add(LessonNarrationText.forStep(step, interactive))
+                        add(LessonNarrationText.forStep(step, interactive, audience))
                         if (!feedback.isNullOrBlank()) add(LessonNarrationText.feedback(feedback))
                     }
                     playing = coach.speak(parts.joinToString(separator = ". ")) { playing = false }

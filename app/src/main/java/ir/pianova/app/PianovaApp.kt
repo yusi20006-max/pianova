@@ -60,6 +60,7 @@ import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
 import ir.pianova.app.data.lesson.AndroidLessonAssetSource
 import ir.pianova.app.data.lesson.LessonRepository
+import ir.pianova.app.domain.model.LessonAudience
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -89,6 +90,10 @@ fun PianovaApp(
     val navController = rememberNavController()
     val context = LocalContext.current
     val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
+    val audiencePreferences = remember(context) { context.getSharedPreferences("pianova_preferences", 0) }
+    var lessonAudience by remember(audiencePreferences) {
+        mutableStateOf(LessonAudience.fromStorageValue(audiencePreferences.getString("lesson_audience", "children")))
+    }
     var showAboutDialog by remember { mutableStateOf(false) }
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "home"
@@ -134,6 +139,11 @@ fun PianovaApp(
             composable("learning") {
                 LessonListScreen(
                     repository = lessonRepository,
+                    audience = lessonAudience,
+                    onAudienceChange = { selected ->
+                        lessonAudience = selected
+                        audiencePreferences.edit().putString("lesson_audience", selected.storageValue).apply()
+                    },
                     onStartChapter = { lessonId, chapterId ->
                         navController.navigate("lesson/$lessonId/$chapterId")
                     }
@@ -157,6 +167,7 @@ fun PianovaApp(
                 } else {
                     LessonPlayerScreen(
                         lesson = lesson,
+                        audience = lessonAudience,
                         startChapterId = chapterId,
                         pianoInput = pianoInput,
                         pianoReady = pianoReady,

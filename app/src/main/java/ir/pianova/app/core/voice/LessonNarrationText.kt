@@ -1,17 +1,22 @@
 package ir.pianova.app.core.voice
 
 import ir.pianova.app.domain.model.LessonStep
+import ir.pianova.app.domain.model.LessonAudience
+import ir.pianova.app.domain.model.titleFor
+import ir.pianova.app.domain.model.narrationTextFor
+import ir.pianova.app.domain.model.bodyFor
+import ir.pianova.app.domain.model.promptFor
 
 object LessonNarrationText {
-    fun forStep(step: LessonStep, interactive: Boolean): String {
-        val explicitNarration = step.narrationText?.trim()?.takeIf(String::isNotEmpty)
+    fun forStep(step: LessonStep, interactive: Boolean, audience: LessonAudience = LessonAudience.CHILDREN): String {
+        val explicitNarration = step.narrationTextFor(audience)?.trim()?.takeIf(String::isNotEmpty)
         if (explicitNarration != null) return explicitNarration
 
         // Version 1 lessons retain their historical narration composition.
-        val title = step.title.trim()
+        val title = step.titleFor(audience).trim()
         val instruction = when (step) {
-            is LessonStep.Explanation -> step.body
-            is LessonStep.Listen -> step.prompt ?: "به صدای نت‌ها با دقت گوش کن."
+            is LessonStep.Explanation -> step.bodyFor(audience).orEmpty()
+            is LessonStep.Listen -> step.promptFor(audience) ?: "به صدای نت‌ها با دقت گوش کن."
             is LessonStep.PlayNote -> "نت هدف را بنواز: ${noteName(step.midiNote)}."
             is LessonStep.PlaySequence -> "نت‌ها را به ترتیب بنواز."
             is LessonStep.PlayChord -> "همه نت‌ها را هم‌زمان بنواز و نگه دار."

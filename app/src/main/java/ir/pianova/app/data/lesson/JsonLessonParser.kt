@@ -68,11 +68,14 @@ class JsonLessonParser(
         require(guidance.suggestLessHelpAfterConsecutiveSuccesses > 0) { "Success suggestion threshold must be positive" }
         require(guidance.inactivitySuggestionSeconds > 0) { "Inactivity threshold must be positive" }
 
+        lesson.audienceContent?.let(::validateAudienceContent)
+
         val mastery = requireNotNull(lesson.masteryCriteria) { "Version 2 masteryCriteria is required" }
         require(mastery.successfulIndependentAttempts == 3) { "Mastery requires exactly three independent successful attempts" }
         require(mastery.minimumDistinctSessions == 2) { "Mastery requires at least two distinct sessions" }
 
         lesson.chapters.flatMap { it.steps }.forEach { step ->
+            step.audienceContent?.let(::validateAudienceContent)
             require(!step.displayText.isNullOrBlank()) { "Step ${step.id} requires displayText" }
             require(!step.narrationText.isNullOrBlank()) { "Step ${step.id} requires narrationText" }
             val skillId = step.skillId
@@ -103,6 +106,14 @@ class JsonLessonParser(
         require(skillIds.isNotEmpty()) { "Version 2 lesson must define at least one assessable skill" }
     }
 
+    private fun validateAudienceContent(content: AudienceContent) {
+        val copies = listOfNotNull(content.children, content.adults)
+        require(copies.isNotEmpty()) { "audienceContent must define children or adults" }
+        copies.forEach { copy ->
+            val values = listOfNotNull(copy.title, copy.description, copy.displayText, copy.narrationText, copy.body, copy.prompt)
+            require(values.isNotEmpty() && values.all(String::isNotBlank)) { "Audience copy must contain non-blank text fields" }
+        }
+    }
     private fun validateCommon(lesson: Lesson) {
         require(lesson.id.isNotBlank()) { "Lesson id must not be blank" }
         require(lesson.title.isNotBlank()) { "Lesson title must not be blank" }
@@ -172,7 +183,8 @@ private data class LessonV2Document(
     val pedagogy: LessonPedagogy,
     val completionCriteria: CompletionCriteria = CompletionCriteria(),
     val masteryCriteria: MasteryCriteria,
-    val chapters: List<LessonV2Chapter>
+    val chapters: List<LessonV2Chapter>,
+    val audienceContent: AudienceContent? = null
 ) {
     fun toDomain() = Lesson(
         schemaVersion = schemaVersion,
@@ -183,7 +195,8 @@ private data class LessonV2Document(
         completionCriteria = completionCriteria,
         language = language,
         pedagogy = pedagogy,
-        masteryCriteria = masteryCriteria
+        masteryCriteria = masteryCriteria,
+        audienceContent = audienceContent
     )
 }
 
@@ -216,30 +229,31 @@ private data class LessonV2Step(
     val repetitionCount: Int? = null,
     val acceptedPitchClasses: List<Int>? = null,
     val acceptedMidiNotes: List<Int>? = null,
-    val tempoBpm: Int? = null
+    val tempoBpm: Int? = null,
+    val audienceContent: AudienceContent? = null
 ) {
     fun toDomain(): LessonStep {
         return when (type) {
             "explanation" -> LessonStep.Explanation(
                 id, title, body ?: throw LessonFormatException("Explanation step $id requires body"),
-                displayText, narrationText, skillId, scaffolding
+                displayText, narrationText, skillId, scaffolding, audienceContent
             )
             "listen" -> LessonStep.Listen(
                 id, title, audioAsset, prompt, midiNotes.orEmpty(), noteDurationMs ?: 700L,
-                displayText, narrationText, skillId, scaffolding
+                displayText, narrationText, skillId, scaffolding, audienceContent
             )
             "play_note" -> LessonStep.PlayNote(
                 id, title, midiNote ?: throw LessonFormatException("Play-note step $id requires midiNote"),
                 durationMs ?: 800L, repetitionCount ?: 1, acceptedPitchClasses.orEmpty(), displayText, narrationText, skillId, scaffolding,
-                acceptedMidiNotes.orEmpty()
+                acceptedMidiNotes.orEmpty(), audienceContent
             )
             "play_sequence" -> LessonStep.PlaySequence(
                 id, title, midiNotes ?: throw LessonFormatException("Sequence step $id requires midiNotes"),
-                tempoBpm ?: 80, displayText, narrationText, skillId, scaffolding
+                tempoBpm ?: 80, displayText, narrationText, skillId, scaffolding, audienceContent
             )
             "play_chord" -> LessonStep.PlayChord(
                 id, title, midiNotes ?: throw LessonFormatException("Chord step $id requires midiNotes"),
-                durationMs ?: 1200L, displayText, narrationText, skillId, scaffolding
+                durationMs ?: 1200L, displayText, narrationText, skillId, scaffolding, audienceContent
             )
             else -> throw LessonFormatException("Unknown lesson step type: $type")
         }
