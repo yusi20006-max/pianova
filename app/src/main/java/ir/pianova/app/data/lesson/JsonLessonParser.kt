@@ -1,5 +1,6 @@
 package ir.pianova.app.data.lesson
 
+import ir.pianova.app.domain.model.AudienceContent
 import ir.pianova.app.domain.model.Chapter
 import ir.pianova.app.domain.model.CompletionCriteria
 import ir.pianova.app.domain.model.Lesson
