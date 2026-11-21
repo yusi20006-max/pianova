@@ -101,7 +101,9 @@ class BundledLessonContentTest {
         assertTrue(melodyPlayback.all { it.midiNotes == approvedMelody })
         assertTrue(melodyListening.all { it.midiNotes == approvedMelody })
         assertEquals(setOf(60, 62, 64, 65, 67, 69, 71), approvedMelody.toSet())
-        assertTrue(melody.audienceContent?.adults?.body?.contains("چهار میزان") == true)
+        assertTrue(melodySteps.filterIsInstance<LessonStep.Explanation>().any {
+            it.audienceContent?.adults?.body?.contains("چهار میزان") == true
+        })
         assertTrue(melodySteps.filterIsInstance<LessonStep.PlaySequence>().all {
             it.audienceContent?.adults?.narrationText?.contains("نه زمان‌بندی دقیق") == true
         })
