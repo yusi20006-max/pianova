@@ -3,6 +3,27 @@ package ir.pianova.app.domain.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+enum class LessonAudience(val storageValue: String) {
+    CHILDREN("children"), ADULTS("adults");
+    companion object {
+        fun fromStorageValue(value: String?): LessonAudience =
+            values().firstOrNull { it.storageValue == value } ?: CHILDREN
+    }
+}
+@Serializable
+data class AudienceContent(val children: AudienceCopy? = null, val adults: AudienceCopy? = null) {
+    fun forAudience(audience: LessonAudience): AudienceCopy? = when (audience) {
+        LessonAudience.CHILDREN -> children
+        LessonAudience.ADULTS -> adults ?: children
+    }
+}
+@Serializable
+data class AudienceCopy(
+    val title: String? = null, val description: String? = null,
+    val displayText: String? = null, val narrationText: String? = null,
+    val body: String? = null, val prompt: String? = null
+)
+
 @Serializable
 data class Lesson(
     val schemaVersion: Int,
@@ -13,7 +34,8 @@ data class Lesson(
     val completionCriteria: CompletionCriteria = CompletionCriteria(),
     val language: String? = null,
     val pedagogy: LessonPedagogy? = null,
-    val masteryCriteria: MasteryCriteria? = null
+    val masteryCriteria: MasteryCriteria? = null,
+    val audienceContent: AudienceContent? = null
 )
 
 @Serializable
@@ -76,6 +98,7 @@ sealed class LessonStep {
     abstract val narrationText: String?
     abstract val skillId: String?
     abstract val scaffolding: StepScaffolding?
+    abstract val audienceContent: AudienceContent?
 
     @Serializable
     @SerialName("explanation")
@@ -86,7 +109,8 @@ sealed class LessonStep {
         override val displayText: String? = null,
         override val narrationText: String? = null,
         override val skillId: String? = null,
-        override val scaffolding: StepScaffolding? = null
+        override val scaffolding: StepScaffolding? = null,
+        override val audienceContent: AudienceContent? = null
     ) : LessonStep()
 
     @Serializable
@@ -101,7 +125,8 @@ sealed class LessonStep {
         override val displayText: String? = null,
         override val narrationText: String? = null,
         override val skillId: String? = null,
-        override val scaffolding: StepScaffolding? = null
+        override val scaffolding: StepScaffolding? = null,
+        override val audienceContent: AudienceContent? = null
     ) : LessonStep()
 
     @Serializable
@@ -117,7 +142,8 @@ sealed class LessonStep {
         override val narrationText: String? = null,
         override val skillId: String? = null,
         override val scaffolding: StepScaffolding? = null,
-        val acceptedMidiNotes: List<Int> = emptyList()
+        val acceptedMidiNotes: List<Int> = emptyList(),
+        override val audienceContent: AudienceContent? = null
     ) : LessonStep()
 
     @Serializable
@@ -130,7 +156,8 @@ sealed class LessonStep {
         override val displayText: String? = null,
         override val narrationText: String? = null,
         override val skillId: String? = null,
-        override val scaffolding: StepScaffolding? = null
+        override val scaffolding: StepScaffolding? = null,
+        override val audienceContent: AudienceContent? = null
     ) : LessonStep()
 
     @Serializable
@@ -143,6 +170,24 @@ sealed class LessonStep {
         override val displayText: String? = null,
         override val narrationText: String? = null,
         override val skillId: String? = null,
-        override val scaffolding: StepScaffolding? = null
+        override val scaffolding: StepScaffolding? = null,
+        override val audienceContent: AudienceContent? = null
     ) : LessonStep()
 }
+
+
+fun Lesson.titleFor(audience: LessonAudience): String =
+    audienceContent?.forAudience(audience)?.title?.takeIf(String::isNotBlank) ?: title
+fun Lesson.descriptionFor(audience: LessonAudience): String? =
+    audienceContent?.forAudience(audience)?.description?.takeIf(String::isNotBlank) ?: description
+private fun LessonStep.copyFor(audience: LessonAudience): AudienceCopy? = audienceContent?.forAudience(audience)
+fun LessonStep.titleFor(audience: LessonAudience): String =
+    copyFor(audience)?.title?.takeIf(String::isNotBlank) ?: title
+fun LessonStep.displayTextFor(audience: LessonAudience): String =
+    copyFor(audience)?.displayText?.takeIf(String::isNotBlank) ?: displayText?.takeIf(String::isNotBlank) ?: titleFor(audience)
+fun LessonStep.narrationTextFor(audience: LessonAudience): String? =
+    copyFor(audience)?.narrationText?.takeIf(String::isNotBlank) ?: narrationText?.takeIf(String::isNotBlank)
+fun LessonStep.bodyFor(audience: LessonAudience): String? =
+    copyFor(audience)?.body?.takeIf(String::isNotBlank) ?: (this as? LessonStep.Explanation)?.body
+fun LessonStep.promptFor(audience: LessonAudience): String? =
+    copyFor(audience)?.prompt?.takeIf(String::isNotBlank) ?: (this as? LessonStep.Listen)?.prompt

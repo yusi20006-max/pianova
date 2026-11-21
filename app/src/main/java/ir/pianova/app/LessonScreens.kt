@@ -61,6 +61,12 @@ import ir.pianova.app.domain.lesson.SkillAttempt
 import ir.pianova.app.domain.lesson.previewNotesAt
 import ir.pianova.app.domain.lesson.targetMidiNotes
 import ir.pianova.app.domain.model.Lesson
+import ir.pianova.app.domain.model.LessonAudience
+import ir.pianova.app.domain.model.titleFor
+import ir.pianova.app.domain.model.descriptionFor
+import ir.pianova.app.domain.model.displayTextFor
+import ir.pianova.app.domain.model.bodyFor
+import ir.pianova.app.domain.model.promptFor
 import ir.pianova.app.domain.model.LessonStep
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,6 +75,8 @@ import java.util.UUID
 @Composable
 fun LessonListScreen(
     repository: LessonRepository,
+    audience: LessonAudience,
+    onAudienceChange: (LessonAudience) -> Unit,
     onStartChapter: (lessonId: String, chapterId: String) -> Unit
 ) {
     val lessons = remember(repository) {
@@ -102,6 +110,13 @@ fun LessonListScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("مسیر یادگیری من", style = MaterialTheme.typography.headlineSmall, color = PianovaInk, fontWeight = FontWeight.Bold)
                         Text("درس‌ها را فصل‌به‌فصل پیش ببر و هر نت را با پیانو تجربه کن.", color = PianovaMuted, style = MaterialTheme.typography.bodyMedium)
+                        Text("محتوای آموزشی برای:", style = MaterialTheme.typography.labelLarge, color = PianovaMuted)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (audience == LessonAudience.CHILDREN) Button(onClick = { onAudienceChange(LessonAudience.CHILDREN) }) { Text("کودکان") }
+                            else TextButton(onClick = { onAudienceChange(LessonAudience.CHILDREN) }) { Text("کودکان") }
+                            if (audience == LessonAudience.ADULTS) Button(onClick = { onAudienceChange(LessonAudience.ADULTS) }) { Text("بزرگسالان") }
+                            else TextButton(onClick = { onAudienceChange(LessonAudience.ADULTS) }) { Text("بزرگسالان") }
+                        }
                     }
                 }
                 chapterGroups.forEach { (chapterTitle, entries) ->
@@ -126,8 +141,8 @@ fun LessonListScreen(
                                 modifier = Modifier.fillMaxWidth().padding(18.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(lesson.title, style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.SemiBold)
-                                lesson.description?.let {
+                                Text(lesson.titleFor(audience), style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.SemiBold)
+                                lesson.descriptionFor(audience)?.let {
                                     Text(it, style = MaterialTheme.typography.bodySmall, color = PianovaMuted)
                                 }
                                 Row(
@@ -150,6 +165,7 @@ fun LessonListScreen(
 @Composable
 fun LessonPlayerScreen(
     lesson: Lesson,
+    audience: LessonAudience,
     startChapterId: String,
     pianoInput: PianoInput,
     pianoReady: Boolean,
@@ -306,7 +322,7 @@ fun LessonPlayerScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(lesson.title, style = MaterialTheme.typography.titleLarge, color = PianovaInk, fontWeight = FontWeight.Bold)
+                    Text(lesson.titleFor(audience), style = MaterialTheme.typography.titleLarge, color = PianovaInk, fontWeight = FontWeight.Bold)
                     Text(entry.chapterTitle, style = MaterialTheme.typography.bodySmall, color = PianovaMuted)
                 }
                 TextButton(onClick = onExit) { Text("خروج از درس") }
@@ -337,6 +353,7 @@ fun LessonPlayerScreen(
                 ) {
                     LessonVoiceControls(
                         step = step,
+                        audience = audience,
                         feedback = if (playable) evaluation.feedbackFa else null,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -349,7 +366,7 @@ fun LessonPlayerScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = PianovaGreen
                     )
-                    Text(step.displayText ?: step.title, style = MaterialTheme.typography.headlineSmall, color = PianovaInk, fontWeight = FontWeight.Bold)
+                    Text(step.displayTextFor(audience), style = MaterialTheme.typography.headlineSmall, color = PianovaInk, fontWeight = FontWeight.Bold)
                     step.scaffolding?.let { scaffolding ->
                         val selectedHint = when (scaffoldingLevel) {
                             1 -> scaffolding.level1
@@ -392,14 +409,14 @@ fun LessonPlayerScreen(
                     }
                     when (step) {
                         is LessonStep.Explanation -> {
-                            Text(step.body, style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
+                            Text(step.bodyFor(audience).orEmpty(), style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
                             if (targetNotes.isNotEmpty()) {
                                 Text("این کلید را روی پیانو پیدا کن.", style = MaterialTheme.typography.bodyMedium, color = PianovaMuted)
                                 Text(targetNotes.joinToString("، ") { midiNoteLabel(it) }, style = MaterialTheme.typography.titleMedium, color = PianovaGreen, fontWeight = FontWeight.Bold)
                             }
                         }
                         is LessonStep.Listen -> {
-                            Text(step.prompt ?: "به صدای نت‌ها با دقت گوش کن.", style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
+                            Text(step.promptFor(audience) ?: "به صدای نت‌ها با دقت گوش کن.", style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
                             if (step.midiNotes.isNotEmpty()) {
                                 Text("نمونه صوتی با صدای پیانوی داخلی پخش می‌شود.", style = MaterialTheme.typography.bodySmall, color = PianovaMuted)
                                 TextButton(
