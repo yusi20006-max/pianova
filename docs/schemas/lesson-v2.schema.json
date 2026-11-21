@@ -4,110 +4,320 @@
   "title": "Pianova Lesson JSON v2",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "id", "title", "language", "pedagogy", "masteryCriteria", "chapters"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "language",
+    "pedagogy",
+    "masteryCriteria",
+    "chapters"
+  ],
   "properties": {
-    "schemaVersion": { "const": 2 },
-    "id": { "type": "string", "minLength": 1 },
-    "title": { "type": "string", "minLength": 1 },
-    "description": { "type": "string" },
-    "language": { "const": "fa-IR" },
-    "pedagogy": { "$ref": "#/$defs/pedagogy" },
-    "completionCriteria": { "$ref": "#/$defs/completionCriteria" },
-    "masteryCriteria": { "$ref": "#/$defs/masteryCriteria" },
-    "chapters": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/chapter" } }
+    "schemaVersion": {
+      "const": 2
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "language": {
+      "const": "fa-IR"
+    },
+    "pedagogy": {
+      "$ref": "#/$defs/pedagogy"
+    },
+    "completionCriteria": {
+      "$ref": "#/$defs/completionCriteria"
+    },
+    "masteryCriteria": {
+      "$ref": "#/$defs/masteryCriteria"
+    },
+    "chapters": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/chapter"
+      }
+    },
+    "audienceContent": {
+      "$ref": "#/$defs/audienceContent"
+    }
   },
   "$defs": {
     "pedagogy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["teacherPersonality", "learningPace", "notationProgression", "waitModeByDefault", "visualGuidance"],
+      "required": [
+        "teacherPersonality",
+        "learningPace",
+        "notationProgression",
+        "waitModeByDefault",
+        "visualGuidance"
+      ],
       "properties": {
-        "teacherPersonality": { "const": "adaptive" },
-        "learningPace": { "const": "adaptive" },
-        "notationProgression": { "const": "gradual" },
-        "waitModeByDefault": { "type": "boolean" },
-        "visualGuidance": { "$ref": "#/$defs/visualGuidance" }
+        "teacherPersonality": {
+          "const": "adaptive"
+        },
+        "learningPace": {
+          "const": "adaptive"
+        },
+        "notationProgression": {
+          "const": "gradual"
+        },
+        "waitModeByDefault": {
+          "type": "boolean"
+        },
+        "visualGuidance": {
+          "$ref": "#/$defs/visualGuidance"
+        }
       }
     },
     "visualGuidance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["automaticSuggestionsEnabled", "manualSelectionEnabled", "defaultLevel", "suggestMoreHelpAfterConsecutiveErrors", "suggestLessHelpAfterConsecutiveSuccesses", "inactivitySuggestionSeconds"],
+      "required": [
+        "automaticSuggestionsEnabled",
+        "manualSelectionEnabled",
+        "defaultLevel",
+        "suggestMoreHelpAfterConsecutiveErrors",
+        "suggestLessHelpAfterConsecutiveSuccesses",
+        "inactivitySuggestionSeconds"
+      ],
       "properties": {
-        "automaticSuggestionsEnabled": { "type": "boolean" },
-        "manualSelectionEnabled": { "type": "boolean" },
-        "defaultLevel": { "type": "integer", "minimum": 1, "maximum": 3 },
-        "suggestMoreHelpAfterConsecutiveErrors": { "type": "integer", "minimum": 1 },
-        "suggestLessHelpAfterConsecutiveSuccesses": { "type": "integer", "minimum": 1 },
-        "inactivitySuggestionSeconds": { "type": "integer", "minimum": 1 }
+        "automaticSuggestionsEnabled": {
+          "type": "boolean"
+        },
+        "manualSelectionEnabled": {
+          "type": "boolean"
+        },
+        "defaultLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "suggestMoreHelpAfterConsecutiveErrors": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "suggestLessHelpAfterConsecutiveSuccesses": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "inactivitySuggestionSeconds": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
     "completionCriteria": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "minimumAccuracyPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
-        "requireAllSteps": { "type": "boolean" }
+        "minimumAccuracyPercent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "requireAllSteps": {
+          "type": "boolean"
+        }
       }
     },
     "masteryCriteria": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["successfulIndependentAttempts", "minimumDistinctSessions"],
+      "required": [
+        "successfulIndependentAttempts",
+        "minimumDistinctSessions"
+      ],
       "properties": {
-        "successfulIndependentAttempts": { "const": 3 },
-        "minimumDistinctSessions": { "const": 2 }
+        "successfulIndependentAttempts": {
+          "const": 3
+        },
+        "minimumDistinctSessions": {
+          "const": 2
+        }
       }
     },
     "chapter": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "title", "steps"],
+      "required": [
+        "id",
+        "title",
+        "steps"
+      ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "title": { "type": "string", "minLength": 1 },
-        "description": { "type": "string" },
-        "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } }
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
       }
     },
     "step": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "id", "title", "displayText", "narrationText"],
+      "required": [
+        "type",
+        "id",
+        "title",
+        "displayText",
+        "narrationText"
+      ],
       "properties": {
-        "type": { "enum": ["explanation", "listen", "play_note", "play_sequence", "play_chord"] },
-        "id": { "type": "string", "minLength": 1 },
-        "title": { "type": "string", "minLength": 1 },
-        "displayText": { "type": "string", "minLength": 1 },
-        "narrationText": { "type": "string", "minLength": 1 },
-        "skillId": { "type": "string", "minLength": 1 },
-        "scaffolding": { "$ref": "#/$defs/scaffolding" },
-        "body": { "type": "string" },
-        "prompt": { "type": "string" },
-        "audioAsset": { "type": "string" },
-        "midiNote": { "type": "integer", "minimum": 0, "maximum": 127 },
-        "midiNotes": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 127 } },
-        "durationMs": { "type": "integer", "minimum": 1 },
-        "noteDurationMs": { "type": "integer", "minimum": 1 },
-        "repetitionCount": { "type": "integer", "minimum": 1, "maximum": 100 },
-        "acceptedPitchClasses": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 11 }, "uniqueItems": true },
-        "acceptedMidiNotes": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 127 }, "uniqueItems": true },
-        "tempoBpm": { "type": "integer", "minimum": 20, "maximum": 300 }
+        "type": {
+          "enum": [
+            "explanation",
+            "listen",
+            "play_note",
+            "play_sequence",
+            "play_chord"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "displayText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "narrationText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "skillId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scaffolding": {
+          "$ref": "#/$defs/scaffolding"
+        },
+        "body": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "audioAsset": {
+          "type": "string"
+        },
+        "midiNote": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127
+        },
+        "midiNotes": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 127
+          }
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "noteDurationMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "repetitionCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "acceptedPitchClasses": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 11
+          },
+          "uniqueItems": true
+        },
+        "acceptedMidiNotes": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 127
+          },
+          "uniqueItems": true
+        },
+        "tempoBpm": {
+          "type": "integer",
+          "minimum": 20,
+          "maximum": 300
+        },
+        "audienceContent": {
+          "$ref": "#/$defs/audienceContent"
+        }
       },
       "allOf": [
         {
-          "if": { "required": ["skillId"] },
-          "then": { "required": ["scaffolding"] }
+          "if": {
+            "required": [
+              "skillId"
+            ]
+          },
+          "then": {
+            "required": [
+              "scaffolding"
+            ]
+          }
         },
         {
           "if": {
-            "properties": { "type": { "const": "play_note" } },
-            "required": ["type", "skillId"]
+            "properties": {
+              "type": {
+                "const": "play_note"
+              }
+            },
+            "required": [
+              "type",
+              "skillId"
+            ]
           },
           "then": {
             "anyOf": [
-              { "required": ["acceptedPitchClasses"] },
-              { "required": ["acceptedMidiNotes"] }
+              {
+                "required": [
+                  "acceptedPitchClasses"
+                ]
+              },
+              {
+                "required": [
+                  "acceptedMidiNotes"
+                ]
+              }
             ]
           }
         }
@@ -116,20 +326,82 @@
     "scaffolding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["level1", "level2", "level3"],
+      "required": [
+        "level1",
+        "level2",
+        "level3"
+      ],
       "properties": {
-        "level1": { "$ref": "#/$defs/scaffoldingLevel" },
-        "level2": { "$ref": "#/$defs/scaffoldingLevel" },
-        "level3": { "$ref": "#/$defs/scaffoldingLevel" }
+        "level1": {
+          "$ref": "#/$defs/scaffoldingLevel"
+        },
+        "level2": {
+          "$ref": "#/$defs/scaffoldingLevel"
+        },
+        "level3": {
+          "$ref": "#/$defs/scaffoldingLevel"
+        }
       }
     },
     "scaffoldingLevel": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["hintText", "revealsAnswer"],
+      "required": [
+        "hintText",
+        "revealsAnswer"
+      ],
       "properties": {
-        "hintText": { "type": "string", "minLength": 1 },
-        "revealsAnswer": { "type": "boolean" }
+        "hintText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revealsAnswer": {
+          "type": "boolean"
+        }
+      }
+    },
+    "audienceContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "children": {
+          "$ref": "#/$defs/audienceCopy"
+        },
+        "adults": {
+          "$ref": "#/$defs/audienceCopy"
+        }
+      }
+    },
+    "audienceCopy": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "displayText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "narrationText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     }
   }
