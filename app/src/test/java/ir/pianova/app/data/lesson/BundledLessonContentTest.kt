@@ -56,7 +56,7 @@ class BundledLessonContentTest {
     }
 
     @Test
-    fun firstFiveLessonsTeachTheRequiredNotesAndSevenNoteMelody() {
+    fun firstFiveLessonsTeachTheRequiredNotesAndApprovedFourBarMelody() {
         val directory = listOf(
             File("src/main/assets/lessons"),
             File("app/src/main/assets/lessons")
@@ -93,8 +93,17 @@ class BundledLessonContentTest {
         assertTrue(faSolLaSi.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlaySequence>().any { it.midiNotes == listOf(65, 67, 69, 71) })
 
         val melody = lesson("lesson-05-first-melody")
-        assertTrue(melody.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlaySequence>().any {
-            it.midiNotes == listOf(60, 62, 64, 67, 64, 62, 60) && it.midiNotes.size == 7
+        val approvedMelody = listOf(60, 62, 64, 65, 67, 69, 71, 69, 67, 65, 64, 62, 60)
+        val melodySteps = melody.chapters.flatMap { it.steps }
+        val melodyPlayback = melodySteps.filterIsInstance<LessonStep.PlaySequence>()
+        val melodyListening = melodySteps.filterIsInstance<LessonStep.Listen>()
+        assertEquals(2, melodyPlayback.size)
+        assertTrue(melodyPlayback.all { it.midiNotes == approvedMelody })
+        assertTrue(melodyListening.all { it.midiNotes == approvedMelody })
+        assertEquals(setOf(60, 62, 64, 65, 67, 69, 71), approvedMelody.toSet())
+        assertTrue(melody.audienceContent?.adults?.body?.contains("چهار میزان") == true)
+        assertTrue(melodySteps.filterIsInstance<LessonStep.PlaySequence>().all {
+            it.audienceContent?.adults?.narrationText?.contains("نه زمان‌بندی دقیق") == true
         })
     }
 }
