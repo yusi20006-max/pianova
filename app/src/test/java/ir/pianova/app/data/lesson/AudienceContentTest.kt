@@ -1,6 +1,9 @@
 package ir.pianova.app.data.lesson
 
 import ir.pianova.app.domain.model.LessonAudience
+import ir.pianova.app.domain.model.Lesson
+import ir.pianova.app.domain.model.Chapter
+import ir.pianova.app.domain.model.LessonStep
 import ir.pianova.app.domain.model.displayTextFor
 import ir.pianova.app.domain.model.narrationTextFor
 import ir.pianova.app.domain.model.titleFor
@@ -44,29 +47,19 @@ class AudienceContentTest {
 
     @Test
     fun adultProfileFallsBackToLegacyCopyWhenNoAdultOverrideExists() {
-        val lesson = parser.parse("""
-            {
-              "schemaVersion": 2, "id": "fallback", "title": "پایه",
-              "language": "fa-IR",
-              "pedagogy": {
-                "teacherPersonality": "adaptive", "learningPace": "adaptive",
-                "notationProgression": "gradual", "waitModeByDefault": true,
-                "visualGuidance": {
-                  "automaticSuggestionsEnabled": true, "manualSelectionEnabled": true,
-                  "defaultLevel": 2, "suggestMoreHelpAfterConsecutiveErrors": 2,
-                  "suggestLessHelpAfterConsecutiveSuccesses": 2, "inactivitySuggestionSeconds": 8
-                }
-              },
-              "masteryCriteria": {"successfulIndependentAttempts": 3, "minimumDistinctSessions": 2},
-              "chapters": [{
-                "id": "chapter", "title": "فصل", "steps": [{
-                  "type": "play_note", "id": "note", "title": "نت",
-                  "displayText": "متن پایه", "narrationText": "گویندگی پایه", "midiNote": 60
-                }]
-              }]
-            }
-        """.trimIndent())
-        val step = lesson.chapters.single().steps.single()
+        val step = LessonStep.PlayNote(
+            id = "note",
+            title = "نت",
+            midiNote = 60,
+            displayText = "متن پایه",
+            narrationText = "گویندگی پایه"
+        )
+        val lesson = Lesson(
+            schemaVersion = 2,
+            id = "fallback",
+            title = "پایه",
+            chapters = listOf(Chapter(id = "chapter", title = "فصل", steps = listOf(step)))
+        )
         assertEquals("پایه", lesson.titleFor(LessonAudience.ADULTS))
         assertEquals("متن پایه", step.displayTextFor(LessonAudience.ADULTS))
         assertEquals("گویندگی پایه", step.narrationTextFor(LessonAudience.ADULTS))
