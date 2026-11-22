@@ -22,6 +22,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +42,7 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -50,6 +54,14 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import kotlin.math.floor
 import kotlin.math.roundToInt
+import ir.pianova.app.core.database.PianovaDatabase
+import ir.pianova.app.core.database.PracticeSessionEntity
+import ir.pianova.app.data.persistence.ProgressRepository
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.UUID
 
 private val PianoWhite = Color(0xFFF1F5F6)
 private val PianoBlack = Color(0xFF10232B)
@@ -90,6 +102,64 @@ fun PianoScreen(
     var sustain by remember(learnerId) { mutableStateOf(false) }
     var volume by remember(learnerId) { mutableStateOf(initialVolume) }
     var labelMode by remember(learnerId) { mutableStateOf(initialLabelMode) }
+    val context = LocalContext.current
+    val database = remember(context) { PianovaDatabase.getInstance(context) }
+    val progressRepository = remember(database) { ProgressRepository(database) }
+    val scope = rememberCoroutineScope()
+    var practiceSessionId by remember(learnerId) { mutableStateOf<String?>(null) }
+    var practiceStartedAt by remember(learnerId) { mutableStateOf<Long?>(null) }
+    var notesPlayed by remember(learnerId) { mutableIntStateOf(0) }
+
+    val trackedNoteOn: (Int, Float) -> Boolean = { note, velocity ->
+        val accepted = onNoteOn(note, velocity)
+        if (accepted) {
+            val now = System.currentTimeMillis()
+            val sessionId = practiceSessionId ?: UUID.randomUUID().toString().also {
+                practiceSessionId = it
+                practiceStartedAt = now
+            }
+            val startedAt = practiceStartedAt ?: now
+            notesPlayed++
+            val count = notesPlayed
+            scope.launch {
+                progressRepository.savePracticeSession(
+                    PracticeSessionEntity(
+                        sessionId = sessionId,
+                        learnerId = learnerId,
+                        startedAtEpochMillis = startedAt,
+                        durationMillis = (now - startedAt).coerceAtLeast(0),
+                        notesPlayed = count
+                    )
+                )
+            }
+        }
+        accepted
+    }
+
+    LaunchedEffect(learnerId) {
+        try {
+            awaitCancellation()
+        } finally {
+            val sessionId = practiceSessionId
+            val startedAt = practiceStartedAt
+            val count = notesPlayed
+            if (sessionId != null && startedAt != null && count > 0) {
+                val endedAt = System.currentTimeMillis()
+                withContext(NonCancellable) {
+                    progressRepository.savePracticeSession(
+                        PracticeSessionEntity(
+                            sessionId = sessionId,
+                            learnerId = learnerId,
+                            startedAtEpochMillis = startedAt,
+                            endedAtEpochMillis = endedAt,
+                            durationMillis = (endedAt - startedAt).coerceAtLeast(0),
+                            notesPlayed = count
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     LaunchedEffect(running) {
         if (!running && sustain) {
@@ -183,7 +253,7 @@ fun PianoScreen(
                         firstMidi = firstMidi,
                         labelMode = labelMode,
                         enabled = running,
-                        onNoteOn = onNoteOn,
+                        onNoteOn = trackedNoteOn,
                         onNoteOff = onNoteOff,
                         modifier = Modifier.weight(1f).fillMaxSize()
                     )
