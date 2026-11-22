@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import ir.pianova.app.domain.family.LearnerAudience
 import ir.pianova.app.domain.family.LearnerProfile
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -51,7 +52,7 @@ class LearnerSelectionScreenTest {
         composeRule.onNodeWithText("نورا").performClick()
         composeRule.runOnIdle { assertEquals("learner-nora", selectedLearnerId) }
         composeRule.onNodeWithText("مدیریت خانواده و پروفایل‌ها").performClick()
-        composeRule.runOnIdle { assert(manageFamilyClicked) }
+        composeRule.runOnIdle { assertTrue(manageFamilyClicked) }
     }
 
     @Test
