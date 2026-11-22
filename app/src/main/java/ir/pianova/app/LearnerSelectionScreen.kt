@@ -106,7 +106,7 @@ fun LearnerSelectionScreen(
                                     Text(learner.displayName, color = PianovaInk, fontWeight = FontWeight.Bold)
                                     Text(audienceLabel(learner.audience), color = PianovaMuted, style = MaterialTheme.typography.bodySmall)
                                     Text(
-                                        if (learner.learnerId == lastActiveLearnerId) "آخرین هنرجوی انتخاب‌شده · \${destinationLabel(learner.learnerId)}"
+                                        if (learner.learnerId == lastActiveLearnerId) "آخرین هنرجوی انتخاب‌شده · ${destinationLabel(learner.learnerId)}"
                                         else "ورود به مسیر هنرجو",
                                         color = PianovaGreen,
                                         style = MaterialTheme.typography.labelSmall
