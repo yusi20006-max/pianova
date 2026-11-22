@@ -259,14 +259,13 @@ fun FamilyManagementScreen(
 
             if (initialSetup) {
                 Text(
-                    "می‌توانید اکنون یک یا چند هنرجو اضافه کنید و بعداً از بخش مدیریت خانواده، پروفایل‌های بیشتری بسازید.",
+                    "می‌توانید اکنون یک یا چند هنرجو اضافه کنید یا بدون هنرجو وارد برنامه شوید؛ افزودن پروفایل بعداً از بخش مدیریت خانواده هم ممکن است.",
                     style = MaterialTheme.typography.bodySmall,
                     color = PianovaMuted,
                     textAlign = TextAlign.Center
                 )
                 Button(
                     onClick = onComplete,
-                    enabled = learners.isNotEmpty(),
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("ورود به Pianova") }
             } else {
