@@ -5,6 +5,28 @@ import androidx.compose.runtime.staticCompositionLocalOf
 val LocalActiveLearnerId = staticCompositionLocalOf<String?> { null }
 
 internal const val ACTIVE_LEARNER_ID_KEY = "active_learner_id"
+private const val LEGACY_AUDIENCE_MIGRATED_KEY = "legacy_lesson_audience_migrated"
+
+internal fun ensureLearnerAudiencePreference(
+    preferences: android.content.SharedPreferences,
+    learnerId: String,
+    defaultValue: String = "children"
+): String {
+    val key = learnerAudiencePreferenceKey(learnerId)
+    preferences.getString(key, null)?.let { return it }
+
+    val legacyAlreadyAssigned = preferences.getBoolean(LEGACY_AUDIENCE_MIGRATED_KEY, false)
+    val value = if (legacyAlreadyAssigned) {
+        defaultValue
+    } else {
+        preferences.getString("lesson_audience", defaultValue) ?: defaultValue
+    }
+    preferences.edit()
+        .putString(key, value)
+        .putBoolean(LEGACY_AUDIENCE_MIGRATED_KEY, true)
+        .apply()
+    return value
+}
 
 internal fun learnerAudiencePreferenceKey(learnerId: String): String =
     "lesson_audience_$learnerId"

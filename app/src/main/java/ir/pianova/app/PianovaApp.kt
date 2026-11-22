@@ -108,8 +108,8 @@ fun PianovaApp(onPianoVisibilityChanged: (Boolean) -> Unit = {}) {
     var initialRoute by remember { mutableStateOf("home") }
     var lessonAudience by remember(activeLearnerId, audiencePreferences) {
         val stored = activeLearnerId?.let {
-            audiencePreferences.getString(learnerAudiencePreferenceKey(it), null)
-        } ?: audiencePreferences.getString("lesson_audience", "children")
+            audiencePreferences.getString(learnerAudiencePreferenceKey(it), "children")
+        } ?: "children"
         mutableStateOf(LessonAudience.fromStorageValue(stored))
     }
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -161,11 +161,7 @@ fun PianovaApp(onPianoVisibilityChanged: (Boolean) -> Unit = {}) {
 
     fun selectLearner(learner: LearnerProfile) {
         val learnerId = learner.learnerId
-        val audienceKey = learnerAudiencePreferenceKey(learnerId)
-        if (!audiencePreferences.contains(audienceKey)) {
-            val legacyAudience = audiencePreferences.getString("lesson_audience", "children")
-            audiencePreferences.edit().putString(audienceKey, legacyAudience).apply()
-        }
+        ensureLearnerAudiencePreference(audiencePreferences, learnerId)
         initialRoute = learnerRouteToRestore(
             familyPreferences.getString(learnerRoutePreferenceKey(learnerId), null)
         )
