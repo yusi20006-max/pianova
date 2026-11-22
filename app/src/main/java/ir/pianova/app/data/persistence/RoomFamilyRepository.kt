@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 class RoomFamilyRepository(private val database: PianovaDatabase) : FamilyRepository {
     private val families = database.familyDao()
     private val learners = database.learnerProfileDao()
+    private val goals = database.learnerGoalDao()
 
     override fun observeFamily(familyId: String): Flow<Family?> =
         families.observeById(familyId).map { it?.toDomain() }
@@ -35,6 +36,18 @@ class RoomFamilyRepository(private val database: PianovaDatabase) : FamilyReposi
                 "A learner cannot be reassigned to another family"
             }
             learners.upsert(learner.toEntity())
+        }
+    }
+
+    override fun observeGoal(learnerId: String): Flow<String?> =
+        goals.observeForLearner(learnerId).map { it?.goalText }
+
+    override suspend fun saveGoal(learnerId: String, goalText: String?) {
+        database.withTransaction {
+            require(learners.findById(learnerId) != null) { "Learner does not exist" }
+            val normalized = goalText?.trim().orEmpty()
+            if (normalized.isEmpty()) goals.deleteForLearner(learnerId)
+            else goals.upsert(ir.pianova.app.core.database.LearnerGoalEntity(learnerId, normalized, System.currentTimeMillis()))
         }
     }
 

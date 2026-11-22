@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -58,6 +59,11 @@ import ir.pianova.app.core.designsystem.PianovaMuted
 import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.core.database.PianovaDatabase
+import ir.pianova.app.data.persistence.RoomFamilyRepository
+import ir.pianova.app.domain.family.Family
+import ir.pianova.app.domain.family.LearnerProfile
+import kotlinx.coroutines.flow.collect
 import ir.pianova.app.data.lesson.AndroidLessonAssetSource
 import ir.pianova.app.data.lesson.LessonRepository
 import ir.pianova.app.domain.model.LessonAudience
@@ -89,6 +95,33 @@ fun PianovaApp(
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val database = remember(context) { PianovaDatabase.getInstance(context) }
+    val familyRepository = remember(database) { RoomFamilyRepository(database) }
+    var familyReady by remember { mutableStateOf(false) }
+    var familyId by remember { mutableStateOf("local-family") }
+    val familyPreferences = remember(context) { context.getSharedPreferences("pianova_family", 0) }
+    var onboardingComplete by remember { mutableStateOf(familyPreferences.getBoolean("onboarding_complete", false)) }
+    var familyLearners by remember { mutableStateOf<List<LearnerProfile>>(emptyList()) }
+
+    LaunchedEffect(database) {
+        val migratedFamily = database.familyDao().findById("family-default")
+        val existingFamily = database.familyDao().findById("local-family")
+        val selectedFamily = migratedFamily ?: existingFamily
+        if (selectedFamily == null) {
+            val now = System.currentTimeMillis()
+            familyRepository.saveFamily(Family("local-family", now, now))
+            familyId = "local-family"
+        } else {
+            familyId = selectedFamily.familyId
+        }
+        onboardingComplete = familyPreferences.getBoolean("onboarding_complete", false)
+        familyReady = true
+    }
+    LaunchedEffect(familyReady, familyId) {
+        if (familyReady) {
+            familyRepository.observeLearners(familyId).collect { familyLearners = it }
+        }
+    }
     val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
     val audiencePreferences = remember(context) { context.getSharedPreferences("pianova_preferences", 0) }
     var lessonAudience by remember(audiencePreferences) {
@@ -100,6 +133,21 @@ fun PianovaApp(
 
     LaunchedEffect(route) { onPianoVisibilityChanged(route == "practice") }
 
+    if (!familyReady) {
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("در حال آماده‌سازی خانواده…", color = PianovaMuted)
+        }
+    } else if (!onboardingComplete || familyLearners.isEmpty()) {
+        FamilyManagementScreen(
+            repository = familyRepository,
+            familyId = familyId,
+            initialSetup = true,
+            onComplete = {
+                familyPreferences.edit().putBoolean("onboarding_complete", true).apply()
+                onboardingComplete = true
+            }
+        )
+    } else {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
@@ -107,7 +155,7 @@ fun PianovaApp(
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     mainTabs.forEach { tab ->
                         NavigationBarItem(
-                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings") else route == tab.route,
+                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family") else route == tab.route,
                             onClick = {
                                 navController.navigate(tab.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -197,9 +245,18 @@ fun PianovaApp(
             composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
             composable("progress") { ProgressScreen() }
             composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
+            composable("family") {
+                FamilyManagementScreen(
+                    repository = familyRepository,
+                    familyId = familyId,
+                    initialSetup = false,
+                    onComplete = { navController.popBackStack() }
+                )
+            }
         }
     }
     if (showAboutDialog) AboutDialog(onDismiss = { showAboutDialog = false })
+    }
 }
 
 @Composable
@@ -366,7 +423,7 @@ private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Uni
             MenuEntry("مربی هوشمند", "آینده", future = true)
         ),
         "حساب و برنامه" to listOf(
-            MenuEntry("پروفایل", "در حال توسعه", future = true),
+            MenuEntry("مدیریت خانواده و هنرجویان", "آماده", "family"),
             MenuEntry("تنظیمات", "آماده", "settings")
         )
     )
