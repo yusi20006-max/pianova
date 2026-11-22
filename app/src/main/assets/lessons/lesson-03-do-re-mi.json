@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "lesson-03-do-re-mi",
   "title": "نت‌های دو، ر و می",
   "description": "سه نت سفید کنار هم را بشناس و به ترتیب بنواز.",
@@ -13,59 +13,189 @@
           "type": "explanation",
           "id": "do-re-mi-intro",
           "title": "سه نت کنار هم",
-          "body": "از نت دو میانی شروع کن. کلید سفید بعد از آن ر است و کلید سفید بعدی می است. پس ترتیب آن‌ها دو، ر، می یا C، D، E است."
+          "body": "از دوی میانی (C4) شروع کن. کلید سفید بعدی ر (D4) و کلید سفید بعد از آن می (E4) است. برای این تمرین، دست راست را روی این سه کلید قرار بده.",
+          "displayText": "سه نت کنار هم را بشناس.",
+          "narrationText": "از نت دو میانی شروع کن. کلید سفید بعد از آن ر است و کلید سفید بعدی می است. ترتیب آن‌ها دو، ر، می یا C، D، E است.",
+          "audienceContent": {
+            "children": {
+              "title": "سه نت کنار هم",
+              "displayText": "دو، ر و می را از چپ به راست پیدا کن.",
+              "narrationText": "از دوی میانی شروع کن؛ کلید سفید بعدی ر و کلید سفید بعد از آن می است.",
+              "body": "از دوی میانی (C4) شروع کن. کلید سفید بعدی ر (D4) و کلید سفید بعد از آن می (E4) است. برای این تمرین، دست راست را روی این سه کلید قرار بده."
+            },
+            "adults": {
+              "title": "سه نت متوالی",
+              "displayText": "الگوی تمرین: C4، D4، E4، D4، C4؛ انگشت‌گذاری ۱، ۲، ۳، ۲، ۱.",
+              "narrationText": "شست روی C4، انگشت دوم روی D4 و انگشت سوم روی E4 قرار می‌گیرد؛ در بازگشت همان انگشت‌گذاری را برعکس انجام دهید.",
+              "body": "در این تمرین سه نت طبیعی متوالی C4، D4 و E4 را با دست راست اجرا می‌کنید. انگشت‌گذاری الگوی تمرین ۱، ۲، ۳، ۲، ۱ است و فقط برای همین الگو در نظر گرفته شده است."
+            }
+          }
         },
         {
           "type": "listen",
           "id": "do-re-mi-listen",
           "title": "به دو، ر و می گوش کن",
-          "prompt": "سه نت را با فاصله‌ای کوتاه و به ترتیب بشنو.",
+          "prompt": "به الگوی پنج‌نتی دو، ر، می، ر، دو گوش کن.",
           "midiNotes": [
             60,
             62,
-            64
+            64,
+            62,
+            60
           ],
-          "noteDurationMs": 700
+          "noteDurationMs": 700,
+          "displayText": "به دو، ر و می گوش کن.",
+          "narrationText": "سه نت دو، ر و می را با فاصله‌ای کوتاه و به همین ترتیب بشنو.",
+          "audienceContent": {
+            "children": {
+              "title": "به دو، ر و می گوش کن",
+              "displayText": "به الگوی پنج‌نتی دو، ر، می، ر، دو گوش کن.",
+              "narrationText": "به الگوی پنج‌نتی دو، ر، می، ر، دو گوش کن.",
+              "prompt": "به الگوی پنج‌نتی دو، ر، می، ر، دو گوش کن."
+            },
+            "adults": {
+              "title": "شنیدن C4 تا E4",
+              "displayText": "توالی C4، D4، E4، D4، C4 را بشنوید.",
+              "narrationText": "توالی C4، D4، E4، D4، C4 را بشنوید.",
+              "prompt": "توالی C4، D4، E4، D4، C4 را بشنوید."
+            }
+          }
         },
         {
           "type": "play_sequence",
           "id": "do-re-mi-play",
-          "title": "دو، ر، می را به ترتیب بنواز",
+          "title": "الگوی دو، ر، می، ر، دو را بنواز",
           "midiNotes": [
             60,
             62,
-            64
+            64,
+            62,
+            60
           ],
-          "tempoBpm": 65
+          "tempoBpm": 65,
+          "displayText": "دو، ر، می، ر، دو را به ترتیب بنواز.",
+          "narrationText": "از دو شروع کن، تا می بالا برو و سپس از ر به دو برگرد.",
+          "skillId": "play-do-re-mi",
+          "scaffolding": {
+            "level1": {
+              "hintText": "ترتیب نت‌ها: دو، ر، می، ر، دو. انگشت‌ها: ۱، ۲، ۳، ۲، ۱.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "از دو به سمت راست حرکت کن و پس از می مسیر را برگرد.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "سه کلید سفید پیاپی را پیدا کن؛ ابتدا بالا برو و سپس پایین بیا.",
+              "revealsAnswer": false
+            }
+          },
+          "audienceContent": {
+            "children": {
+              "title": "الگوی دو، ر، می، ر، دو را بنواز",
+              "displayText": "دو، ر، می، ر، دو را به ترتیب بنواز.",
+              "narrationText": "از دو شروع کن، تا می بالا برو و سپس از ر به دو برگرد."
+            },
+            "adults": {
+              "title": "اجرای الگوی پنج‌نتی",
+              "displayText": "C4، D4، E4، D4، C4 را با انگشت‌گذاری ۱، ۲، ۳، ۲، ۱ اجرا کنید؛ هر نت یک ضرب.",
+              "narrationText": "هر نت را یک ضرب اجرا کنید. این انگشت‌گذاری فقط برای همین تمرین است."
+            }
+          }
         },
         {
           "type": "explanation",
           "id": "do-re-mi-review",
           "title": "ترتیب را به خاطر بسپار",
-          "body": "دو پایین‌تر است، ر در وسط قرار دارد و می بالاترینِ این سه نت است. آن‌ها را از چپ به راست روی صفحه‌کلید پیدا کن."
+          "body": "الگو از دو آغاز می‌شود، تا می بالا می‌رود و سپس از ر به دو بازمی‌گردد. جای هر سه کلید را روی صفحه‌کلید مرور کن.",
+          "displayText": "ترتیب نت‌ها را به خاطر بسپار.",
+          "narrationText": "دو پایین‌تر است، ر در وسط قرار دارد و می بالاترین این سه نت است. آن‌ها را از چپ به راست روی صفحه‌کلید پیدا کن.",
+          "audienceContent": {
+            "children": {
+              "title": "ترتیب را به خاطر بسپار",
+              "displayText": "دو، ر، می، ر، دو؛ بالا برو و برگرد.",
+              "narrationText": "ترتیب را آرام مرور کن: دو، ر، می، ر، دو.",
+              "body": "الگو از دو آغاز می‌شود، تا می بالا می‌رود و سپس از ر به دو بازمی‌گردد. جای هر سه کلید را روی صفحه‌کلید مرور کن."
+            },
+            "adults": {
+              "title": "مرور ترتیب سه نت",
+              "displayText": "پنج نت با کشش یکسان و انگشت‌گذاری ۱، ۲، ۳، ۲، ۱.",
+              "narrationText": "با ضرب یکنواخت اجرا کنید و در بازگشت از انگشت سوم به دوم و سپس شست برگردید.",
+              "body": "توالی C4، D4، E4، D4 و C4 را مرور کنید. در این تمرین هر نت یک ضرب دارد و انگشت‌گذاری ۱، ۲، ۳، ۲، ۱ مخصوص همین الگو است."
+            }
+          }
         },
         {
           "type": "listen",
           "id": "do-re-mi-review-listen",
           "title": "یک بار دیگر بشنو",
-          "prompt": "ترتیب دو، ر و می را دوباره گوش کن.",
+          "prompt": "یک بار دیگر الگوی دو، ر، می، ر، دو را بشنو.",
           "midiNotes": [
             60,
             62,
-            64
+            64,
+            62,
+            60
           ],
-          "noteDurationMs": 650
+          "noteDurationMs": 650,
+          "displayText": "یک بار دیگر ترتیب را بشنو.",
+          "narrationText": "ترتیب دو، ر و می را دوباره گوش کن و حرکت صداها را دنبال کن.",
+          "audienceContent": {
+            "children": {
+              "title": "یک بار دیگر بشنو",
+              "displayText": "یک بار دیگر الگوی دو، ر، می، ر، دو را بشنو.",
+              "narrationText": "یک بار دیگر الگوی دو، ر، می، ر، دو را بشنو.",
+              "prompt": "یک بار دیگر الگوی دو، ر، می، ر، دو را بشنو."
+            },
+            "adults": {
+              "title": "شنیدن دوبارهٔ الگو",
+              "displayText": "توالی C4، D4، E4، D4، C4 را بشنوید.",
+              "narrationText": "توالی C4، D4، E4، D4، C4 را بشنوید.",
+              "prompt": "توالی C4، D4، E4، D4، C4 را بشنوید."
+            }
+          }
         },
         {
           "type": "play_sequence",
           "id": "do-re-mi-review-play",
-          "title": "سه نت را دوباره اجرا کن",
+          "title": "الگوی پنج‌نتی را دوباره اجرا کن",
           "midiNotes": [
             60,
             62,
-            64
+            64,
+            62,
+            60
           ],
-          "tempoBpm": 70
+          "tempoBpm": 70,
+          "displayText": "دو، ر، می، ر، دو را به ترتیب بنواز.",
+          "narrationText": "از دو شروع کن، تا می بالا برو و سپس از ر به دو برگرد.",
+          "skillId": "play-do-re-mi",
+          "scaffolding": {
+            "level1": {
+              "hintText": "ترتیب نت‌ها: دو، ر، می، ر، دو. انگشت‌ها: ۱، ۲، ۳، ۲، ۱.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "از دو به سمت راست حرکت کن و پس از می مسیر را برگرد.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "سه کلید سفید پیاپی را پیدا کن؛ ابتدا بالا برو و سپس پایین بیا.",
+              "revealsAnswer": false
+            }
+          },
+          "audienceContent": {
+            "children": {
+              "title": "الگوی پنج‌نتی را دوباره اجرا کن",
+              "displayText": "دو، ر، می، ر، دو را به ترتیب بنواز.",
+              "narrationText": "از دو شروع کن، تا می بالا برو و سپس از ر به دو برگرد."
+            },
+            "adults": {
+              "title": "اجرای الگوی پنج‌نتی",
+              "displayText": "C4، D4، E4، D4، C4 را با انگشت‌گذاری ۱، ۲، ۳، ۲، ۱ اجرا کنید؛ هر نت یک ضرب.",
+              "narrationText": "هر نت را یک ضرب اجرا کنید. این انگشت‌گذاری فقط برای همین تمرین است."
+            }
+          }
         }
       ]
     }
@@ -73,5 +203,34 @@
   "completionCriteria": {
     "minimumAccuracyPercent": 80,
     "requireAllSteps": true
+  },
+  "language": "fa-IR",
+  "pedagogy": {
+    "teacherPersonality": "adaptive",
+    "learningPace": "adaptive",
+    "notationProgression": "gradual",
+    "waitModeByDefault": true,
+    "visualGuidance": {
+      "automaticSuggestionsEnabled": true,
+      "manualSelectionEnabled": true,
+      "defaultLevel": 2,
+      "suggestMoreHelpAfterConsecutiveErrors": 2,
+      "suggestLessHelpAfterConsecutiveSuccesses": 2,
+      "inactivitySuggestionSeconds": 8
+    }
+  },
+  "masteryCriteria": {
+    "successfulIndependentAttempts": 3,
+    "minimumDistinctSessions": 2
+  },
+  "audienceContent": {
+    "children": {
+      "title": "نت‌های دو، ر و می",
+      "description": "دو، ر و می را پیدا کن و الگوی صعودی و نزولی پنج‌نتی را بنواز."
+    },
+    "adults": {
+      "title": "سه نت نخست: C4، D4 و E4",
+      "description": "اجرای الگوی C4-D4-E4-D4-C4 با انگشت‌گذاری تمرینی ۱-۲-۳-۲-۱."
+    }
   }
 }

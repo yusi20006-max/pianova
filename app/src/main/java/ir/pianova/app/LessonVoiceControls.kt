@@ -28,12 +28,18 @@ import ir.pianova.app.core.voice.LessonNarrationText
 import ir.pianova.app.core.voice.LessonVoiceEngine
 import ir.pianova.app.core.voice.VoiceCoachStatus
 import ir.pianova.app.domain.model.LessonStep
+import ir.pianova.app.domain.model.LessonAudience
 
 private const val PERSIAN_TTS_ENGINE_GUIDE =
     "https://k2-fsa.github.io/sherpa/onnx/tts/all/Persian/vits-piper-fa_IR-ganji-medium.html"
 
 @Composable
-fun LessonVoiceControls(step: LessonStep, feedback: String?, modifier: Modifier = Modifier) {
+fun LessonVoiceControls(
+    step: LessonStep,
+    audience: LessonAudience,
+    feedback: String?,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     var selectedEngine by remember { mutableStateOf(LessonVoiceEngine.OFFLINE_PERSIAN) }
     val coach = remember(context, selectedEngine) {
@@ -44,8 +50,16 @@ fun LessonVoiceControls(step: LessonStep, feedback: String?, modifier: Modifier 
     var playing by remember { mutableStateOf(false) }
     var rate by remember { mutableFloatStateOf(AndroidLessonVoiceCoach.DEFAULT_RATE) }
 
-    DisposableEffect(coach) { onDispose { coach.shutdown() } }
-    LaunchedEffect(step.id) { coach.stop(); playing = false }
+    DisposableEffect(coach) {
+        onDispose { coach.shutdown() }
+    }
+
+    // A step change always cancels the previous utterance. Nothing is spoken
+    // automatically: the learner explicitly starts each narration.
+    LaunchedEffect(step.id, audience) {
+        coach.stop()
+        playing = false
+    }
 
     val canSpeak = status is VoiceCoachStatus.Ready || status is VoiceCoachStatus.Failed
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -64,23 +78,31 @@ fun LessonVoiceControls(step: LessonStep, feedback: String?, modifier: Modifier 
             Button(
                 onClick = {
                     val parts = buildList {
-                        add(LessonNarrationText.forStep(step, interactive))
+                        add(LessonNarrationText.forStep(step, interactive, audience))
                         if (!feedback.isNullOrBlank()) add(LessonNarrationText.feedback(feedback))
                     }
                     playing = coach.speak(parts.joinToString(separator = ". ")) { playing = false }
                 },
                 enabled = canSpeak
             ) { Text(if (playing) "پخش دوباره راهنما" else "پخش راهنمای صوتی") }
-            TextButton(onClick = { coach.stop(); playing = false }, enabled = playing || status is VoiceCoachStatus.Failed) {
-                Text("توقف")
-            }
+            TextButton(
+                onClick = {
+                    coach.stop()
+                    playing = false
+                },
+                enabled = playing || status is VoiceCoachStatus.Failed
+            ) { Text("توقف") }
         }
+
         TextButton(onClick = { interactive = !interactive }) {
             Text(if (interactive) "حالت تعاملی" else "خواندن پیوسته")
         }
 
         when (val current = status) {
-            VoiceCoachStatus.Initializing -> Text("در حال آماده‌سازی موتور گفتار فارسی…", style = MaterialTheme.typography.bodySmall)
+            VoiceCoachStatus.Initializing -> Text(
+                "در حال آماده‌سازی صدای فارسی…",
+                style = MaterialTheme.typography.bodySmall
+            )
             is VoiceCoachStatus.Unavailable -> {
                 Text(current.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 if (selectedEngine == LessonVoiceEngine.OFFLINE_PERSIAN) {
@@ -97,11 +119,15 @@ fun LessonVoiceControls(step: LessonStep, feedback: String?, modifier: Modifier 
                     }
                 }
             }
-            is VoiceCoachStatus.Failed -> Text(current.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            is VoiceCoachStatus.Failed -> Text(
+                current.message,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
             is VoiceCoachStatus.Ready -> {
                 Text(
                     if (current.offlineAvailable) "صدای فارسی آماده است · قابل استفاده آفلاین"
-                    else "صدای فارسی آماده است · این موتور ممکن است به اینترنت نیاز داشته باشد",
+                    else "صدای فارسی آماده است · برای پخش به اینترنت نیاز دارد",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text("سرعت خواندن", style = MaterialTheme.typography.labelSmall)
@@ -111,9 +137,10 @@ fun LessonVoiceControls(step: LessonStep, feedback: String?, modifier: Modifier 
                     valueRange = 0.75f..1.15f,
                     modifier = Modifier.fillMaxWidth()
                 )
-                TextButton(onClick = { rate = AndroidLessonVoiceCoach.DEFAULT_RATE; coach.setSpeechRate(rate) }) {
-                    Text("بازنشانی سرعت")
-                }
+                TextButton(onClick = {
+                    rate = AndroidLessonVoiceCoach.DEFAULT_RATE
+                    coach.setSpeechRate(rate)
+                }) { Text("بازنشانی سرعت") }
             }
         }
     }

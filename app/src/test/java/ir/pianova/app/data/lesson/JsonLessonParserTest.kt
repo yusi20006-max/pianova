@@ -50,6 +50,31 @@ class JsonLessonParserTest {
     }
 
     @Test
+    fun parsesVersionTwoWithSeparateDisplayAndNarrationAndMasteryCriteria() {
+        val lesson = parser.parse(VALID_V2_LESSON)
+        assertEquals(2, lesson.schemaVersion)
+        assertEquals("fa-IR", lesson.language)
+        assertEquals(3, lesson.masteryCriteria?.successfulIndependentAttempts)
+        val step = lesson.chapters.single().steps.single() as LessonStep.PlayNote
+        assertEquals("کلید را پیدا کن", step.displayText)
+        assertEquals("یک کلید را بنواز.", step.narrationText)
+        assertEquals("identify-white-keys", step.skillId)
+        assertEquals(true, step.scaffolding?.level1?.revealsAnswer)
+    }
+
+    @Test
+    fun rejectsVersionTwoWithoutExplicitNarrationText() {
+        val input = VALID_V2_LESSON.replace("\"narrationText\": \"یک کلید را بنواز.\",", "")
+        assertThrows(LessonFormatException::class.java) { parser.parse(input) }
+    }
+
+    @Test
+    fun rejectsUnknownVersionTwoFields() {
+        val input = VALID_V2_LESSON.replace("\"title\": \"آزمون\",", "\"title\": \"آزمون\", \"unexpected\": true,")
+        assertThrows(LessonFormatException::class.java) { parser.parse(input) }
+    }
+
+    @Test
     fun rejectsMalformedJson() {
         assertThrows(LessonFormatException::class.java) { parser.parse("{ not-json") }
     }
@@ -73,6 +98,52 @@ class JsonLessonParserTest {
     }
 
     private companion object {
+        const val VALID_V2_LESSON = """
+            {
+              "schemaVersion": 2,
+              "id": "v2-test",
+              "title": "آزمون",
+              "language": "fa-IR",
+              "pedagogy": {
+                "teacherPersonality": "adaptive",
+                "learningPace": "adaptive",
+                "notationProgression": "gradual",
+                "waitModeByDefault": true,
+                "visualGuidance": {
+                  "automaticSuggestionsEnabled": true,
+                  "manualSelectionEnabled": true,
+                  "defaultLevel": 2,
+                  "suggestMoreHelpAfterConsecutiveErrors": 2,
+                  "suggestLessHelpAfterConsecutiveSuccesses": 2,
+                  "inactivitySuggestionSeconds": 8
+                }
+              },
+              "masteryCriteria": {
+                "successfulIndependentAttempts": 3,
+                "minimumDistinctSessions": 2
+              },
+              "chapters": [{
+                "id": "chapter-1",
+                "title": "شروع",
+                "steps": [{
+                  "type": "play_note",
+                  "id": "white-key",
+                  "title": "کلید سفید",
+                  "displayText": "کلید را پیدا کن",
+                  "narrationText": "یک کلید را بنواز.",
+                  "skillId": "identify-white-keys",
+                  "scaffolding": {
+                    "level1": { "hintText": "کلید دو را بزن.", "revealsAnswer": true },
+                    "level2": { "hintText": "به گروه دوتایی نگاه کن.", "revealsAnswer": false },
+                    "level3": { "hintText": "یک کلید سفید پیدا کن.", "revealsAnswer": false }
+                  },
+                  "midiNote": 60,
+                  "acceptedPitchClasses": [0, 2, 4, 5, 7, 9, 11]
+                }]
+              }]
+            }
+        """
+
         const val VALID_LESSON = """
             {
               "schemaVersion": 1,

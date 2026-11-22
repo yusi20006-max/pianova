@@ -158,7 +158,12 @@ class EvaluationSession internal constructor(
     }
 
     private fun evaluateSingleNote(target: LessonStep.PlayNote, note: Int) {
-        if (note != target.midiNote) {
+        val matchesTarget = when {
+            target.acceptedMidiNotes.isNotEmpty() -> note in target.acceptedMidiNotes
+            target.acceptedPitchClasses.isNotEmpty() -> note.mod(12) in target.acceptedPitchClasses
+            else -> note == target.midiNote
+        }
+        if (!matchesTarget) {
             publish(
                 status = EvaluationStatus.WRONG_NOTE,
                 expected = listOf(target.midiNote),

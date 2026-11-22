@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "lesson-04-fa-sol-la-si",
   "title": "نت‌های فا، سل، لا و سی",
   "description": "چهار نت سفید بعدی را پیدا کن و به ترتیب اجرا کن.",
@@ -13,63 +13,197 @@
           "type": "explanation",
           "id": "fa-sol-la-si-intro",
           "title": "چهار نت بعدی",
-          "body": "بعد از می، نت فا قرار دارد. سپس سل، لا و سی می‌آیند. این چهار کلید سفید را به ترتیب پیدا کن: F4، G4، A4 و B4."
+          "body": "بعد از می، نت فا قرار دارد. سپس سل، لا و سی می‌آیند. این چهار کلید سفید را به ترتیب پیدا کن: F4، G4، A4 و B4.",
+          "displayText": "چهار نت بعدی را بشناس.",
+          "narrationText": "بعد از می، نت فا قرار دارد. سپس سل، لا و سی می‌آیند. این چهار کلید سفید را به ترتیب پیدا کن: F4، G4، A4 و B4.",
+          "audienceContent": {
+            "children": {
+              "title": "چهار نت بعدی",
+              "displayText": "فا، سل، لا و سی را پیدا کن.",
+              "narrationText": "بعد از می، فا می‌آید و سپس سل، لا و سی؛ این چهار کلید سفید را به ترتیب پیدا کن.",
+              "body": "بعد از می، نت فا قرار دارد. سپس سل، لا و سی می‌آیند. این چهار کلید سفید را به ترتیب پیدا کن: F4، G4، A4 و B4."
+            },
+            "adults": {
+              "title": "چهار نت بعدی",
+              "displayText": "الگوی F4، G4، A4، B4، A4، G4، F4؛ انگشت‌گذاری ۱ تا ۴ و بازگشت.",
+              "narrationText": "شست دست راست روی F4 قرار می‌گیرد و انگشتان دوم تا چهارم به‌ترتیب روی G4، A4 و B4؛ در مسیر برگشت انگشت‌گذاری معکوس می‌شود.",
+              "body": "این درس محدوده را با F4، G4، A4 و B4 گسترش می‌دهد. الگوی تمرین از فا تا سی بالا می‌رود و سپس تا فا بازمی‌گردد. انگشت‌گذاری ۱، ۲، ۳، ۴، ۳، ۲، ۱ فقط برای همین الگو است."
+            }
+          }
         },
         {
           "type": "listen",
           "id": "fa-sol-la-si-listen",
           "title": "به چهار نت گوش کن",
-          "prompt": "صدای فا، سل، لا و سی را به ترتیب بشنو.",
+          "prompt": "به الگوی فا، سل، لا، سی، لا، سل، فا گوش کن.",
           "midiNotes": [
             65,
             67,
             69,
-            71
+            71,
+            69,
+            67,
+            65
           ],
-          "noteDurationMs": 650
+          "noteDurationMs": 650,
+          "displayText": "به چهار نت گوش کن.",
+          "narrationText": "صدای فا، سل، لا و سی را به ترتیب بشنو و به بالاتر رفتن صدا توجه کن.",
+          "audienceContent": {
+            "children": {
+              "title": "به چهار نت گوش کن",
+              "displayText": "به الگوی فا، سل، لا، سی، لا، سل، فا گوش کن.",
+              "narrationText": "به الگوی فا، سل، لا، سی، لا، سل، فا گوش کن.",
+              "prompt": "به الگوی فا، سل، لا، سی، لا، سل، فا گوش کن."
+            },
+            "adults": {
+              "title": "شنیدن F4 تا B4",
+              "displayText": "توالی F4، G4، A4، B4، A4، G4، F4 را بشنوید.",
+              "narrationText": "توالی F4، G4، A4، B4، A4، G4، F4 را بشنوید.",
+              "prompt": "توالی F4، G4، A4، B4، A4، G4، F4 را بشنوید."
+            }
+          }
         },
         {
           "type": "play_sequence",
           "id": "fa-sol-la-si-play",
-          "title": "فا، سل، لا، سی را بنواز",
+          "title": "الگوی فا تا سی و بازگشت را بنواز",
           "midiNotes": [
             65,
             67,
             69,
-            71
+            71,
+            69,
+            67,
+            65
           ],
-          "tempoBpm": 65
+          "tempoBpm": 65,
+          "displayText": "فا، سل، لا، سی، لا، سل، فا را به ترتیب بنواز.",
+          "narrationText": "از فا شروع کن، تا سی بالا برو و سپس تا فا پایین برگرد.",
+          "skillId": "play-fa-sol-la-si",
+          "scaffolding": {
+            "level1": {
+              "hintText": "ترتیب نت‌ها: فا، سل، لا، سی، لا، سل، فا. انگشت‌ها: ۱، ۲، ۳، ۴، ۳، ۲، ۱.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "ابتدا چهار نت را به سمت راست بالا برو و سپس همان مسیر را برگرد.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "از فا شروع کن؛ هر بار یک کلید سفید به راست برو و سپس برگرد.",
+              "revealsAnswer": false
+            }
+          },
+          "audienceContent": {
+            "children": {
+              "title": "الگوی فا تا سی و بازگشت را بنواز",
+              "displayText": "فا، سل، لا، سی، لا، سل، فا را به ترتیب بنواز.",
+              "narrationText": "از فا شروع کن، تا سی بالا برو و سپس تا فا پایین برگرد."
+            },
+            "adults": {
+              "title": "اجرای الگوی هفت‌نتی",
+              "displayText": "F4، G4، A4، B4، A4، G4، F4 را با انگشت‌گذاری ۱، ۲، ۳، ۴، ۳، ۲، ۱ اجرا کنید؛ هر نت یک ضرب.",
+              "narrationText": "هر نت را یک ضرب اجرا کنید. انگشت‌گذاری مشخص‌شده فقط به این الگو مربوط است."
+            }
+          }
         },
         {
           "type": "explanation",
           "id": "fa-sol-la-si-review",
           "title": "حرکت رو به بالا",
-          "body": "هر بار که از فا به سل، لا و سی می‌روی، روی صفحه‌کلید به سمت راست حرکت می‌کنی و صدای نت‌ها زیرتر می‌شود."
+          "body": "از فا به سل، لا و سی حرکت می‌کنی و سپس به‌ترتیب از لا و سل به فا بازمی‌گردی. هنگام حرکت به راست، صدا زیرتر می‌شود.",
+          "displayText": "حرکت رو به بالا را دنبال کن.",
+          "narrationText": "هر بار که از فا به سل، لا و سی می‌روی، روی صفحه‌کلید به سمت راست حرکت می‌کنی و صدای نت‌ها زیرتر می‌شود.",
+          "audienceContent": {
+            "children": {
+              "title": "حرکت رو به بالا",
+              "displayText": "فا، سل، لا، سی، لا، سل، فا؛ بالا برو و برگرد.",
+              "narrationText": "ترتیب را آرام مرور کن: فا، سل، لا، سی، لا، سل، فا.",
+              "body": "از فا به سل، لا و سی حرکت می‌کنی و سپس به‌ترتیب از لا و سل به فا بازمی‌گردی. هنگام حرکت به راست، صدا زیرتر می‌شود."
+            },
+            "adults": {
+              "title": "مرور چهار نت",
+              "displayText": "هفت نت با کشش یکسان و انگشت‌گذاری ۱، ۲، ۳، ۴، ۳، ۲، ۱.",
+              "narrationText": "با ضرب یکنواخت به نقطهٔ بالایی B4 برسید و سپس مسیر را با انگشت‌گذاری معکوس بازگردید.",
+              "body": "توالی F4، G4، A4، B4، A4، G4 و F4 را مرور کنید. هر نت یک ضرب دارد و انگشت‌گذاری ۱، ۲، ۳، ۴، ۳، ۲، ۱ فقط برای این تمرین است."
+            }
+          }
         },
         {
           "type": "listen",
           "id": "fa-sol-la-si-review-listen",
           "title": "دوباره گوش کن",
-          "prompt": "چهار نت را یک بار دیگر از پایین به بالا بشنو.",
+          "prompt": "یک بار دیگر الگوی فا، سل، لا، سی، لا، سل، فا را بشنو.",
           "midiNotes": [
             65,
             67,
             69,
-            71
+            71,
+            69,
+            67,
+            65
           ],
-          "noteDurationMs": 600
+          "noteDurationMs": 600,
+          "displayText": "چهار نت را دوباره بشنو.",
+          "narrationText": "چهار نت فا، سل، لا و سی را یک بار دیگر از پایین به بالا گوش کن.",
+          "audienceContent": {
+            "children": {
+              "title": "دوباره گوش کن",
+              "displayText": "یک بار دیگر الگوی فا، سل، لا، سی، لا، سل، فا را بشنو.",
+              "narrationText": "یک بار دیگر الگوی فا، سل، لا، سی، لا، سل، فا را بشنو.",
+              "prompt": "یک بار دیگر الگوی فا، سل، لا، سی، لا، سل، فا را بشنو."
+            },
+            "adults": {
+              "title": "شنیدن دوبارهٔ توالی",
+              "displayText": "توالی F4، G4، A4، B4، A4، G4، F4 را بشنوید.",
+              "narrationText": "توالی F4، G4، A4، B4، A4، G4، F4 را بشنوید.",
+              "prompt": "توالی F4، G4، A4، B4، A4، G4، F4 را بشنوید."
+            }
+          }
         },
         {
           "type": "play_sequence",
           "id": "fa-sol-la-si-review-play",
-          "title": "چهار نت را دوباره اجرا کن",
+          "title": "الگوی هفت‌نتی را دوباره اجرا کن",
           "midiNotes": [
             65,
             67,
             69,
-            71
+            71,
+            69,
+            67,
+            65
           ],
-          "tempoBpm": 70
+          "tempoBpm": 70,
+          "displayText": "فا، سل، لا، سی، لا، سل، فا را به ترتیب بنواز.",
+          "narrationText": "از فا شروع کن، تا سی بالا برو و سپس تا فا پایین برگرد.",
+          "skillId": "play-fa-sol-la-si",
+          "scaffolding": {
+            "level1": {
+              "hintText": "ترتیب نت‌ها: فا، سل، لا، سی، لا، سل، فا. انگشت‌ها: ۱، ۲، ۳، ۴، ۳، ۲، ۱.",
+              "revealsAnswer": true
+            },
+            "level2": {
+              "hintText": "ابتدا چهار نت را به سمت راست بالا برو و سپس همان مسیر را برگرد.",
+              "revealsAnswer": false
+            },
+            "level3": {
+              "hintText": "از فا شروع کن؛ هر بار یک کلید سفید به راست برو و سپس برگرد.",
+              "revealsAnswer": false
+            }
+          },
+          "audienceContent": {
+            "children": {
+              "title": "الگوی هفت‌نتی را دوباره اجرا کن",
+              "displayText": "فا، سل، لا، سی، لا، سل، فا را به ترتیب بنواز.",
+              "narrationText": "از فا شروع کن، تا سی بالا برو و سپس تا فا پایین برگرد."
+            },
+            "adults": {
+              "title": "اجرای الگوی هفت‌نتی",
+              "displayText": "F4، G4، A4، B4، A4، G4، F4 را با انگشت‌گذاری ۱، ۲، ۳، ۴، ۳، ۲، ۱ اجرا کنید؛ هر نت یک ضرب.",
+              "narrationText": "هر نت را یک ضرب اجرا کنید. انگشت‌گذاری مشخص‌شده فقط به این الگو مربوط است."
+            }
+          }
         }
       ]
     }
@@ -77,5 +211,34 @@
   "completionCriteria": {
     "minimumAccuracyPercent": 80,
     "requireAllSteps": true
+  },
+  "language": "fa-IR",
+  "pedagogy": {
+    "teacherPersonality": "adaptive",
+    "learningPace": "adaptive",
+    "notationProgression": "gradual",
+    "waitModeByDefault": true,
+    "visualGuidance": {
+      "automaticSuggestionsEnabled": true,
+      "manualSelectionEnabled": true,
+      "defaultLevel": 2,
+      "suggestMoreHelpAfterConsecutiveErrors": 2,
+      "suggestLessHelpAfterConsecutiveSuccesses": 2,
+      "inactivitySuggestionSeconds": 8
+    }
+  },
+  "masteryCriteria": {
+    "successfulIndependentAttempts": 3,
+    "minimumDistinctSessions": 2
+  },
+  "audienceContent": {
+    "children": {
+      "title": "نت‌های فا، سل، لا و سی",
+      "description": "چهار نت فا، سل، لا و سی را پیدا کن و الگوی صعودی و نزولی را بنواز."
+    },
+    "adults": {
+      "title": "گسترش محدوده: F4، G4، A4 و B4",
+      "description": "اجرای الگوی F4-G4-A4-B4-A4-G4-F4 با انگشت‌گذاری تمرینی ۱-۲-۳-۴-۳-۲-۱."
+    }
   }
 }
