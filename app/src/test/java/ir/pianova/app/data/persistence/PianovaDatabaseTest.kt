@@ -9,6 +9,7 @@ import ir.pianova.app.core.database.FamilyEntity
 import ir.pianova.app.core.database.LearnerProfileEntity
 import ir.pianova.app.core.database.LessonProgressEntity
 import ir.pianova.app.core.database.MIGRATION_1_2
+import ir.pianova.app.core.database.MIGRATION_2_3
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.core.database.SongProgressEntity
@@ -185,6 +186,34 @@ class PianovaDatabaseTest {
     }
 
     @Test
+    fun familyProfileLifecyclePersistsGoalsAndDeletesOnlySelectedLearner() = runBlocking {
+        val repository = RoomFamilyRepository(database)
+        repository.saveFamily(Family("local-family", 1, 1))
+        val first = LearnerProfile(
+            "learner-one", "local-family", "هنرجوی اول", LearnerAudience.TEEN,
+            avatarRef = "🎹", initialLevelId = "beginner", currentLevelId = "beginner",
+            createdAtEpochMillis = 2, updatedAtEpochMillis = 2
+        )
+        val second = LearnerProfile(
+            "learner-two", "local-family", "هنرجوی دوم", LearnerAudience.ADULT,
+            createdAtEpochMillis = 3, updatedAtEpochMillis = 3
+        )
+        repository.saveLearner(first)
+        repository.saveLearner(second)
+        repository.saveGoal(first.learnerId, "یادگیری یک قطعه")
+        repository.saveGoal(second.learnerId, "تمرین روزانه")
+        assertEquals("یادگیری یک قطعه", repository.observeGoal(first.learnerId).first())
+
+        repository.saveLearner(first.copy(displayName = "نام ویرایش‌شده", updatedAtEpochMillis = 4))
+        assertEquals("نام ویرایش‌شده", repository.observeLearners("local-family").first().first().displayName)
+
+        assertTrue(repository.deleteLearner(first.learnerId))
+        assertNull(repository.observeGoal(first.learnerId).first())
+        assertEquals("تمرین روزانه", repository.observeGoal(second.learnerId).first())
+        assertEquals(listOf("learner-two"), repository.observeLearners("local-family").first().map { it.learnerId })
+    }
+
+    @Test
     fun domainModelsRejectInvalidIdentityAndTimestamps() {
         assertFalse(runCatching { Family("", 0, 0) }.isSuccess)
         assertFalse(runCatching { Family("family-a", 10, 9) }.isSuccess)
@@ -228,7 +257,7 @@ class PianovaDatabaseTest {
         legacy.close()
 
         val migrated = Room.databaseBuilder(context, PianovaDatabase::class.java, databaseName)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
         try {
@@ -238,6 +267,7 @@ class PianovaDatabaseTest {
             assertEquals("beginner", learners.single().initialLevelId)
             assertEquals("unspecified", learners.single().audienceCategory)
             assertEquals("legacy-progress", migrated.lessonProgressDao().observeForLearner("legacy-learner").first().single().progressId)
+            assertNull(migrated.learnerGoalDao().observeForLearner("legacy-learner").first())
         } finally {
             migrated.close()
             context.deleteDatabase(databaseName)
