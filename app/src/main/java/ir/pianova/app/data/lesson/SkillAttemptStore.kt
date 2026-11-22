@@ -13,9 +13,11 @@ import kotlinx.serialization.json.Json
  * Small, local-only attempt store for the JSON v2 cross-session mastery rule.
  * This intentionally does not introduce or expand the Room/DataStore work in #13.
  */
-class SkillAttemptStore(context: Context) {
+class SkillAttemptStore(context: Context, learnerId: String) {
+    init { require(learnerId.isNotBlank()) { "learnerId must not be blank" } }
+
     private val preferences = context.applicationContext.getSharedPreferences(
-        PREFERENCES_NAME,
+        preferencesName(learnerId),
         Context.MODE_PRIVATE
     )
     private val json = Json { ignoreUnknownKeys = false }
@@ -50,7 +52,17 @@ class SkillAttemptStore(context: Context) {
     }
 
     companion object {
-        private const val PREFERENCES_NAME = "pianova_lesson_mastery"
+        private const val PREFERENCES_PREFIX = "pianova_lesson_mastery."
         private const val ATTEMPTS_KEY = "skill_attempts"
+
+        private fun preferencesName(learnerId: String) = PREFERENCES_PREFIX + learnerId
+
+        fun clearForLearner(context: Context, learnerId: String) {
+            require(learnerId.isNotBlank())
+            context.applicationContext.getSharedPreferences(
+                preferencesName(learnerId),
+                Context.MODE_PRIVATE
+            ).edit().clear().commit()
+        }
     }
 }
