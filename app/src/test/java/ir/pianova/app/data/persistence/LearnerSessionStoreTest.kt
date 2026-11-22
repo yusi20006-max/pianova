@@ -77,7 +77,7 @@ class LearnerSessionStoreTest {
         assertEquals(LessonAudience.ADULTS, store.audienceFor("learner-a", LessonAudience.CHILDREN))
         assertEquals(LessonAudience.CHILDREN, store.audienceFor("learner-b", LessonAudience.CHILDREN))
         assertEquals("practice", store.destinationFor("learner-a"))
-        assertEquals("learning", store.destinationFor("learner-b"))
+        assertEquals("home", store.destinationFor("learner-b"))
         assertEquals(0.45f, store.volumeFor("learner-a"), 0.001f)
         assertEquals(0.8f, store.volumeFor("learner-b"), 0.001f)
         assertEquals(2, store.labelModeFor("learner-a"))
