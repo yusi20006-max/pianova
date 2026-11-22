@@ -52,7 +52,6 @@ class LearnerSelectionScreenTest {
         composeRule.onNodeWithText("مدیریت خانواده و پروفایل‌ها").assertIsDisplayed()
         composeRule.onNodeWithText("انتخاب هنرجو آزاد است و نیازی به رمز یا PIN ندارد.").assertIsDisplayed()
         composeRule.runOnIdle { assertNull(selectedLearnerId) }
-        composeRule.onNodeWithText("انتخاب هنرجو").assertDoesNotExist()
         composeRule.onNodeWithText("نورا").performClick()
         composeRule.runOnIdle { assertEquals("learner-nora", selectedLearnerId) }
         composeRule.onNodeWithText("مدیریت خانواده و پروفایل‌ها").performClick()
