@@ -119,7 +119,7 @@ fun FamilyManagementScreen(
             }
 
             if (learners.isNotEmpty()) {
-                Text("پروفایل‌های ثبت‌شده (\${learners.size})", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
+                Text("پروفایل‌های ثبت‌شده (${learners.size})", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
                 learners.forEach { learner ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -133,7 +133,7 @@ fun FamilyManagementScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(learner.avatarRef ?: "🎹", style = MaterialTheme.typography.headlineMedium,
-                                modifier = Modifier.semantics { contentDescription = "تصویر \${learner.displayName}" })
+                                modifier = Modifier.semantics { contentDescription = "تصویر ${learner.displayName}" })
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 Text(learner.displayName, color = PianovaInk, fontWeight = FontWeight.SemiBold)
                                 Text(audienceLabel(learner.audience) + " · " + levelLabel(learner.initialLevelId), color = PianovaMuted, style = MaterialTheme.typography.bodySmall)
@@ -228,7 +228,7 @@ fun FamilyManagementScreen(
                                             displayName = name,
                                             audience = audience,
                                             avatarRef = avatar,
-                                            initialLevelId = existing?.initialLevelId ?: level,
+                                            initialLevelId = level,
                                             currentLevelId = existing?.currentLevelId ?: level,
                                             createdAtEpochMillis = existing?.createdAtEpochMillis ?: now,
                                             updatedAtEpochMillis = now
@@ -237,6 +237,8 @@ fun FamilyManagementScreen(
                                         repository.saveGoal(learner.learnerId, goal)
                                     }.onSuccess {
                                         editingLearnerId = null
+                                        displayName = ""
+                                        goal = ""
                                     }.onFailure {
                                         errorMessage = "ذخیره پروفایل انجام نشد. دوباره تلاش کنید."
                                     }
@@ -277,7 +279,7 @@ fun FamilyManagementScreen(
     deleteTarget?.let { learner ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            title = { Text("حذف پروفایل \${learner.displayName}") },
+            title = { Text("حذف پروفایل ${learner.displayName}") },
             text = {
                 Text("با حذف این پروفایل، سوابق درس‌ها، جلسه‌های تمرین، دستاوردها و پیشرفت آهنگ‌های همین هنرجو نیز از این دستگاه حذف می‌شود. اطلاعات سایر هنرجویان باقی می‌ماند. این کار قابل بازگشت نیست.")
             },
