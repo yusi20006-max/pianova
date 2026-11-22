@@ -177,7 +177,11 @@ fun LessonPlayerScreen(
     onExit: () -> Unit
 ) {
     val context = LocalContext.current
-    val attemptStore = remember(context) { SkillAttemptStore(context.applicationContext) }
+    val activeLearnerId = LocalActiveLearnerId.current
+        ?: error("Lesson player requires an active learner")
+    val attemptStore = remember(context, activeLearnerId) {
+        SkillAttemptStore(context.applicationContext, activeLearnerId)
+    }
     val masterySessionId = remember(lesson.id, startChapterId) { UUID.randomUUID().toString() }
     val entries = remember(lesson) { lesson.flattenedSteps() }
     val startIndex = remember(lesson.id, startChapterId, entries) {

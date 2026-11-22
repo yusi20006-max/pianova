@@ -66,187 +66,245 @@ import ir.pianova.app.data.lesson.AndroidLessonAssetSource
 import ir.pianova.app.data.lesson.LessonRepository
 import ir.pianova.app.domain.model.LessonAudience
 
-private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+import android.content.Context
+import androidx.compose.runtime.CompositionLocalProvider
+import ir.pianova.app.data.lesson.SkillAttemptStore
+import ir.pianova.app.data.persistence.ProgressRepository
+import ir.pianova.app.domain.family.LearnerProfile
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
+import java.util.UUID
+
+private data class MainTab(val route: String, val label: String, val icon: String)
 
 private val mainTabs = listOf(
-    MainTab("home", "خانه", Icons.Filled.Home),
-    MainTab("learning", "یادگیری", Icons.Filled.School),
-    MainTab("practice", "تمرین", Icons.Filled.MusicNote),
-    MainTab("library", "کتابخانه", Icons.Filled.LibraryMusic),
-    MainTab("more", "بیشتر", Icons.Filled.MoreHoriz)
+    MainTab("home", "خانه", "⌂"),
+    MainTab("learning", "یادگیری", "♫"),
+    MainTab("practice", "تمرین", "♬"),
+    MainTab("progress", "پیشرفت", "◷"),
+    MainTab("more", "بیشتر", "•••")
 )
 
 @Composable
-fun PianovaApp(
-    pianoStatus: String,
-    pianoReady: Boolean,
-    pianoRunning: Boolean,
-    onPianoStart: () -> Unit,
-    onPianoStop: () -> Unit,
-    onNoteOn: (Int, Float) -> Boolean,
-    onNoteOff: (Int) -> Unit,
-    onSustain: (Boolean) -> Unit,
-    onVolume: (Float) -> Unit,
-    onPianoVisibilityChanged: (Boolean) -> Unit,
-    pianoInput: PianoInput,
-    onPlayReferenceNotes: (List<Int>, Long) -> Unit
-) {
-    val navController = rememberNavController()
+fun PianovaApp(onPianoVisibilityChanged: (Boolean) -> Unit = {}) {
     val context = LocalContext.current
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val familyRepository = remember(database) { RoomFamilyRepository(database) }
-    var familyReady by remember { mutableStateOf(false) }
+    val goalRepository = remember(database) { RoomLearnerGoalRepository(database) }
+    val progressRepository = remember(database) { ProgressRepository(database) }
+    val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
+    val familyPreferences = remember(context) { context.getSharedPreferences("pianova_preferences", Context.MODE_PRIVATE) }
+    val audiencePreferences = familyPreferences
+
     var familyId by remember { mutableStateOf("local-family") }
-    val familyPreferences = remember(context) { context.getSharedPreferences("pianova_family", 0) }
-    var onboardingComplete by remember { mutableStateOf(familyPreferences.getBoolean("onboarding_complete", false)) }
+    var familyReady by remember { mutableStateOf(false) }
+    var familyLearners by remember { mutableStateOf<List<LearnerProfile>?>(null) }
+    var onboardingComplete by remember(familyPreferences) {
+        mutableStateOf(familyPreferences.getBoolean("family_setup_complete", false))
+    }
+    var activeLearnerId by remember { mutableStateOf<String?>(null) }
+    // Not saveable: each fresh app process deliberately starts at the chooser.
+    var showLearnerChooser by remember { mutableStateOf(true) }
+    var showFamilyManagerFromChooser by remember { mutableStateOf(false) }
+    var initialRoute by remember { mutableStateOf("home") }
+    var lessonAudience by remember(activeLearnerId, audiencePreferences) {
+        val stored = activeLearnerId?.let {
+            audiencePreferences.getString(learnerAudiencePreferenceKey(it), null)
+        } ?: audiencePreferences.getString("lesson_audience", "children")
+        mutableStateOf(LessonAudience.fromStorageValue(stored))
+    }
+    var showAboutDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(database) {
-        val migratedFamily = database.familyDao().findById("family-default")
-        val existingFamily = database.familyDao().findById("local-family")
-        val selectedFamily = migratedFamily ?: existingFamily
-        if (selectedFamily == null) {
+        val migratedFamily = familyRepository.observeFamily("family-default").first()
+        val existingFamily = familyRepository.observeFamily("local-family").first()
+        val family = migratedFamily ?: existingFamily
+        if (family == null) {
             val now = System.currentTimeMillis()
             familyRepository.saveFamily(Family("local-family", now, now))
             familyId = "local-family"
         } else {
-            familyId = selectedFamily.familyId
+            familyId = family.familyId
         }
-        onboardingComplete = familyPreferences.getBoolean("onboarding_complete", false)
         familyReady = true
     }
-    val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
-    val audiencePreferences = remember(context) { context.getSharedPreferences("pianova_preferences", 0) }
-    var lessonAudience by remember(audiencePreferences) {
-        mutableStateOf(LessonAudience.fromStorageValue(audiencePreferences.getString("lesson_audience", "children")))
-    }
-    var showAboutDialog by remember { mutableStateOf(false) }
-    val entry by navController.currentBackStackEntryAsState()
-    val route = entry?.destination?.route ?: "home"
 
-    LaunchedEffect(route) { onPianoVisibilityChanged(route == "practice") }
-
-    if (!familyReady) {
-        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("در حال آماده‌سازی خانواده…", color = PianovaMuted)
+    LaunchedEffect(familyReady, familyId) {
+        if (familyReady) {
+            familyRepository.observeLearners(familyId).collect { familyLearners = it }
         }
-    } else if (shouldShowFamilySetup(onboardingComplete)) {
-        FamilyManagementScreen(
-            repository = familyRepository,
-            familyId = familyId,
-            initialSetup = true,
-            onComplete = {
-                familyPreferences.edit().putBoolean("onboarding_complete", true).apply()
-                onboardingComplete = true
-            }
+    }
+
+    LaunchedEffect(familyLearners) {
+        val learners = familyLearners ?: return@LaunchedEffect
+        SkillAttemptStore.migrateLegacyAttempts(context, learners.map { it.learnerId })
+        val savedLearnerId = familyPreferences.getString(ACTIVE_LEARNER_ID_KEY, null)
+        if (savedLearnerId != null && learners.none { it.learnerId == savedLearnerId }) {
+            familyPreferences.edit().remove(ACTIVE_LEARNER_ID_KEY).apply()
+        }
+    }
+
+    LaunchedEffect(activeLearnerId, familyLearners) {
+        val selectedId = activeLearnerId ?: return@LaunchedEffect
+        val learners = familyLearners ?: return@LaunchedEffect
+        if (learners.none { it.learnerId == selectedId }) {
+            activeLearnerId = null
+            showLearnerChooser = true
+            familyPreferences.edit().remove(ACTIVE_LEARNER_ID_KEY).apply()
+        }
+    }
+
+    LaunchedEffect(showLearnerChooser, showFamilyManagerFromChooser, familyReady) {
+        if (showLearnerChooser || showFamilyManagerFromChooser || !familyReady) {
+            onPianoVisibilityChanged(false)
+        }
+    }
+
+    fun selectLearner(learner: LearnerProfile) {
+        val learnerId = learner.learnerId
+        val audienceKey = learnerAudiencePreferenceKey(learnerId)
+        if (!audiencePreferences.contains(audienceKey)) {
+            val legacyAudience = audiencePreferences.getString("lesson_audience", "children")
+            audiencePreferences.edit().putString(audienceKey, legacyAudience).apply()
+        }
+        initialRoute = learnerRouteToRestore(
+            familyPreferences.getString(learnerRoutePreferenceKey(learnerId), null)
         )
-    } else {
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            if (route != "practice" && !route.startsWith("lesson/")) {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    mainTabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family") else route == tab.route,
-                            onClick = {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) }
-                        )
-                    }
-                }
-            }
-        }
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = "home",
-            modifier = Modifier.padding(if (route == "practice") PaddingValues(0.dp) else padding)
-        ) {
-            composable("home") {
-                HomeScreen(
-                    onContinue = { navController.navigate("learning") },
-                    onPractice = { navController.navigate("practice") },
-                    onLibrary = { navController.navigate("library") },
-                    onProgress = { navController.navigate("progress") }
-                )
-            }
-            composable("learning") {
-                LessonListScreen(
-                    repository = lessonRepository,
-                    audience = lessonAudience,
-                    onAudienceChange = { selected ->
-                        lessonAudience = selected
-                        audiencePreferences.edit().putString("lesson_audience", selected.storageValue).apply()
-                    },
-                    onStartChapter = { lessonId, chapterId ->
-                        navController.navigate("lesson/$lessonId/$chapterId")
-                    }
-                )
-            }
-            composable(
-                route = "lesson/{lessonId}/{chapterId}",
-                arguments = listOf(
-                    navArgument("lessonId") { type = NavType.StringType },
-                    navArgument("chapterId") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val lessonId = backStackEntry.arguments?.getString("lessonId").orEmpty()
-                val chapterId = backStackEntry.arguments?.getString("chapterId").orEmpty()
-                val lesson = remember(lessonId) { runCatching { lessonRepository.getLesson(lessonId) }.getOrNull() }
-                if (lesson == null) {
-                    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("بارگذاری درس ناموفق بود.", color = PianovaInk)
-                        TextButton(onClick = { navController.popBackStack() }) { Text("بازگشت") }
-                    }
-                } else {
-                    LessonPlayerScreen(
-                        lesson = lesson,
-                        audience = lessonAudience,
-                        startChapterId = chapterId,
-                        pianoInput = pianoInput,
-                        pianoReady = pianoReady,
-                        pianoRunning = pianoRunning,
-                        onPianoStart = onPianoStart,
-                        onNoteOn = onNoteOn,
-                        onNoteOff = onNoteOff,
-                        onPlayReferenceNotes = onPlayReferenceNotes,
-                        onExit = { navController.popBackStack() }
-                    )
-                }
-            }
-            composable("practice") {
-                PianoScreen(
-                    status = pianoStatus,
-                    ready = pianoReady,
-                    running = pianoRunning,
-                    onStart = onPianoStart,
-                    onStop = onPianoStop,
-                    onNoteOn = onNoteOn,
-                    onNoteOff = onNoteOff,
-                    onSustain = onSustain,
-                    onVolume = onVolume
-                )
-            }
-            composable("library") { LibraryScreen() }
-            composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
-            composable("progress") { ProgressScreen() }
-            composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
-            composable("family") {
-                FamilyManagementScreen(
-                    repository = familyRepository,
-                    familyId = familyId,
-                    initialSetup = false,
-                    onComplete = { navController.popBackStack() }
-                )
-            }
-        }
+        familyPreferences.edit().putString(ACTIVE_LEARNER_ID_KEY, learnerId).apply()
+        activeLearnerId = learnerId
+        showLearnerChooser = false
+        showFamilyManagerFromChooser = false
     }
-    if (showAboutDialog) AboutDialog(onDismiss = { showAboutDialog = false })
+
+    val learners = familyLearners.orEmpty()
+    val activeLearner = learners.firstOrNull { it.learnerId == activeLearnerId }
+
+    when {
+        !familyReady || familyLearners == null -> FamilyLoadingScreen()
+        shouldShowFamilySetup(onboardingComplete) -> {
+            FamilyManagementScreen(
+                repository = familyRepository,
+                familyId = familyId,
+                initialSetup = true,
+                onComplete = {
+                    familyPreferences.edit().putBoolean("family_setup_complete", true).apply()
+                    onboardingComplete = true
+                }
+            )
+        }
+        showFamilyManagerFromChooser -> {
+            FamilyManagementScreen(
+                repository = familyRepository,
+                familyId = familyId,
+                initialSetup = false,
+                onComplete = { showFamilyManagerFromChooser = false }
+            )
+        }
+        showLearnerChooser || activeLearner == null -> {
+            LearnerChooserScreen(
+                learners = learners,
+                lastActiveLearnerId = familyPreferences.getString(ACTIVE_LEARNER_ID_KEY, null),
+                onSelect = ::selectLearner,
+                onManageFamily = { showFamilyManagerFromChooser = true }
+            )
+        }
+        else -> {
+            val selectedLearnerId = activeLearner.learnerId
+            val navController = rememberNavController()
+            val entry by navController.currentBackStackEntryAsState()
+            val route = entry?.destination?.route ?: initialRoute
+
+            LaunchedEffect(route) {
+                onPianoVisibilityChanged(route == "practice")
+            }
+            LaunchedEffect(route, selectedLearnerId, entry) {
+                if (entry != null) {
+                    learnerRouteToPersist(route)?.let { safeRoute ->
+                        familyPreferences.edit()
+                            .putString(learnerRoutePreferenceKey(selectedLearnerId), safeRoute)
+                            .apply()
+                    }
+                }
+            }
+
+            CompositionLocalProvider(LocalActiveLearnerId provides selectedLearnerId) {
+                Scaffold(
+                    bottomBar = {
+                        NavigationBar {
+                            mainTabs.forEach { tab ->
+                                NavigationBarItem(
+                                    selected = if (tab.route == "more") {
+                                        route in setOf("more", "progress", "settings", "family")
+                                    } else route == tab.route,
+                                    onClick = {
+                                        navController.navigate(tab.route) {
+                                            launchSingleTop = true
+                                            restoreState = true
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        }
+                                    },
+                                    icon = { Text(tab.icon) },
+                                    label = { Text(tab.label) }
+                                )
+                            }
+                        }
+                    }
+                ) { padding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = initialRoute,
+                        modifier = Modifier.padding(padding)
+                    ) {
+                        composable("home") { HomeScreen(onStart = { navController.navigate("learning") }) }
+                        composable("learning") {
+                            LessonListScreen(
+                                repository = lessonRepository,
+                                audience = lessonAudience,
+                                onAudienceChange = { selected ->
+                                    lessonAudience = selected
+                                    audiencePreferences.edit()
+                                        .putString(learnerAudiencePreferenceKey(selectedLearnerId), selected.storageValue)
+                                        .apply()
+                                },
+                                onLessonClick = { lessonId -> navController.navigate("lesson/$lessonId") }
+                            )
+                        }
+                        composable("lesson/{lessonId}") { backStackEntry ->
+                            val lessonId = backStackEntry.arguments?.getString("lessonId").orEmpty()
+                            LessonPlayerScreen(
+                                repository = lessonRepository,
+                                lessonId = lessonId,
+                                audience = lessonAudience,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("practice") { PianoScreen() }
+                        composable("progress") { ProgressScreen(progressRepository, selectedLearnerId) }
+                        composable("library") { LibraryScreen() }
+                        composable("more") {
+                            MoreScreen(
+                                navController = navController,
+                                onAboutClick = { showAboutDialog = true },
+                                onSwitchLearner = {
+                                    activeLearnerId = null
+                                    showLearnerChooser = true
+                                }
+                            )
+                        }
+                        composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
+                        composable("family") {
+                            FamilyManagementScreen(
+                                repository = familyRepository,
+                                familyId = familyId,
+                                initialSetup = false,
+                                onComplete = { navController.popBackStack() }
+                            )
+                        }
+                    }
+                }
+            }
+            if (showAboutDialog) AboutDialog(onDismiss = { showAboutDialog = false })
+        }
     }
 }
 
@@ -368,10 +426,19 @@ private fun LibraryScreen() {
 }
 
 @Composable
-private fun ProgressScreen() {
+private fun ProgressScreen(repository: ProgressRepository, learnerId: String) {
+    val lessonProgress by repository.observeLessonProgress(learnerId).collectAsState(initial = emptyList())
+    val practiceSessions by repository.observePracticeSessions(learnerId).collectAsState(initial = emptyList())
+    val achievements by repository.observeAchievements(learnerId).collectAsState(initial = emptyList())
     PageColumn {
-        PageTitle("پیشرفت من", "مسیر تمرین و مهارت‌هایت را اینجا دنبال می‌کنی")
-        EmptyState("هنوز گزارشی ثبت نشده است", "پس از انجام درس‌ها و جلسه‌های تمرین، زمان تمرین و پیشرفت واقعی تو در این صفحه نمایش داده می‌شود.")
+        PageTitle("پیشرفت من", "گزارش‌ها فقط برای هنرجوی فعال نمایش داده می‌شوند")
+        if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty()) {
+            EmptyState("هنوز گزارشی ثبت نشده است", "پس از انجام درس‌ها و جلسه‌های تمرین، پیشرفت همین هنرجو در این صفحه نمایش داده می‌شود.")
+        } else {
+            StatusCard("درس‌های دارای پیشرفت", "${lessonProgress.size} درس")
+            StatusCard("جلسه‌های تمرین", "${practiceSessions.size} جلسه")
+            StatusCard("دستاوردها", "${achievements.size} مورد")
+        }
     }
 }
 
@@ -390,7 +457,11 @@ private fun SettingsScreen(onAboutClick: () -> Unit) {
 private data class MenuEntry(val title: String, val status: String, val route: String? = null, val future: Boolean = false)
 
 @Composable
-private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Unit) {
+private fun MoreScreen(
+    navController: NavHostController,
+    onAboutClick: () -> Unit,
+    onSwitchLearner: () -> Unit
+) {
     val groups = listOf(
         "یادگیری و تمرین" to listOf(
             MenuEntry("خانه و داشبورد", "آماده", "home"),
@@ -414,6 +485,7 @@ private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Uni
             MenuEntry("مربی هوشمند", "آینده", future = true)
         ),
         "حساب و برنامه" to listOf(
+            MenuEntry("تغییر هنرجو", "آماده", "switch-learner"),
             MenuEntry("مدیریت خانواده و هنرجویان", "آماده", "family"),
             MenuEntry("تنظیمات", "آماده", "settings")
         )
@@ -430,7 +502,8 @@ private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Uni
             }
             items(entries) { entry ->
                 StatusCard(entry.title, entry.status, planned = entry.future, onClick = {
-                    entry.route?.let { navController.navigate(it) { launchSingleTop = true } }
+                    if (entry.route == "switch-learner") onSwitchLearner()
+                    else entry.route?.let { navController.navigate(it) { launchSingleTop = true } }
                 })
             }
         }
