@@ -153,6 +153,7 @@ fun PianovaApp(
     LaunchedEffect(showLearnerChooser, showFamilyManagerFromChooser, familyReady) {
         if (showLearnerChooser || showFamilyManagerFromChooser || !familyReady) {
             onPianoVisibilityChanged(false)
+            onPianoStop()
         }
     }
 

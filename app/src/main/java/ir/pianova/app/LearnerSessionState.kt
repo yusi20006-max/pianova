@@ -34,6 +34,15 @@ internal fun learnerAudiencePreferenceKey(learnerId: String): String =
 internal fun learnerRoutePreferenceKey(learnerId: String): String =
     "last_route_$learnerId"
 
+internal fun learnerPianoVolumePreferenceKey(learnerId: String): String =
+    "volume_$learnerId"
+
+internal fun learnerPianoRangePreferenceKey(learnerId: String): String =
+    "first_midi_$learnerId"
+
+internal fun learnerPianoLabelModePreferenceKey(learnerId: String): String =
+    "label_mode_$learnerId"
+
 private val restorableLearnerRoutes = setOf(
     "home",
     "learning",

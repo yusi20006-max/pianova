@@ -39,6 +39,7 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -81,16 +82,31 @@ fun PianoScreen(
     onSustain: (Boolean) -> Unit,
     onVolume: (Float) -> Unit
 ) {
-    var firstMidi by remember { mutableStateOf(60) }
-    var sustain by remember { mutableStateOf(false) }
-    var volume by remember { mutableStateOf(0.8f) }
-    var labelMode by remember { mutableStateOf(1) }
+    val activeLearnerId = LocalActiveLearnerId.current
+        ?: error("Piano screen requires an active learner")
+    val context = LocalContext.current
+    val preferences = remember(context) {
+        context.getSharedPreferences("pianova_piano_preferences", 0)
+    }
+    var firstMidi by remember(activeLearnerId, preferences) {
+        mutableStateOf(preferences.getInt(learnerPianoRangePreferenceKey(activeLearnerId), 60))
+    }
+    var sustain by remember(activeLearnerId) { mutableStateOf(false) }
+    var volume by remember(activeLearnerId, preferences) {
+        mutableStateOf(preferences.getFloat(learnerPianoVolumePreferenceKey(activeLearnerId), 0.8f))
+    }
+    var labelMode by remember(activeLearnerId, preferences) {
+        mutableStateOf(preferences.getInt(learnerPianoLabelModePreferenceKey(activeLearnerId), 1))
+    }
 
     LaunchedEffect(running) {
         if (!running && sustain) {
             sustain = false
             onSustain(false)
         }
+    }
+    LaunchedEffect(running, volume) {
+        if (running) onVolume(volume)
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -108,7 +124,10 @@ fun PianoScreen(
                     Text(status, color = Color(0xFF9FB3C1), fontSize = 10.sp, maxLines = 1)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    TextButton(onClick = { labelMode = (labelMode + 1) % 3 }) {
+                    TextButton(onClick = {
+                        labelMode = (labelMode + 1) % 3
+                        preferences.edit().putInt(learnerPianoLabelModePreferenceKey(activeLearnerId), labelMode).apply()
+                    }) {
                         Text(when (labelMode) { 0 -> "نام فارسی"; 1 -> "Latin"; else -> "بدون نام" }, color = Color(0xFF7DD3FC), fontSize = 11.sp)
                     }
                     TextButton(onClick = { sustain = !sustain; onSustain(sustain) }, enabled = running) {
@@ -131,7 +150,11 @@ fun PianoScreen(
                 Text("بلندی", color = Color(0xFFCBD5E1), fontSize = 11.sp)
                 Slider(
                     value = volume,
-                    onValueChange = { volume = it; if (running) onVolume(it) },
+                    onValueChange = {
+                        volume = it
+                        preferences.edit().putFloat(learnerPianoVolumePreferenceKey(activeLearnerId), it).apply()
+                        if (running) onVolume(it)
+                    },
                     enabled = running,
                     valueRange = 0.05f..1f,
                     modifier = Modifier.weight(1f).height(28.dp)
@@ -147,13 +170,19 @@ fun PianoScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("اکتاو", color = Color(0xFF9FB3C1), fontSize = 10.sp)
                     Button(
-                        onClick = { firstMidi = (firstMidi + 12).coerceAtMost(84) },
+                        onClick = {
+                            firstMidi = (firstMidi + 12).coerceAtMost(84)
+                            preferences.edit().putInt(learnerPianoRangePreferenceKey(activeLearnerId), firstMidi).apply()
+                        },
                         enabled = firstMidi < 84,
                         modifier = Modifier.size(width = 42.dp, height = 38.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                     ) { Text("+", fontSize = 18.sp) }
                     Button(
-                        onClick = { firstMidi = (firstMidi - 12).coerceAtLeast(21) },
+                        onClick = {
+                            firstMidi = (firstMidi - 12).coerceAtLeast(21)
+                            preferences.edit().putInt(learnerPianoRangePreferenceKey(activeLearnerId), firstMidi).apply()
+                        },
                         enabled = firstMidi > 21,
                         modifier = Modifier.size(width = 42.dp, height = 38.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
@@ -179,7 +208,10 @@ fun PianoScreen(
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     PianoRangeOverview(
                         firstMidi = firstMidi,
-                        onSelect = { firstMidi = it },
+                        onSelect = {
+                            firstMidi = it
+                            preferences.edit().putInt(learnerPianoRangePreferenceKey(activeLearnerId), firstMidi).apply()
+                        },
                         modifier = Modifier.fillMaxWidth().height(38.dp)
                     )
                 }

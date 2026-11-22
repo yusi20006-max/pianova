@@ -42,6 +42,18 @@ class LearnerSessionStateTest {
             learnerRoutePreferenceKey("learner-a"),
             learnerRoutePreferenceKey("learner-b")
         )
+        assertNotEquals(
+            learnerPianoVolumePreferenceKey("learner-a"),
+            learnerPianoVolumePreferenceKey("learner-b")
+        )
+        assertNotEquals(
+            learnerPianoRangePreferenceKey("learner-a"),
+            learnerPianoRangePreferenceKey("learner-b")
+        )
+        assertNotEquals(
+            learnerPianoLabelModePreferenceKey("learner-a"),
+            learnerPianoLabelModePreferenceKey("learner-b")
+        )
     }
 
     @Test
