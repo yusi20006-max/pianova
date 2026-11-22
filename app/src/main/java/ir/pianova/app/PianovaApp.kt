@@ -123,6 +123,10 @@ fun PianovaApp(
         familyReady = true
     }
 
+    LaunchedEffect(familyReady, managerOpen, activeLearner?.learnerId) {
+        if (!familyReady || managerOpen || activeLearner == null) onPianoVisibilityChanged(false)
+    }
+
     // If a profile is removed while another screen is open, discard its active
     // context immediately and return to the chooser. The manager is not a learner.
     LaunchedEffect(learners, activeLearnerId) {
@@ -158,7 +162,6 @@ fun PianovaApp(
             )
         }
         activeLearner == null -> {
-            onPianoVisibilityChanged(false)
             LearnerSelectionScreen(
                 learners = learners,
                 lastActiveLearnerId = sessionStore.lastActiveLearnerId()?.takeIf { id -> learners.any { it.learnerId == id } },
