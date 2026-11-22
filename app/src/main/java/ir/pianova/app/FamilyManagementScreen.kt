@@ -322,6 +322,11 @@ private fun LearnerProfileEditorDialog(
                     AudienceChip("نوجوان", audience == LearnerAudience.TEEN) { audience = LearnerAudience.TEEN }
                     AudienceChip("بزرگسال", audience == LearnerAudience.ADULT) { audience = LearnerAudience.ADULT }
                 }
+                if (audience == LearnerAudience.UNSPECIFIED) {
+                    Row {
+                        AudienceChip("تعیین‌نشده", true) { audience = LearnerAudience.UNSPECIFIED }
+                    }
+                }
                 Text("نماد پروفایل", style = MaterialTheme.typography.labelLarge, color = PianovaInk)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AvatarChip("🎹", avatarRef == "piano") { avatarRef = "piano" }
@@ -329,16 +334,24 @@ private fun LearnerProfileEditorDialog(
                     AvatarChip("⭐", avatarRef == "star") { avatarRef = "star" }
                     AvatarChip("🌿", avatarRef == "leaf") { avatarRef = "leaf" }
                 }
-                Text("سطح آغازین", style = MaterialTheme.typography.labelLarge, color = PianovaInk)
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        LevelChip("مبتدی", "beginner", levelId) { levelId = it }
-                        LevelChip("پایه", "elementary", levelId) { levelId = it }
+                if (profile == null) {
+                    Text("سطح آغازین", style = MaterialTheme.typography.labelLarge, color = PianovaInk)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            LevelChip("مبتدی", "beginner", levelId) { levelId = it }
+                            LevelChip("پایه", "elementary", levelId) { levelId = it }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            LevelChip("متوسط", "intermediate", levelId) { levelId = it }
+                            LevelChip("پیشرفته", "advanced", levelId) { levelId = it }
+                        }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        LevelChip("متوسط", "intermediate", levelId) { levelId = it }
-                        LevelChip("پیشرفته", "advanced", levelId) { levelId = it }
-                    }
+                } else {
+                    Text(
+                        "سطح آغازین: " + levelLabel(profile.initialLevelId),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PianovaMuted
+                    )
                 }
                 OutlinedTextField(
                     value = goalTitle,
