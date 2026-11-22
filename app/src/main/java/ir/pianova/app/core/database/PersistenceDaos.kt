@@ -81,3 +81,12 @@ interface SongProgressDao {
     @Query("DELETE FROM song_progress WHERE userId = :learnerId")
     suspend fun deleteForLearner(learnerId: String)
 }
+
+@Dao
+interface LearnerGoalDao {
+    @Upsert suspend fun upsert(goal: LearnerGoalEntity)
+    @Query("SELECT * FROM learner_goals WHERE learnerId = :learnerId LIMIT 1")
+    fun observeForLearner(learnerId: String): Flow<LearnerGoalEntity?>
+    @Query("DELETE FROM learner_goals WHERE learnerId = :learnerId")
+    suspend fun deleteForLearner(learnerId: String)
+}
