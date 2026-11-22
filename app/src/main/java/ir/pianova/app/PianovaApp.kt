@@ -67,6 +67,7 @@ import ir.pianova.app.domain.family.LearnerAudience
 import ir.pianova.app.domain.family.LearnerProfile
 import ir.pianova.app.data.lesson.AndroidLessonAssetSource
 import ir.pianova.app.data.lesson.LessonRepository
+import ir.pianova.app.data.lesson.SkillAttemptStore
 import ir.pianova.app.domain.model.LessonAudience
 import ir.pianova.app.data.persistence.LearnerSessionStore
 import ir.pianova.app.data.persistence.ProgressRepository
