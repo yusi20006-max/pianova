@@ -31,7 +31,11 @@ class ProgressRepository(private val database: PianovaDatabase) {
         profiles.observeById(learnerId)
     suspend fun saveLearnerProfile(profile: LearnerProfileEntity) {
         require(database.familyDao().findById(profile.familyId) != null) {
-            "Family \${profile.familyId} does not exist"
+            "Family does not exist"
+        }
+        val existing = profiles.findById(profile.learnerId)
+        require(existing == null || existing.familyId == profile.familyId) {
+            "A learner cannot be reassigned to another family"
         }
         profiles.upsert(profile)
     }

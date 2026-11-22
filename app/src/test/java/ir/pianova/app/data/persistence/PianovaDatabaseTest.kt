@@ -14,6 +14,7 @@ import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.core.database.SongProgressEntity
 import ir.pianova.app.core.database.UserAchievementEntity
 import ir.pianova.app.domain.family.Family
+import ir.pianova.app.domain.family.FamilyManagerContext
 import ir.pianova.app.domain.family.LearnerAudience
 import ir.pianova.app.domain.family.LearnerProfile
 import kotlinx.coroutines.flow.first
@@ -118,6 +119,23 @@ class PianovaDatabaseTest {
         assertTrue(repository.observeLearners("family-a").first().single().learnerId == "learner-b")
         assertTrue(progress.observeLessonProgress("learner-a").first().isEmpty())
         assertEquals("learner-b", progress.observeLessonProgress("learner-b").first().single().learnerId)
+    }
+
+    @Test
+    fun domainModelsRejectInvalidIdentityAndTimestamps() {
+        assertFalse(runCatching { Family("", 0, 0) }.isSuccess)
+        assertFalse(runCatching { Family("family-a", 10, 9) }.isSuccess)
+        assertFalse(
+            runCatching {
+                LearnerProfile("", "family-a", "هنرجو", LearnerAudience.CHILD, createdAtEpochMillis = 0, updatedAtEpochMillis = 0)
+            }.isSuccess
+        )
+        assertFalse(
+            runCatching {
+                LearnerProfile("learner-a", "family-a", " ", LearnerAudience.ADULT, createdAtEpochMillis = 0, updatedAtEpochMillis = 0)
+            }.isSuccess
+        )
+        assertEquals("family-a", FamilyManagerContext("family-a").familyId)
     }
 
     @Test
