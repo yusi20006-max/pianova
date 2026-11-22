@@ -69,6 +69,7 @@ import ir.pianova.app.data.lesson.AndroidLessonAssetSource
 import ir.pianova.app.data.lesson.LessonRepository
 import ir.pianova.app.domain.model.LessonAudience
 import ir.pianova.app.data.persistence.LearnerSessionStore
+import ir.pianova.app.data.persistence.ProgressRepository
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -357,9 +358,9 @@ private fun LearnerWorkspace(
                         onVolume = onVolume
                     )
                 }
-                composable("library") { LibraryScreen() }
+                composable("library") { LibraryScreen(learner.learnerId) }
                 composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
-                composable("progress") { ProgressScreen() }
+                composable("progress") { ProgressScreen(learner.learnerId) }
                 composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
                 composable("family") {
                     FamilyManagementScreen(
@@ -503,18 +504,43 @@ private fun LearningScreen(onPractice: () -> Unit) {
 }
 
 @Composable
-private fun LibraryScreen() {
+private fun LibraryScreen(learnerId: String) {
+    val context = LocalContext.current
+    val database = remember(context) { PianovaDatabase.getInstance(context) }
+    val progressRepository = remember(database) { ProgressRepository(database) }
+    val songProgress by progressRepository.observeSongProgress(learnerId).collectAsState(initial = emptyList())
+
     PageColumn {
         PageTitle("کتابخانه آهنگ‌ها", "قطعات آموزشی و آهنگ‌های شخصی")
-        EmptyState("کتابخانه در حال آماده‌سازی است", "قطعات مبتدی ایرانی و بین‌المللی در مراحل بعدی اضافه می‌شوند.")
+        if (songProgress.isEmpty()) {
+            EmptyState("کتابخانه در حال آماده‌سازی است", "هنوز پیشرفت آهنگی برای این هنرجو ثبت نشده است. قطعات مبتدی ایرانی و بین‌المللی در مراحل بعدی اضافه می‌شوند.")
+        } else {
+            StatusCard("آهنگ‌های دارای سابقه تمرین", songProgress.size.toString())
+            songProgress.forEach { song ->
+                StatusCard(song.songId, "${song.playCount} بار تمرین")
+            }
+        }
     }
 }
 
 @Composable
-private fun ProgressScreen() {
+private fun ProgressScreen(learnerId: String) {
+    val context = LocalContext.current
+    val database = remember(context) { PianovaDatabase.getInstance(context) }
+    val progressRepository = remember(database) { ProgressRepository(database) }
+    val lessonProgress by progressRepository.observeLessonProgress(learnerId).collectAsState(initial = emptyList())
+    val practiceSessions by progressRepository.observePracticeSessions(learnerId).collectAsState(initial = emptyList())
+    val achievements by progressRepository.observeAchievements(learnerId).collectAsState(initial = emptyList())
+
     PageColumn {
         PageTitle("پیشرفت من", "مسیر تمرین و مهارت‌هایت را اینجا دنبال می‌کنی")
-        EmptyState("هنوز گزارشی ثبت نشده است", "پس از انجام درس‌ها و جلسه‌های تمرین، زمان تمرین و پیشرفت واقعی تو در این صفحه نمایش داده می‌شود.")
+        if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty()) {
+            EmptyState("هنوز گزارشی ثبت نشده است", "با شروع درس‌ها و تمرین‌ها، اطلاعات همین هنرجو در این صفحه نمایش داده می‌شود.")
+        } else {
+            StatusCard("درس‌های تکمیل‌شده", lessonProgress.count { it.isCompleted }.toString())
+            StatusCard("جلسه‌های تمرین", practiceSessions.size.toString())
+            StatusCard("دستاوردها", achievements.size.toString())
+        }
     }
 }
 
