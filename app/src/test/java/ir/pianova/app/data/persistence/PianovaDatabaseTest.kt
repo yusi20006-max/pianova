@@ -9,6 +9,7 @@ import ir.pianova.app.core.database.FamilyEntity
 import ir.pianova.app.core.database.LearnerProfileEntity
 import ir.pianova.app.core.database.LessonProgressEntity
 import ir.pianova.app.core.database.MIGRATION_1_2
+import ir.pianova.app.core.database.MIGRATION_2_3
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.core.database.SongProgressEntity
@@ -16,6 +17,7 @@ import ir.pianova.app.core.database.UserAchievementEntity
 import ir.pianova.app.domain.family.Family
 import ir.pianova.app.domain.family.FamilyManagerContext
 import ir.pianova.app.domain.family.LearnerAudience
+import ir.pianova.app.domain.family.LearnerGoal
 import ir.pianova.app.domain.family.LearnerProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -185,6 +187,30 @@ class PianovaDatabaseTest {
     }
 
     @Test
+    fun optionalGoalsAreLearnerScopedAndCascadeOnLearnerDeletion() = runBlocking {
+        val familyRepository = RoomFamilyRepository(database)
+        familyRepository.saveFamily(Family("family-a", 1, 1))
+        familyRepository.saveLearner(
+            LearnerProfile("learner-a", "family-a", "هنرجوی اول", LearnerAudience.CHILD, createdAtEpochMillis = 2, updatedAtEpochMillis = 2)
+        )
+        familyRepository.saveLearner(
+            LearnerProfile("learner-b", "family-a", "هنرجوی دوم", LearnerAudience.ADULT, createdAtEpochMillis = 3, updatedAtEpochMillis = 3)
+        )
+        val goals = RoomLearnerGoalRepository(database)
+        goals.saveGoal(LearnerGoal("learner-a", "اجرای یک ملودی", 4, 4))
+        goals.saveGoal(LearnerGoal("learner-b", "تمرین آکوردها", 5, 5))
+
+        assertEquals("family-a", familyRepository.observeLocalFamily().first()?.familyId)
+        assertEquals("اجرای یک ملودی", goals.observeGoal("learner-a").first()?.title)
+        assertEquals("تمرین آکوردها", goals.observeGoal("learner-b").first()?.title)
+
+        familyRepository.deleteLearner("learner-a")
+
+        assertNull(goals.observeGoal("learner-a").first())
+        assertEquals("تمرین آکوردها", goals.observeGoal("learner-b").first()?.title)
+    }
+
+    @Test
     fun domainModelsRejectInvalidIdentityAndTimestamps() {
         assertFalse(runCatching { Family("", 0, 0) }.isSuccess)
         assertFalse(runCatching { Family("family-a", 10, 9) }.isSuccess)
@@ -228,7 +254,7 @@ class PianovaDatabaseTest {
         legacy.close()
 
         val migrated = Room.databaseBuilder(context, PianovaDatabase::class.java, databaseName)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
         try {
@@ -238,6 +264,7 @@ class PianovaDatabaseTest {
             assertEquals("beginner", learners.single().initialLevelId)
             assertEquals("unspecified", learners.single().audienceCategory)
             assertEquals("legacy-progress", migrated.lessonProgressDao().observeForLearner("legacy-learner").first().single().progressId)
+            assertNull(migrated.learnerGoalDao().observeForLearner("legacy-learner").first())
         } finally {
             migrated.close()
             context.deleteDatabase(databaseName)

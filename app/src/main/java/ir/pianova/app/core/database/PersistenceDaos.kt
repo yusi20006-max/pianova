@@ -12,6 +12,9 @@ interface FamilyDao {
     @Query("SELECT * FROM families WHERE familyId = :familyId LIMIT 1")
     fun observeById(familyId: String): Flow<FamilyEntity?>
 
+    @Query("SELECT * FROM families ORDER BY createdAtEpochMillis LIMIT 1")
+    fun observeLocalFamily(): Flow<FamilyEntity?>
+
     @Query("SELECT * FROM families WHERE familyId = :familyId LIMIT 1")
     suspend fun findById(familyId: String): FamilyEntity?
 }
@@ -79,5 +82,20 @@ interface SongProgressDao {
     @Query("SELECT * FROM song_progress WHERE userId = :learnerId ORDER BY lastPlayedAtEpochMillis DESC")
     fun observeForLearner(learnerId: String): Flow<List<SongProgressEntity>>
     @Query("DELETE FROM song_progress WHERE userId = :learnerId")
+    suspend fun deleteForLearner(learnerId: String)
+}
+
+
+@Dao
+interface LearnerGoalDao {
+    @Upsert suspend fun upsert(goal: LearnerGoalEntity)
+
+    @Query("SELECT * FROM learner_goals WHERE learnerId = :learnerId LIMIT 1")
+    fun observeForLearner(learnerId: String): Flow<LearnerGoalEntity?>
+
+    @Query("SELECT * FROM learner_goals WHERE learnerId = :learnerId LIMIT 1")
+    suspend fun findForLearner(learnerId: String): LearnerGoalEntity?
+
+    @Query("DELETE FROM learner_goals WHERE learnerId = :learnerId")
     suspend fun deleteForLearner(learnerId: String)
 }

@@ -15,6 +15,9 @@ class RoomFamilyRepository(private val database: PianovaDatabase) : FamilyReposi
     private val families = database.familyDao()
     private val learners = database.learnerProfileDao()
 
+    override fun observeLocalFamily(): Flow<Family?> =
+        families.observeLocalFamily().map { it?.toDomain() }
+
     override fun observeFamily(familyId: String): Flow<Family?> =
         families.observeById(familyId).map { it?.toDomain() }
 
