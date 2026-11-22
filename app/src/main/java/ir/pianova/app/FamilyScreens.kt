@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +47,8 @@ import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.domain.family.FamilyRepository
 import ir.pianova.app.domain.family.LearnerAudience
 import ir.pianova.app.domain.family.LearnerProfile
+import ir.pianova.app.data.lesson.SkillAttemptStore
+import ir.pianova.app.data.persistence.LearnerSessionStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -57,6 +60,8 @@ fun FamilyManagementScreen(
     initialSetup: Boolean,
     onComplete: () -> Unit
 ) {
+    val context = LocalContext.current
+    val sessionStore = remember(context) { LearnerSessionStore(context) }
     val learners by repository.observeLearners(familyId).collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     var editingLearnerId by remember { mutableStateOf<String?>(null) }
@@ -284,7 +289,11 @@ fun FamilyManagementScreen(
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
-                        repository.deleteLearner(learner.learnerId)
+                        val deleted = repository.deleteLearner(learner.learnerId)
+                        if (deleted) {
+                            sessionStore.clearForLearner(learner.learnerId)
+                            SkillAttemptStore.clearForLearner(context, learner.learnerId)
+                        }
                         if (editingLearnerId == learner.learnerId) editingLearnerId = null
                         deleteTarget = null
                     }
