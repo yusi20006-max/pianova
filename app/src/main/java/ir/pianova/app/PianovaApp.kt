@@ -125,7 +125,14 @@ fun PianovaApp(
     }
 
     LaunchedEffect(familyReady, managerOpen, activeLearner?.learnerId) {
-        if (!familyReady || managerOpen || activeLearner == null) onPianoVisibilityChanged(false)
+        if (!familyReady || managerOpen || activeLearner == null) {
+            onPianoVisibilityChanged(false)
+            onPianoStop()
+        }
+    }
+
+    LaunchedEffect(learners) {
+        SkillAttemptStore.migrateLegacyAttempts(context, learners.map { it.learnerId })
     }
 
     // If a profile is removed while another screen is open, discard its active
@@ -168,6 +175,7 @@ fun PianovaApp(
                 lastActiveLearnerId = sessionStore.lastActiveLearnerId()?.takeIf { id -> learners.any { it.learnerId == id } },
                 destinationLabel = { id -> destinationLabel(sessionStore.destinationFor(id)) },
                 onSelectLearner = { learner ->
+                    sessionStore.ensureAudienceFor(learner.learnerId, defaultLessonAudience(learner.audience))
                     sessionStore.rememberActiveLearner(learner.learnerId)
                     activeLearnerId = learner.learnerId
                 },
@@ -195,6 +203,7 @@ fun PianovaApp(
                     onPlayReferenceNotes = onPlayReferenceNotes,
                     onChangeLearner = {
                         onPianoVisibilityChanged(false)
+                        onPianoStop()
                         activeLearnerId = null
                     }
                 )
@@ -226,7 +235,7 @@ private fun LearnerWorkspace(
     val navController = rememberNavController()
     val context = LocalContext.current
     val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
-    val defaultAudience = if (learner.audience == LearnerAudience.ADULT) LessonAudience.ADULTS else LessonAudience.CHILDREN
+    val defaultAudience = defaultLessonAudience(learner.audience)
     var lessonAudience by remember(learner.learnerId) {
         mutableStateOf(sessionStore.audienceFor(learner.learnerId, defaultAudience))
     }
@@ -375,6 +384,9 @@ private fun LearnerWorkspace(
     }
     if (showAboutDialog) AboutDialog(onDismiss = { showAboutDialog = false })
 }
+
+private fun defaultLessonAudience(audience: LearnerAudience): LessonAudience =
+    if (audience == LearnerAudience.ADULT) LessonAudience.ADULTS else LessonAudience.CHILDREN
 
 private fun audienceLabel(audience: LearnerAudience): String = when (audience) {
     LearnerAudience.CHILD -> "کودک"
