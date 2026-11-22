@@ -90,7 +90,7 @@ class LearnerSessionStore(context: Context) {
 
     fun destinationFor(learnerId: String): String {
         require(learnerId.isNotBlank())
-        return safeLearnerDestination(preferences.getString(destinationKey(learnerId), null))
+        return preferences.getString(destinationKey(learnerId), null)?.let(::safeLearnerDestination) ?: "home"
     }
 
     fun saveDestination(learnerId: String, route: String) {
