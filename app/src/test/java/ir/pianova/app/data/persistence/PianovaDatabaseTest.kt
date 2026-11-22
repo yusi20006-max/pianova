@@ -101,6 +101,7 @@ class PianovaDatabaseTest {
         val second = LearnerProfile("learner-b", "family-a", "هنرجوی دوم", LearnerAudience.TEEN, createdAtEpochMillis = 4, updatedAtEpochMillis = 4)
         repository.saveLearner(first)
         repository.saveLearner(second)
+        assertFalse(runCatching { repository.saveLearner(first.copy(familyId = "family-b")) }.isSuccess)
 
         assertEquals(2, repository.observeLearners("family-a").first().size)
         assertTrue(repository.observeLearners("family-b").first().isEmpty())
@@ -111,6 +112,11 @@ class PianovaDatabaseTest {
         }.isSuccess)
 
         val progress = ProgressRepository(database)
+        assertFalse(
+            runCatching {
+                progress.saveLessonProgress(LessonProgressEntity("orphan", "missing-learner", "lesson-1", lastAccessedAtEpochMillis = 1))
+            }.isSuccess
+        )
         progress.saveLessonProgress(LessonProgressEntity("p-a", "learner-a", "lesson-1", lastAccessedAtEpochMillis = 1))
         progress.saveLessonProgress(LessonProgressEntity("p-b", "learner-b", "lesson-1", lastAccessedAtEpochMillis = 1))
 

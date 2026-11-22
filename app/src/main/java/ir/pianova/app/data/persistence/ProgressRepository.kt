@@ -44,25 +44,45 @@ class ProgressRepository(private val database: PianovaDatabase) {
         lessons.observeForLearner(learnerId)
     fun observeLesson(learnerId: String, lessonId: String): Flow<LessonProgressEntity?> =
         lessons.observeLesson(learnerId, lessonId)
-    suspend fun saveLessonProgress(progress: LessonProgressEntity) = lessons.upsert(progress)
+    suspend fun saveLessonProgress(progress: LessonProgressEntity) {
+        requireLearner(progress.learnerId)
+        lessons.upsert(progress)
+    }
 
     fun observePracticeSessions(learnerId: String): Flow<List<PracticeSessionEntity>> =
         sessions.observeForLearner(learnerId)
     fun observePracticeSessionsBetween(learnerId: String, from: Long, until: Long): Flow<List<PracticeSessionEntity>> =
         sessions.observeBetween(learnerId, from, until)
-    suspend fun savePracticeSession(session: PracticeSessionEntity) = sessions.upsert(session)
+    suspend fun savePracticeSession(session: PracticeSessionEntity) {
+        requireLearner(session.learnerId)
+        sessions.upsert(session)
+    }
 
     fun observeAchievements(learnerId: String): Flow<List<UserAchievementEntity>> =
         achievements.observeForLearner(learnerId)
-    suspend fun saveAchievement(achievement: UserAchievementEntity) = achievements.upsert(achievement)
+    suspend fun saveAchievement(achievement: UserAchievementEntity) {
+        requireLearner(achievement.learnerId)
+        achievements.upsert(achievement)
+    }
 
     fun observeDailyMissions(learnerId: String, dateEpochDay: Long): Flow<List<DailyMissionEntity>> =
         missions.observeForDay(learnerId, dateEpochDay)
-    suspend fun saveDailyMission(mission: DailyMissionEntity) = missions.upsert(mission)
+    suspend fun saveDailyMission(mission: DailyMissionEntity) {
+        requireLearner(mission.learnerId)
+        missions.upsert(mission)
+    }
 
     fun observeSongProgress(learnerId: String): Flow<List<SongProgressEntity>> =
         songs.observeForLearner(learnerId)
-    suspend fun saveSongProgress(progress: SongProgressEntity) = songs.upsert(progress)
+    suspend fun saveSongProgress(progress: SongProgressEntity) {
+        requireLearner(progress.learnerId)
+        songs.upsert(progress)
+    }
+
+    private suspend fun requireLearner(learnerId: String) {
+        require(learnerId.isNotBlank())
+        require(profiles.findById(learnerId) != null) { "Learner does not exist" }
+    }
 
     suspend fun deleteLearnerProgress(learnerId: String) {
         require(learnerId.isNotBlank())
