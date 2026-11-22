@@ -133,7 +133,7 @@ fun FamilyManagementScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("هنرجویان خانواده", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
-                    Text("\${learners.size} پروفایل", style = MaterialTheme.typography.labelMedium, color = PianovaMuted)
+                    Text("${learners.size} پروفایل", style = MaterialTheme.typography.labelMedium, color = PianovaMuted)
                 }
             }
             items(learners, key = { it.learnerId }) { learner ->
@@ -233,7 +233,7 @@ fun FamilyManagementScreen(
             onDismissRequest = { pendingDelete = null },
             title = { Text("حذف پروفایل هنرجو؟") },
             text = {
-                Text("پروفایل «\${learner.displayName}» و داده‌های وابسته به همین هنرجو، از جمله پیشرفت و هدف آموزشی، حذف می‌شود. اطلاعات سایر اعضا باقی می‌ماند.")
+                Text("پروفایل «${learner.displayName}» و داده‌های وابسته به همین هنرجو، از جمله پیشرفت و هدف آموزشی، حذف می‌شود. اطلاعات سایر اعضا باقی می‌ماند.")
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -269,14 +269,14 @@ private fun LearnerProfileCard(
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(learner.displayName, style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.SemiBold)
                     Text(
-                        "\${audienceLabel(learner.audience)} · \${levelLabel(learner.currentLevelId)}",
+                        "${audienceLabel(learner.audience)} · ${levelLabel(learner.currentLevelId)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = PianovaMuted
                     )
                 }
             }
             if (goal != null) {
-                Text("هدف: \${goal?.title}", style = MaterialTheme.typography.bodySmall, color = PianovaGreen)
+                Text("هدف: ${goal?.title}", style = MaterialTheme.typography.bodySmall, color = PianovaGreen)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onEdit) { Text("ویرایش") }
