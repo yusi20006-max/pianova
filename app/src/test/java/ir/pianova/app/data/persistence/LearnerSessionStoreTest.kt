@@ -20,12 +20,14 @@ class LearnerSessionStoreTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         context.getSharedPreferences("pianova_learner_sessions", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("pianova_preferences", Context.MODE_PRIVATE).edit().clear().commit()
         store = LearnerSessionStore(context)
     }
 
     @After
     fun tearDown() {
         context.getSharedPreferences("pianova_learner_sessions", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("pianova_preferences", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     @Test
@@ -48,6 +50,18 @@ class LearnerSessionStoreTest {
         assertNull(activeLearnerOrNull("learner-b", currentProfiles))
         assertEquals("learner-a", activeLearnerOrNull("learner-a", currentProfiles))
         assertNull(activeLearnerOrNull(null, currentProfiles))
+    }
+
+    @Test
+    fun legacyAudienceIsAssignedOnlyToTheFirstSelectedLearner() {
+        context.getSharedPreferences("pianova_preferences", Context.MODE_PRIVATE)
+            .edit().putString("lesson_audience", "adults").commit()
+
+        store.ensureAudienceFor("learner-a", LessonAudience.CHILDREN)
+        store.ensureAudienceFor("learner-b", LessonAudience.CHILDREN)
+
+        assertEquals(LessonAudience.ADULTS, store.audienceFor("learner-a", LessonAudience.CHILDREN))
+        assertEquals(LessonAudience.CHILDREN, store.audienceFor("learner-b", LessonAudience.CHILDREN))
     }
 
     @Test
