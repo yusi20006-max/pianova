@@ -26,14 +26,16 @@ class RoomFamilyRepository(private val database: PianovaDatabase) : FamilyReposi
     }
 
     override suspend fun saveLearner(learner: LearnerProfile) {
-        require(families.findById(learner.familyId) != null) {
-            "Family does not exist"
+        database.withTransaction {
+            require(families.findById(learner.familyId) != null) {
+                "Family does not exist"
+            }
+            val existing = learners.findById(learner.learnerId)
+            require(existing == null || existing.familyId == learner.familyId) {
+                "A learner cannot be reassigned to another family"
+            }
+            learners.upsert(learner.toEntity())
         }
-        val existing = learners.findById(learner.learnerId)
-        require(existing == null || existing.familyId == learner.familyId) {
-            "A learner cannot be reassigned to another family"
-        }
-        learners.upsert(learner.toEntity())
     }
 
     override suspend fun deleteLearner(learnerId: String): Boolean {
