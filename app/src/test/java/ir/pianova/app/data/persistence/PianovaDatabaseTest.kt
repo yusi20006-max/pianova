@@ -53,6 +53,9 @@ class PianovaDatabaseTest {
         assertEquals(1, repository.observeLessonProgress("learner-a").first().size)
         assertEquals("step-1", repository.observeLessonProgress("learner-a").first().single().completedStepIdsJson
             .removeSurrounding("[", "]").removeSurrounding("\""))
+        repository.saveLessonProgress(LessonProgressEntity("p-a-updated", "learner-a", "lesson-1", "[\\"step-1\\",\\"step-2\\"]", true, 15, 16))
+        assertEquals(1, repository.observeLessonProgress("learner-a").first().size)
+        assertEquals("p-a-updated", repository.observeLessonProgress("learner-a").first().single().progressId)
         assertEquals(0, repository.observeLessonProgress("learner-c").first().size)
         assertEquals(1, repository.observePracticeSessions("learner-a").first().size)
         assertEquals(1, repository.observeAchievements("learner-a").first().size)
