@@ -164,6 +164,7 @@ fun LessonListScreen(
 
 @Composable
 fun LessonPlayerScreen(
+    learnerId: String,
     lesson: Lesson,
     audience: LessonAudience,
     startChapterId: String,
@@ -177,7 +178,7 @@ fun LessonPlayerScreen(
     onExit: () -> Unit
 ) {
     val context = LocalContext.current
-    val attemptStore = remember(context) { SkillAttemptStore(context.applicationContext) }
+    val attemptStore = remember(context, learnerId) { SkillAttemptStore(context.applicationContext, learnerId) }
     val masterySessionId = remember(lesson.id, startChapterId) { UUID.randomUUID().toString() }
     val entries = remember(lesson) { lesson.flattenedSteps() }
     val startIndex = remember(lesson.id, startChapterId, entries) {
