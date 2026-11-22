@@ -223,6 +223,8 @@ dependencies {
     implementation("com.google.oboe:oboe:1.9.0")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.room:room-testing:2.6.1")

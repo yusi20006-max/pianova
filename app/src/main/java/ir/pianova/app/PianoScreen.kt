@@ -22,6 +22,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +42,7 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -50,6 +54,14 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import kotlin.math.floor
 import kotlin.math.roundToInt
+import ir.pianova.app.core.database.PianovaDatabase
+import ir.pianova.app.core.database.PracticeSessionEntity
+import ir.pianova.app.data.persistence.ProgressRepository
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.UUID
 
 private val PianoWhite = Color(0xFFF1F5F6)
 private val PianoBlack = Color(0xFF10232B)
@@ -71,6 +83,11 @@ private fun midiLabel(note: Int, mode: Int): String {
 
 @Composable
 fun PianoScreen(
+    learnerId: String,
+    initialVolume: Float,
+    initialLabelMode: Int,
+    initialFirstMidi: Int,
+    onLearnerPreferenceChanged: (Float, Int, Int) -> Unit,
     status: String,
     ready: Boolean,
     running: Boolean,
@@ -81,16 +98,75 @@ fun PianoScreen(
     onSustain: (Boolean) -> Unit,
     onVolume: (Float) -> Unit
 ) {
-    var firstMidi by remember { mutableStateOf(60) }
-    var sustain by remember { mutableStateOf(false) }
-    var volume by remember { mutableStateOf(0.8f) }
-    var labelMode by remember { mutableStateOf(1) }
+    var firstMidi by remember(learnerId) { mutableStateOf(initialFirstMidi) }
+    var sustain by remember(learnerId) { mutableStateOf(false) }
+    var volume by remember(learnerId) { mutableStateOf(initialVolume) }
+    var labelMode by remember(learnerId) { mutableStateOf(initialLabelMode) }
+    val context = LocalContext.current
+    val database = remember(context) { PianovaDatabase.getInstance(context) }
+    val progressRepository = remember(database) { ProgressRepository(database) }
+    val scope = rememberCoroutineScope()
+    var practiceSessionId by remember(learnerId) { mutableStateOf<String?>(null) }
+    var practiceStartedAt by remember(learnerId) { mutableStateOf<Long?>(null) }
+    var notesPlayed by remember(learnerId) { mutableIntStateOf(0) }
+
+    val trackedNoteOn: (Int, Float) -> Boolean = { note, velocity ->
+        val accepted = onNoteOn(note, velocity)
+        if (accepted) {
+            val now = System.currentTimeMillis()
+            val sessionId = practiceSessionId ?: UUID.randomUUID().toString().also {
+                practiceSessionId = it
+                practiceStartedAt = now
+            }
+            val startedAt = practiceStartedAt ?: now
+            notesPlayed++
+            val count = notesPlayed
+            scope.launch {
+                progressRepository.savePracticeSession(
+                    PracticeSessionEntity(
+                        sessionId = sessionId,
+                        learnerId = learnerId,
+                        startedAtEpochMillis = startedAt,
+                        durationMillis = (now - startedAt).coerceAtLeast(0),
+                        notesPlayed = count
+                    )
+                )
+            }
+        }
+        accepted
+    }
+
+    LaunchedEffect(learnerId) {
+        try {
+            awaitCancellation()
+        } finally {
+            val sessionId = practiceSessionId
+            val startedAt = practiceStartedAt
+            val count = notesPlayed
+            if (sessionId != null && startedAt != null && count > 0) {
+                val endedAt = System.currentTimeMillis()
+                withContext(NonCancellable) {
+                    progressRepository.savePracticeSession(
+                        PracticeSessionEntity(
+                            sessionId = sessionId,
+                            learnerId = learnerId,
+                            startedAtEpochMillis = startedAt,
+                            endedAtEpochMillis = endedAt,
+                            durationMillis = (endedAt - startedAt).coerceAtLeast(0),
+                            notesPlayed = count
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     LaunchedEffect(running) {
         if (!running && sustain) {
             sustain = false
             onSustain(false)
         }
+        if (running) onVolume(volume)
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -108,7 +184,10 @@ fun PianoScreen(
                     Text(status, color = Color(0xFF9FB3C1), fontSize = 10.sp, maxLines = 1)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    TextButton(onClick = { labelMode = (labelMode + 1) % 3 }) {
+                    TextButton(onClick = {
+                        labelMode = (labelMode + 1) % 3
+                        onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                    }) {
                         Text(when (labelMode) { 0 -> "نام فارسی"; 1 -> "Latin"; else -> "بدون نام" }, color = Color(0xFF7DD3FC), fontSize = 11.sp)
                     }
                     TextButton(onClick = { sustain = !sustain; onSustain(sustain) }, enabled = running) {
@@ -131,7 +210,11 @@ fun PianoScreen(
                 Text("بلندی", color = Color(0xFFCBD5E1), fontSize = 11.sp)
                 Slider(
                     value = volume,
-                    onValueChange = { volume = it; if (running) onVolume(it) },
+                    onValueChange = {
+                        volume = it
+                        onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                        if (running) onVolume(it)
+                    },
                     enabled = running,
                     valueRange = 0.05f..1f,
                     modifier = Modifier.weight(1f).height(28.dp)
@@ -147,13 +230,19 @@ fun PianoScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("اکتاو", color = Color(0xFF9FB3C1), fontSize = 10.sp)
                     Button(
-                        onClick = { firstMidi = (firstMidi + 12).coerceAtMost(84) },
+                        onClick = {
+                            firstMidi = (firstMidi + 12).coerceAtMost(84)
+                            onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                        },
                         enabled = firstMidi < 84,
                         modifier = Modifier.size(width = 42.dp, height = 38.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                     ) { Text("+", fontSize = 18.sp) }
                     Button(
-                        onClick = { firstMidi = (firstMidi - 12).coerceAtLeast(21) },
+                        onClick = {
+                            firstMidi = (firstMidi - 12).coerceAtLeast(21)
+                            onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                        },
                         enabled = firstMidi > 21,
                         modifier = Modifier.size(width = 42.dp, height = 38.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
@@ -164,7 +253,7 @@ fun PianoScreen(
                         firstMidi = firstMidi,
                         labelMode = labelMode,
                         enabled = running,
-                        onNoteOn = onNoteOn,
+                        onNoteOn = trackedNoteOn,
                         onNoteOff = onNoteOff,
                         modifier = Modifier.weight(1f).fillMaxSize()
                     )
@@ -179,7 +268,10 @@ fun PianoScreen(
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     PianoRangeOverview(
                         firstMidi = firstMidi,
-                        onSelect = { firstMidi = it },
+                        onSelect = {
+                            firstMidi = it
+                            onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                        },
                         modifier = Modifier.fillMaxWidth().height(38.dp)
                     )
                 }
