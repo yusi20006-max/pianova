@@ -19,10 +19,11 @@ data class UserProfileEntity(
 
 @Entity(
     tableName = "lesson_progress",
-    indices = [Index(value = ["userId", "lessonId"], unique = true)]
+    primaryKeys = ["userId", "lessonId"],
+    indices = [Index(value = ["progressId"], unique = true)]
 )
 data class LessonProgressEntity(
-    @PrimaryKey val progressId: String,
+    val progressId: String,
     val userId: String,
     val lessonId: String,
     /** JSON array of completed step IDs, kept schema-neutral for lesson JSON evolution. */
