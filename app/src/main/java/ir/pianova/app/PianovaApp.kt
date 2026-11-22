@@ -108,7 +108,8 @@ fun PianovaApp(
     var activeLearnerId by remember { mutableStateOf<String?>(null) }
     var managerOpen by remember { mutableStateOf(false) }
     val learners by familyRepository.observeLearners(familyId).collectAsState(initial = emptyList())
-    val activeLearner = learners.firstOrNull { it.learnerId == activeLearnerId }
+    val validActiveLearnerId = activeLearnerOrNull(activeLearnerId, learners.map { it.learnerId }.toSet())
+    val activeLearner = learners.firstOrNull { it.learnerId == validActiveLearnerId }
 
     LaunchedEffect(database) {
         val migratedFamily = database.familyDao().findById("family-default")
