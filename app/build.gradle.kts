@@ -119,6 +119,10 @@ tasks.matching {
 }
 
 android {
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     namespace = "ir.pianova.app"
     compileSdk = 35
 
@@ -180,6 +184,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 kotlin {
