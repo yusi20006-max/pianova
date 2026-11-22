@@ -71,6 +71,11 @@ private fun midiLabel(note: Int, mode: Int): String {
 
 @Composable
 fun PianoScreen(
+    learnerId: String,
+    initialVolume: Float,
+    initialLabelMode: Int,
+    initialFirstMidi: Int,
+    onLearnerPreferenceChanged: (Float, Int, Int) -> Unit,
     status: String,
     ready: Boolean,
     running: Boolean,
@@ -81,16 +86,17 @@ fun PianoScreen(
     onSustain: (Boolean) -> Unit,
     onVolume: (Float) -> Unit
 ) {
-    var firstMidi by remember { mutableStateOf(60) }
-    var sustain by remember { mutableStateOf(false) }
-    var volume by remember { mutableStateOf(0.8f) }
-    var labelMode by remember { mutableStateOf(1) }
+    var firstMidi by remember(learnerId) { mutableStateOf(initialFirstMidi) }
+    var sustain by remember(learnerId) { mutableStateOf(false) }
+    var volume by remember(learnerId) { mutableStateOf(initialVolume) }
+    var labelMode by remember(learnerId) { mutableStateOf(initialLabelMode) }
 
     LaunchedEffect(running) {
         if (!running && sustain) {
             sustain = false
             onSustain(false)
         }
+        if (running) onVolume(volume)
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -108,7 +114,10 @@ fun PianoScreen(
                     Text(status, color = Color(0xFF9FB3C1), fontSize = 10.sp, maxLines = 1)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    TextButton(onClick = { labelMode = (labelMode + 1) % 3 }) {
+                    TextButton(onClick = {
+                        labelMode = (labelMode + 1) % 3
+                        onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                    }) {
                         Text(when (labelMode) { 0 -> "نام فارسی"; 1 -> "Latin"; else -> "بدون نام" }, color = Color(0xFF7DD3FC), fontSize = 11.sp)
                     }
                     TextButton(onClick = { sustain = !sustain; onSustain(sustain) }, enabled = running) {
@@ -131,7 +140,11 @@ fun PianoScreen(
                 Text("بلندی", color = Color(0xFFCBD5E1), fontSize = 11.sp)
                 Slider(
                     value = volume,
-                    onValueChange = { volume = it; if (running) onVolume(it) },
+                    onValueChange = {
+                        volume = it
+                        onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                        if (running) onVolume(it)
+                    },
                     enabled = running,
                     valueRange = 0.05f..1f,
                     modifier = Modifier.weight(1f).height(28.dp)
@@ -147,13 +160,19 @@ fun PianoScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("اکتاو", color = Color(0xFF9FB3C1), fontSize = 10.sp)
                     Button(
-                        onClick = { firstMidi = (firstMidi + 12).coerceAtMost(84) },
+                        onClick = {
+                            firstMidi = (firstMidi + 12).coerceAtMost(84)
+                            onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                        },
                         enabled = firstMidi < 84,
                         modifier = Modifier.size(width = 42.dp, height = 38.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                     ) { Text("+", fontSize = 18.sp) }
                     Button(
-                        onClick = { firstMidi = (firstMidi - 12).coerceAtLeast(21) },
+                        onClick = {
+                            firstMidi = (firstMidi - 12).coerceAtLeast(21)
+                            onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                        },
                         enabled = firstMidi > 21,
                         modifier = Modifier.size(width = 42.dp, height = 38.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
