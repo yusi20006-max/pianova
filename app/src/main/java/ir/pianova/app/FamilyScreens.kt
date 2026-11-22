@@ -50,15 +50,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-private const val LOCAL_FAMILY_ID = "local-family"
-
 @Composable
 fun FamilyManagementScreen(
     repository: FamilyRepository,
+    familyId: String,
     initialSetup: Boolean,
     onComplete: () -> Unit
 ) {
-    val learners by repository.observeLearners(LOCAL_FAMILY_ID).collectAsState(initial = emptyList())
+    val learners by repository.observeLearners(familyId).collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     var editingLearnerId by remember { mutableStateOf<String?>(null) }
     var displayName by remember { mutableStateOf("") }
@@ -224,7 +223,7 @@ fun FamilyManagementScreen(
                                         val existing = learners.firstOrNull { it.learnerId == editingLearnerId }
                                         val learner = LearnerProfile(
                                             learnerId = existing?.learnerId ?: UUID.randomUUID().toString(),
-                                            familyId = LOCAL_FAMILY_ID,
+                                            familyId = familyId,
                                             displayName = name,
                                             audience = audience,
                                             avatarRef = avatar,
