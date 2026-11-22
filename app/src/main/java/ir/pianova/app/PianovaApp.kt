@@ -134,10 +134,6 @@ fun PianovaApp(
         }
     }
 
-    LaunchedEffect(learners) {
-        SkillAttemptStore.migrateLegacyAttempts(context, learners.map { it.learnerId })
-    }
-
     // If a profile is removed while another screen is open, discard its active
     // context immediately and return to the chooser. The manager is not a learner.
     LaunchedEffect(learners, activeLearnerId) {
@@ -178,6 +174,7 @@ fun PianovaApp(
                 lastActiveLearnerId = sessionStore.lastActiveLearnerId()?.takeIf { id -> learners.any { it.learnerId == id } },
                 destinationLabel = { id -> destinationLabel(sessionStore.destinationFor(id)) },
                 onSelectLearner = { learner ->
+                    SkillAttemptStore.migrateLegacyAttempts(context, learners.map { it.learnerId })
                     sessionStore.ensureAudienceFor(learner.learnerId, defaultLessonAudience(learner.audience))
                     sessionStore.rememberActiveLearner(learner.learnerId)
                     activeLearnerId = learner.learnerId
