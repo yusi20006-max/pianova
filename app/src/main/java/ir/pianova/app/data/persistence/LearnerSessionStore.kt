@@ -5,7 +5,8 @@ import ir.pianova.app.domain.model.LessonAudience
 
 /** Device-local settings scoped to a stable learner ID. */
 class LearnerSessionStore(context: Context) {
-    private val preferences = context.applicationContext.getSharedPreferences(
+    private val appContext = context.applicationContext
+    private val preferences = appContext.getSharedPreferences(
         PREFERENCES_NAME, Context.MODE_PRIVATE
     )
 
@@ -33,6 +34,23 @@ class LearnerSessionStore(context: Context) {
             .apply {
                 if (lastActiveLearnerId() == learnerId) remove(KEY_LAST_ACTIVE_LEARNER)
             }
+            .commit()
+    }
+
+    fun ensureAudienceFor(learnerId: String, fallback: LessonAudience) {
+        require(learnerId.isNotBlank())
+        if (preferences.contains(audienceKey(learnerId))) return
+
+        val legacyPreferences = preferencesForLegacyAudience
+        val alreadyAssigned = preferences.getBoolean(KEY_LEGACY_AUDIENCE_ASSIGNED, false)
+        val audience = if (alreadyAssigned) {
+            fallback.storageValue
+        } else {
+            legacyPreferences.getString("lesson_audience", fallback.storageValue) ?: fallback.storageValue
+        }
+        preferences.edit()
+            .putString(audienceKey(learnerId), audience)
+            .putBoolean(KEY_LEGACY_AUDIENCE_ASSIGNED, true)
             .commit()
     }
 
@@ -80,12 +98,21 @@ class LearnerSessionStore(context: Context) {
         preferences.edit().putString(destinationKey(learnerId), safeLearnerDestination(route)).commit()
     }
 
+    private val preferencesForLegacyAudience by lazy {
+        // The former single-user audience choice belongs to the first selected profile only.
+        contextPreferences("pianova_preferences")
+    }
+
+    private fun contextPreferences(name: String) =
+        appContext.getSharedPreferences(name, Context.MODE_PRIVATE)
+
     private fun audienceKey(learnerId: String) = "audience.$learnerId"
     private fun destinationKey(learnerId: String) = "destination.$learnerId"
 
     companion object {
         private const val PREFERENCES_NAME = "pianova_learner_sessions"
         private const val KEY_LAST_ACTIVE_LEARNER = "last_active_learner_id"
+        private const val KEY_LEGACY_AUDIENCE_ASSIGNED = "legacy_audience_assigned"
     }
 }
 
