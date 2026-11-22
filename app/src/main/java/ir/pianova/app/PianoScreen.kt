@@ -268,7 +268,10 @@ fun PianoScreen(
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     PianoRangeOverview(
                         firstMidi = firstMidi,
-                        onSelect = { firstMidi = it },
+                        onSelect = {
+                            firstMidi = it
+                            onLearnerPreferenceChanged(volume, labelMode, firstMidi)
+                        },
                         modifier = Modifier.fillMaxWidth().height(38.dp)
                     )
                 }
