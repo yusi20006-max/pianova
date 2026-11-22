@@ -61,3 +61,20 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("DROP TABLE user_profiles")
     }
 }
+
+/** Adds optional learner goals without mixing mutable goals into identity records. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS learner_goals (
+                learnerId TEXT NOT NULL PRIMARY KEY,
+                goalText TEXT NOT NULL,
+                updatedAtEpochMillis INTEGER NOT NULL,
+                FOREIGN KEY(learnerId) REFERENCES learner_profiles(learnerId)
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+    }
+}
