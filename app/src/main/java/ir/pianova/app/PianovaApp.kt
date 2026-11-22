@@ -33,6 +33,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -73,7 +74,6 @@ import ir.pianova.app.data.persistence.ProgressRepository
 import ir.pianova.app.domain.family.LearnerProfile
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
-import java.util.UUID
 
 private data class MainTab(val route: String, val label: String, val icon: String)
 
@@ -90,7 +90,6 @@ fun PianovaApp(onPianoVisibilityChanged: (Boolean) -> Unit = {}) {
     val context = LocalContext.current
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val familyRepository = remember(database) { RoomFamilyRepository(database) }
-    val goalRepository = remember(database) { RoomLearnerGoalRepository(database) }
     val progressRepository = remember(database) { ProgressRepository(database) }
     val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
     val familyPreferences = remember(context) { context.getSharedPreferences("pianova_preferences", Context.MODE_PRIVATE) }
@@ -419,9 +418,12 @@ private fun LearningScreen(onPractice: () -> Unit) {
 
 @Composable
 private fun LibraryScreen() {
-    PageColumn {
-        PageTitle("کتابخانه آهنگ‌ها", "قطعات آموزشی و آهنگ‌های شخصی")
-        EmptyState("کتابخانه در حال آماده‌سازی است", "قطعات مبتدی ایرانی و بین‌المللی در مراحل بعدی اضافه می‌شوند.")
+    val activeLearnerId = LocalActiveLearnerId.current ?: return
+    key(activeLearnerId) {
+        PageColumn {
+            PageTitle("کتابخانه آهنگ‌ها", "کتابخانه شخصی هنرجوی فعال")
+            EmptyState("کتابخانه در حال آماده‌سازی است", "قطعات این بخش پس از آماده‌شدن، بر اساس پروفایل فعال نمایش داده می‌شوند.")
+        }
     }
 }
 

@@ -59,6 +59,17 @@ class SkillAttemptStoreTest {
     }
 
     @Test
+    fun legacyAttemptsMergeWithExistingLearnerAttempts() {
+        val learner = SkillAttemptStore(context, "legacy")
+        learner.record(attempt("new-1", "session-3"))
+        writeLegacyAttempts()
+
+        SkillAttemptStore.migrateLegacyAttempts(context, listOf("legacy"))
+
+        assertTrue(learner.hasMasteryFor("first-notes", "identify-keys", criteria))
+    }
+
+    @Test
     fun legacyAttemptsAreNotSharedWhenMultipleLearnersExist() {
         writeLegacyAttempts()
 

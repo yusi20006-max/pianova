@@ -84,10 +84,23 @@ class SkillAttemptStore(context: Context, learnerId: String) {
                         preferencesName(learnerId),
                         Context.MODE_PRIVATE
                     )
-                    if (target.getString(ATTEMPTS_KEY, null) == null) {
-                        target.edit().putString(ATTEMPTS_KEY, raw).apply()
+                    val serializer = ListSerializer(SkillAttempt.serializer())
+                    val legacyAttempts = runCatching {
+                        Json.decodeFromString(serializer, raw)
+                    }.getOrNull()
+                    if (legacyAttempts != null) {
+                        val existingAttempts = target.getString(ATTEMPTS_KEY, null)?.let { existingRaw ->
+                            runCatching { Json.decodeFromString(serializer, existingRaw) }.getOrNull()
+                        }.orEmpty()
+                        val mergedAttempts = (existingAttempts + legacyAttempts)
+                            .distinctBy(SkillAttempt::attemptId)
+                        target.edit()
+                            .putString(ATTEMPTS_KEY, Json.encodeToString(serializer, mergedAttempts))
+                            .apply()
+                        legacy.edit().remove(ATTEMPTS_KEY).putBoolean(MIGRATION_DECIDED_KEY, true).apply()
+                    } else {
+                        legacy.edit().putBoolean(MIGRATION_DECIDED_KEY, true).apply()
                     }
-                    legacy.edit().remove(ATTEMPTS_KEY).putBoolean(MIGRATION_DECIDED_KEY, true).apply()
                     return
                 }
             }
