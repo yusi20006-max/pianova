@@ -112,3 +112,10 @@ data class SongProgressEntity(
     val lastPlayedAtEpochMillis: Long? = null,
     val playCount: Int = 0
 )
+
+@Entity(tableName = "learner_goals", foreignKeys = [ForeignKey(entity = LearnerProfileEntity::class, parentColumns = ["learnerId"], childColumns = ["learnerId"], onDelete = ForeignKey.CASCADE)])
+data class LearnerGoalEntity(
+    @PrimaryKey val learnerId: String,
+    val goalText: String,
+    val updatedAtEpochMillis: Long
+)
