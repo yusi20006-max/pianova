@@ -13,13 +13,14 @@ import ir.pianova.app.core.database.UserAchievementDao
 import ir.pianova.app.core.database.UserAchievementEntity
 import ir.pianova.app.core.database.UserProfileDao
 import ir.pianova.app.core.database.UserProfileEntity
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 
 /**
  * Single persistence boundary for learner progress. Every learner-owned query
  * requires userId so callers cannot accidentally request an unscoped record set.
  */
-class ProgressRepository(database: PianovaDatabase) {
+class ProgressRepository(private val database: PianovaDatabase) {
     private val profiles: UserProfileDao = database.userProfileDao()
     private val lessons: LessonProgressDao = database.lessonProgressDao()
     private val sessions: PracticeSessionDao = database.practiceSessionDao()
@@ -57,11 +58,13 @@ class ProgressRepository(database: PianovaDatabase) {
 
     suspend fun deleteLearnerProgress(userId: String) {
         require(userId.isNotBlank())
-        lessons.deleteForLearner(userId)
-        sessions.deleteForLearner(userId)
-        achievements.deleteForLearner(userId)
-        missions.deleteForLearner(userId)
-        songs.deleteForLearner(userId)
-        profiles.delete(userId)
+        database.withTransaction {
+            lessons.deleteForLearner(userId)
+            sessions.deleteForLearner(userId)
+            achievements.deleteForLearner(userId)
+            missions.deleteForLearner(userId)
+            songs.deleteForLearner(userId)
+            profiles.delete(userId)
+        }
     }
 }
