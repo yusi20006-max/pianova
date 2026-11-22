@@ -22,6 +22,17 @@ class LearnerSessionStore(context: Context) {
         }
     }
 
+    fun clearForLearner(learnerId: String) {
+        require(learnerId.isNotBlank())
+        preferences.edit()
+            .remove(audienceKey(learnerId))
+            .remove(destinationKey(learnerId))
+            .apply {
+                if (lastActiveLearnerId() == learnerId) remove(KEY_LAST_ACTIVE_LEARNER)
+            }
+            .commit()
+    }
+
     fun audienceFor(learnerId: String, fallback: LessonAudience): LessonAudience {
         require(learnerId.isNotBlank())
         return LessonAudience.fromStorageValue(preferences.getString(audienceKey(learnerId), fallback.storageValue))
