@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -62,9 +63,12 @@ import ir.pianova.app.core.midi.PianoInput
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.data.persistence.RoomFamilyRepository
 import ir.pianova.app.domain.family.Family
+import ir.pianova.app.domain.family.LearnerAudience
+import ir.pianova.app.domain.family.LearnerProfile
 import ir.pianova.app.data.lesson.AndroidLessonAssetSource
 import ir.pianova.app.data.lesson.LessonRepository
 import ir.pianova.app.domain.model.LessonAudience
+import ir.pianova.app.data.persistence.LearnerSessionStore
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -91,14 +95,19 @@ fun PianovaApp(
     pianoInput: PianoInput,
     onPlayReferenceNotes: (List<Int>, Long) -> Unit
 ) {
-    val navController = rememberNavController()
     val context = LocalContext.current
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val familyRepository = remember(database) { RoomFamilyRepository(database) }
+    val sessionStore = remember(context) { LearnerSessionStore(context) }
+    val familyPreferences = remember(context) { context.getSharedPreferences("pianova_family", 0) }
     var familyReady by remember { mutableStateOf(false) }
     var familyId by remember { mutableStateOf("local-family") }
-    val familyPreferences = remember(context) { context.getSharedPreferences("pianova_family", 0) }
     var onboardingComplete by remember { mutableStateOf(familyPreferences.getBoolean("onboarding_complete", false)) }
+    var activeLearnerId by remember { mutableStateOf<String?>(null) }
+    var managerOpen by remember { mutableStateOf(false) }
+    val learners by familyRepository.observeLearners(familyId).collectAsState(initial = emptyList())
+    val activeLearner = learners.firstOrNull { it.learnerId == activeLearnerId }
+
     LaunchedEffect(database) {
         val migratedFamily = database.familyDao().findById("family-default")
         val existingFamily = database.familyDao().findById("local-family")
@@ -113,32 +122,120 @@ fun PianovaApp(
         onboardingComplete = familyPreferences.getBoolean("onboarding_complete", false)
         familyReady = true
     }
+
+    // If a profile is removed while another screen is open, discard its active
+    // context immediately and return to the chooser. The manager is not a learner.
+    LaunchedEffect(learners, activeLearnerId) {
+        if (activeLearnerId != null && activeLearner == null) {
+            sessionStore.forgetActiveLearner(activeLearnerId!!)
+            activeLearnerId = null
+        }
+    }
+
+    when {
+        !familyReady -> {
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("در حال آماده‌سازی خانواده…", color = PianovaMuted)
+            }
+        }
+        shouldShowFamilySetup(onboardingComplete) -> {
+            FamilyManagementScreen(
+                repository = familyRepository,
+                familyId = familyId,
+                initialSetup = true,
+                onComplete = {
+                    familyPreferences.edit().putBoolean("onboarding_complete", true).commit()
+                    onboardingComplete = true
+                }
+            )
+        }
+        managerOpen -> {
+            FamilyManagementScreen(
+                repository = familyRepository,
+                familyId = familyId,
+                initialSetup = false,
+                onComplete = { managerOpen = false }
+            )
+        }
+        activeLearner == null -> {
+            onPianoVisibilityChanged(false)
+            LearnerSelectionScreen(
+                learners = learners,
+                lastActiveLearnerId = sessionStore.lastActiveLearnerId()?.takeIf { id -> learners.any { it.learnerId == id } },
+                destinationLabel = { id -> destinationLabel(sessionStore.destinationFor(id)) },
+                onSelectLearner = { learner ->
+                    sessionStore.rememberActiveLearner(learner.learnerId)
+                    activeLearnerId = learner.learnerId
+                },
+                onManageFamily = { managerOpen = true }
+            )
+        }
+        else -> {
+            key(activeLearner.learnerId) {
+                LearnerWorkspace(
+                    learner = activeLearner,
+                    familyId = familyId,
+                    familyRepository = familyRepository,
+                    sessionStore = sessionStore,
+                    pianoStatus = pianoStatus,
+                    pianoReady = pianoReady,
+                    pianoRunning = pianoRunning,
+                    onPianoStart = onPianoStart,
+                    onPianoStop = onPianoStop,
+                    onNoteOn = onNoteOn,
+                    onNoteOff = onNoteOff,
+                    onSustain = onSustain,
+                    onVolume = onVolume,
+                    onPianoVisibilityChanged = onPianoVisibilityChanged,
+                    pianoInput = pianoInput,
+                    onPlayReferenceNotes = onPlayReferenceNotes,
+                    onChangeLearner = {
+                        onPianoVisibilityChanged(false)
+                        activeLearnerId = null
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LearnerWorkspace(
+    learner: LearnerProfile,
+    familyId: String,
+    familyRepository: RoomFamilyRepository,
+    sessionStore: LearnerSessionStore,
+    pianoStatus: String,
+    pianoReady: Boolean,
+    pianoRunning: Boolean,
+    onPianoStart: () -> Unit,
+    onPianoStop: () -> Unit,
+    onNoteOn: (Int, Float) -> Boolean,
+    onNoteOff: (Int) -> Unit,
+    onSustain: (Boolean) -> Unit,
+    onVolume: (Float) -> Unit,
+    onPianoVisibilityChanged: (Boolean) -> Unit,
+    pianoInput: PianoInput,
+    onPlayReferenceNotes: (List<Int>, Long) -> Unit,
+    onChangeLearner: () -> Unit
+) {
+    val navController = rememberNavController()
+    val context = LocalContext.current
     val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
-    val audiencePreferences = remember(context) { context.getSharedPreferences("pianova_preferences", 0) }
-    var lessonAudience by remember(audiencePreferences) {
-        mutableStateOf(LessonAudience.fromStorageValue(audiencePreferences.getString("lesson_audience", "children")))
+    val defaultAudience = if (learner.audience == LearnerAudience.ADULT) LessonAudience.ADULTS else LessonAudience.CHILDREN
+    var lessonAudience by remember(learner.learnerId) {
+        mutableStateOf(sessionStore.audienceFor(learner.learnerId, defaultAudience))
     }
     var showAboutDialog by remember { mutableStateOf(false) }
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "home"
+    val startDestination = remember(learner.learnerId) { sessionStore.destinationFor(learner.learnerId) }
 
-    LaunchedEffect(route) { onPianoVisibilityChanged(route == "practice") }
+    LaunchedEffect(route, learner.learnerId) {
+        sessionStore.saveDestination(learner.learnerId, route)
+        onPianoVisibilityChanged(route == "practice")
+    }
 
-    if (!familyReady) {
-        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("در حال آماده‌سازی خانواده…", color = PianovaMuted)
-        }
-    } else if (shouldShowFamilySetup(onboardingComplete)) {
-        FamilyManagementScreen(
-            repository = familyRepository,
-            familyId = familyId,
-            initialSetup = true,
-            onComplete = {
-                familyPreferences.edit().putBoolean("onboarding_complete", true).apply()
-                onboardingComplete = true
-            }
-        )
-    } else {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
@@ -162,92 +259,126 @@ fun PianovaApp(
             }
         }
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = "home",
-            modifier = Modifier.padding(if (route == "practice") PaddingValues(0.dp) else padding)
-        ) {
-            composable("home") {
-                HomeScreen(
-                    onContinue = { navController.navigate("learning") },
-                    onPractice = { navController.navigate("practice") },
-                    onLibrary = { navController.navigate("library") },
-                    onProgress = { navController.navigate("progress") }
-                )
-            }
-            composable("learning") {
-                LessonListScreen(
-                    repository = lessonRepository,
-                    audience = lessonAudience,
-                    onAudienceChange = { selected ->
-                        lessonAudience = selected
-                        audiencePreferences.edit().putString("lesson_audience", selected.storageValue).apply()
-                    },
-                    onStartChapter = { lessonId, chapterId ->
-                        navController.navigate("lesson/$lessonId/$chapterId")
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text(learner.avatarRef ?: "🎹", style = MaterialTheme.typography.titleLarge)
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(learner.displayName, color = PianovaInk, fontWeight = FontWeight.SemiBold)
+                        Text(audienceLabel(learner.audience), color = PianovaMuted, style = MaterialTheme.typography.labelSmall)
                     }
-                )
+                }
+                TextButton(onClick = onChangeLearner) { Text("تغییر هنرجو") }
             }
-            composable(
-                route = "lesson/{lessonId}/{chapterId}",
-                arguments = listOf(
-                    navArgument("lessonId") { type = NavType.StringType },
-                    navArgument("chapterId") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val lessonId = backStackEntry.arguments?.getString("lessonId").orEmpty()
-                val chapterId = backStackEntry.arguments?.getString("chapterId").orEmpty()
-                val lesson = remember(lessonId) { runCatching { lessonRepository.getLesson(lessonId) }.getOrNull() }
-                if (lesson == null) {
-                    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("بارگذاری درس ناموفق بود.", color = PianovaInk)
-                        TextButton(onClick = { navController.popBackStack() }) { Text("بازگشت") }
-                    }
-                } else {
-                    LessonPlayerScreen(
-                        lesson = lesson,
-                        audience = lessonAudience,
-                        startChapterId = chapterId,
-                        pianoInput = pianoInput,
-                        pianoReady = pianoReady,
-                        pianoRunning = pianoRunning,
-                        onPianoStart = onPianoStart,
-                        onNoteOn = onNoteOn,
-                        onNoteOff = onNoteOff,
-                        onPlayReferenceNotes = onPlayReferenceNotes,
-                        onExit = { navController.popBackStack() }
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.weight(1f)
+            ) {
+                composable("home") {
+                    HomeScreen(
+                        onContinue = { navController.navigate("learning") },
+                        onPractice = { navController.navigate("practice") },
+                        onLibrary = { navController.navigate("library") },
+                        onProgress = { navController.navigate("progress") }
                     )
                 }
-            }
-            composable("practice") {
-                PianoScreen(
-                    status = pianoStatus,
-                    ready = pianoReady,
-                    running = pianoRunning,
-                    onStart = onPianoStart,
-                    onStop = onPianoStop,
-                    onNoteOn = onNoteOn,
-                    onNoteOff = onNoteOff,
-                    onSustain = onSustain,
-                    onVolume = onVolume
-                )
-            }
-            composable("library") { LibraryScreen() }
-            composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
-            composable("progress") { ProgressScreen() }
-            composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
-            composable("family") {
-                FamilyManagementScreen(
-                    repository = familyRepository,
-                    familyId = familyId,
-                    initialSetup = false,
-                    onComplete = { navController.popBackStack() }
-                )
+                composable("learning") {
+                    LessonListScreen(
+                        repository = lessonRepository,
+                        audience = lessonAudience,
+                        onAudienceChange = { selected ->
+                            lessonAudience = selected
+                            sessionStore.saveAudience(learner.learnerId, selected)
+                        },
+                        onStartChapter = { lessonId, chapterId ->
+                            navController.navigate("lesson/$lessonId/$chapterId")
+                        }
+                    )
+                }
+                composable(
+                    route = "lesson/{lessonId}/{chapterId}",
+                    arguments = listOf(
+                        navArgument("lessonId") { type = NavType.StringType },
+                        navArgument("chapterId") { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    val lessonId = backStackEntry.arguments?.getString("lessonId").orEmpty()
+                    val chapterId = backStackEntry.arguments?.getString("chapterId").orEmpty()
+                    val lesson = remember(lessonId) { runCatching { lessonRepository.getLesson(lessonId) }.getOrNull() }
+                    if (lesson == null) {
+                        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("بارگذاری درس ناموفق بود.", color = PianovaInk)
+                            TextButton(onClick = { navController.popBackStack() }) { Text("بازگشت") }
+                        }
+                    } else {
+                        LessonPlayerScreen(
+                            learnerId = learner.learnerId,
+                            lesson = lesson,
+                            audience = lessonAudience,
+                            startChapterId = chapterId,
+                            pianoInput = pianoInput,
+                            pianoReady = pianoReady,
+                            pianoRunning = pianoRunning,
+                            onPianoStart = onPianoStart,
+                            onNoteOn = onNoteOn,
+                            onNoteOff = onNoteOff,
+                            onPlayReferenceNotes = onPlayReferenceNotes,
+                            onExit = { navController.popBackStack() }
+                        )
+                    }
+                }
+                composable("practice") {
+                    PianoScreen(
+                        status = pianoStatus,
+                        ready = pianoReady,
+                        running = pianoRunning,
+                        onStart = onPianoStart,
+                        onStop = onPianoStop,
+                        onNoteOn = onNoteOn,
+                        onNoteOff = onNoteOff,
+                        onSustain = onSustain,
+                        onVolume = onVolume
+                    )
+                }
+                composable("library") { LibraryScreen() }
+                composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
+                composable("progress") { ProgressScreen() }
+                composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
+                composable("family") {
+                    FamilyManagementScreen(
+                        repository = familyRepository,
+                        familyId = familyId,
+                        initialSetup = false,
+                        onComplete = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }
     if (showAboutDialog) AboutDialog(onDismiss = { showAboutDialog = false })
-    }
+}
+
+private fun audienceLabel(audience: LearnerAudience): String = when (audience) {
+    LearnerAudience.CHILD -> "کودک"
+    LearnerAudience.TEEN -> "نوجوان"
+    LearnerAudience.ADULT -> "بزرگسال"
+    LearnerAudience.UNSPECIFIED -> "هنرجو"
+}
+
+private fun destinationLabel(route: String): String = when (route) {
+    "home" -> "خانه"
+    "learning" -> "مسیر یادگیری"
+    "practice" -> "تمرین"
+    "library" -> "کتابخانه"
+    "progress" -> "پیشرفت"
+    "more" -> "بیشتر"
+    "settings" -> "تنظیمات"
+    else -> "مسیر یادگیری"
 }
 
 @Composable
