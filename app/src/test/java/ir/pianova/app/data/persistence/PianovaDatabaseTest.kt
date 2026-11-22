@@ -17,6 +17,9 @@ import ir.pianova.app.domain.family.Family
 import ir.pianova.app.domain.family.FamilyManagerContext
 import ir.pianova.app.domain.family.LearnerAudience
 import ir.pianova.app.domain.family.LearnerProfile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -125,6 +128,60 @@ class PianovaDatabaseTest {
         assertTrue(repository.observeLearners("family-a").first().single().learnerId == "learner-b")
         assertTrue(progress.observeLessonProgress("learner-a").first().isEmpty())
         assertEquals("learner-b", progress.observeLessonProgress("learner-b").first().single().learnerId)
+    }
+
+    @Test
+    fun concurrentLearnerCreationCannotReassignStableIdsAcrossFamilies() = runBlocking {
+        val familyRepository = RoomFamilyRepository(database)
+        familyRepository.saveFamily(Family("family-a", 1, 1))
+        familyRepository.saveFamily(Family("family-b", 2, 2))
+
+        val domainAttempts = listOf(
+            async(Dispatchers.IO) {
+                runCatching {
+                    familyRepository.saveLearner(
+                        LearnerProfile("shared-domain-id", "family-a", "هنرجو الف", LearnerAudience.ADULT, createdAtEpochMillis = 3, updatedAtEpochMillis = 3)
+                    )
+                }.isSuccess
+            },
+            async(Dispatchers.IO) {
+                runCatching {
+                    familyRepository.saveLearner(
+                        LearnerProfile("shared-domain-id", "family-b", "هنرجو ب", LearnerAudience.ADULT, createdAtEpochMillis = 3, updatedAtEpochMillis = 3)
+                    )
+                }.isSuccess
+            }
+        ).awaitAll()
+        assertEquals(1, domainAttempts.count { it })
+        assertEquals(
+            1,
+            familyRepository.observeLearners("family-a").first().size +
+                familyRepository.observeLearners("family-b").first().size
+        )
+
+        val progressRepository = ProgressRepository(database)
+        val persistenceAttempts = listOf(
+            async(Dispatchers.IO) {
+                runCatching {
+                    progressRepository.saveLearnerProfile(
+                        LearnerProfileEntity("shared-persistence-id", "family-a", "الف", createdAtEpochMillis = 4, updatedAtEpochMillis = 4)
+                    )
+                }.isSuccess
+            },
+            async(Dispatchers.IO) {
+                runCatching {
+                    progressRepository.saveLearnerProfile(
+                        LearnerProfileEntity("shared-persistence-id", "family-b", "ب", createdAtEpochMillis = 4, updatedAtEpochMillis = 4)
+                    )
+                }.isSuccess
+            }
+        ).awaitAll()
+        assertEquals(1, persistenceAttempts.count { it })
+        assertEquals(
+            1,
+            progressRepository.observeLearners("family-a").first().count { it.learnerId == "shared-persistence-id" } +
+                progressRepository.observeLearners("family-b").first().count { it.learnerId == "shared-persistence-id" }
+        )
     }
 
     @Test

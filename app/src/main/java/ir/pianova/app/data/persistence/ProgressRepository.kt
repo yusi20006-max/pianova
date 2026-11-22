@@ -30,14 +30,16 @@ class ProgressRepository(private val database: PianovaDatabase) {
     fun observeLearner(learnerId: String): Flow<LearnerProfileEntity?> =
         profiles.observeById(learnerId)
     suspend fun saveLearnerProfile(profile: LearnerProfileEntity) {
-        require(database.familyDao().findById(profile.familyId) != null) {
-            "Family does not exist"
+        database.withTransaction {
+            require(database.familyDao().findById(profile.familyId) != null) {
+                "Family does not exist"
+            }
+            val existing = profiles.findById(profile.learnerId)
+            require(existing == null || existing.familyId == profile.familyId) {
+                "A learner cannot be reassigned to another family"
+            }
+            profiles.upsert(profile)
         }
-        val existing = profiles.findById(profile.learnerId)
-        require(existing == null || existing.familyId == profile.familyId) {
-            "A learner cannot be reassigned to another family"
-        }
-        profiles.upsert(profile)
     }
 
     fun observeLessonProgress(learnerId: String): Flow<List<LessonProgressEntity>> =
