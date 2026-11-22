@@ -87,10 +87,12 @@ class BundledLessonContentTest {
         assertTrue(middleCSteps.all { it.skillId == "find-middle-c" && it.acceptedMidiNotes == listOf(60) })
 
         val doReMi = lesson("lesson-03-do-re-mi")
-        assertTrue(doReMi.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlaySequence>().any { it.midiNotes == listOf(60, 62, 64) })
+        assertTrue(doReMi.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlaySequence>().all { it.midiNotes == listOf(60, 62, 64, 62, 60) })
+        assertTrue(doReMi.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.Listen>().all { it.midiNotes == listOf(60, 62, 64, 62, 60) })
 
         val faSolLaSi = lesson("lesson-04-fa-sol-la-si")
-        assertTrue(faSolLaSi.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlaySequence>().any { it.midiNotes == listOf(65, 67, 69, 71) })
+        assertTrue(faSolLaSi.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlaySequence>().all { it.midiNotes == listOf(65, 67, 69, 71, 69, 67, 65) })
+        assertTrue(faSolLaSi.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.Listen>().all { it.midiNotes == listOf(65, 67, 69, 71, 69, 67, 65) })
 
         val melody = lesson("lesson-05-first-melody")
         assertTrue(melody.chapters.flatMap { it.steps }.filterIsInstance<LessonStep.PlaySequence>().any {
