@@ -7,18 +7,20 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [
-        UserProfileEntity::class,
+        FamilyEntity::class,
+        LearnerProfileEntity::class,
         LessonProgressEntity::class,
         PracticeSessionEntity::class,
         UserAchievementEntity::class,
         DailyMissionEntity::class,
         SongProgressEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class PianovaDatabase : RoomDatabase() {
-    abstract fun userProfileDao(): UserProfileDao
+    abstract fun familyDao(): FamilyDao
+    abstract fun learnerProfileDao(): LearnerProfileDao
     abstract fun lessonProgressDao(): LessonProgressDao
     abstract fun practiceSessionDao(): PracticeSessionDao
     abstract fun userAchievementDao(): UserAchievementDao
@@ -34,7 +36,7 @@ abstract class PianovaDatabase : RoomDatabase() {
                     context.applicationContext,
                     PianovaDatabase::class.java,
                     DATABASE_NAME
-                ).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
             }
 
         private const val DATABASE_NAME = "pianova.db"

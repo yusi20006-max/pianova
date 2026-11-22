@@ -1,7 +1,10 @@
 package ir.pianova.app.data.persistence
 
+import androidx.room.withTransaction
 import ir.pianova.app.core.database.DailyMissionDao
 import ir.pianova.app.core.database.DailyMissionEntity
+import ir.pianova.app.core.database.LearnerProfileDao
+import ir.pianova.app.core.database.LearnerProfileEntity
 import ir.pianova.app.core.database.LessonProgressDao
 import ir.pianova.app.core.database.LessonProgressEntity
 import ir.pianova.app.core.database.PianovaDatabase
@@ -11,60 +14,61 @@ import ir.pianova.app.core.database.SongProgressDao
 import ir.pianova.app.core.database.SongProgressEntity
 import ir.pianova.app.core.database.UserAchievementDao
 import ir.pianova.app.core.database.UserAchievementEntity
-import ir.pianova.app.core.database.UserProfileDao
-import ir.pianova.app.core.database.UserProfileEntity
-import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 
-/**
- * Single persistence boundary for learner progress. Every learner-owned query
- * requires userId so callers cannot accidentally request an unscoped record set.
- */
+/** All learner-owned progress queries require an explicit stable learnerId. */
 class ProgressRepository(private val database: PianovaDatabase) {
-    private val profiles: UserProfileDao = database.userProfileDao()
+    private val profiles: LearnerProfileDao = database.learnerProfileDao()
     private val lessons: LessonProgressDao = database.lessonProgressDao()
     private val sessions: PracticeSessionDao = database.practiceSessionDao()
     private val achievements: UserAchievementDao = database.userAchievementDao()
     private val missions: DailyMissionDao = database.dailyMissionDao()
     private val songs: SongProgressDao = database.songProgressDao()
 
-    fun observeProfiles(): Flow<List<UserProfileEntity>> = profiles.observeAll()
-    fun observeProfile(userId: String): Flow<UserProfileEntity?> = profiles.observeById(userId)
-    suspend fun saveProfile(profile: UserProfileEntity) = profiles.upsert(profile)
+    fun observeLearners(familyId: String): Flow<List<LearnerProfileEntity>> =
+        profiles.observeForFamily(familyId)
+    fun observeLearner(learnerId: String): Flow<LearnerProfileEntity?> =
+        profiles.observeById(learnerId)
+    suspend fun saveLearnerProfile(profile: LearnerProfileEntity) {
+        require(database.familyDao().findById(profile.familyId) != null) {
+            "Family \${profile.familyId} does not exist"
+        }
+        profiles.upsert(profile)
+    }
 
-    fun observeLessonProgress(userId: String): Flow<List<LessonProgressEntity>> =
-        lessons.observeForLearner(userId)
-    fun observeLesson(userId: String, lessonId: String): Flow<LessonProgressEntity?> =
-        lessons.observeLesson(userId, lessonId)
+    fun observeLessonProgress(learnerId: String): Flow<List<LessonProgressEntity>> =
+        lessons.observeForLearner(learnerId)
+    fun observeLesson(learnerId: String, lessonId: String): Flow<LessonProgressEntity?> =
+        lessons.observeLesson(learnerId, lessonId)
     suspend fun saveLessonProgress(progress: LessonProgressEntity) = lessons.upsert(progress)
 
-    fun observePracticeSessions(userId: String): Flow<List<PracticeSessionEntity>> =
-        sessions.observeForLearner(userId)
-    fun observePracticeSessionsBetween(userId: String, from: Long, until: Long): Flow<List<PracticeSessionEntity>> =
-        sessions.observeBetween(userId, from, until)
+    fun observePracticeSessions(learnerId: String): Flow<List<PracticeSessionEntity>> =
+        sessions.observeForLearner(learnerId)
+    fun observePracticeSessionsBetween(learnerId: String, from: Long, until: Long): Flow<List<PracticeSessionEntity>> =
+        sessions.observeBetween(learnerId, from, until)
     suspend fun savePracticeSession(session: PracticeSessionEntity) = sessions.upsert(session)
 
-    fun observeAchievements(userId: String): Flow<List<UserAchievementEntity>> =
-        achievements.observeForLearner(userId)
+    fun observeAchievements(learnerId: String): Flow<List<UserAchievementEntity>> =
+        achievements.observeForLearner(learnerId)
     suspend fun saveAchievement(achievement: UserAchievementEntity) = achievements.upsert(achievement)
 
-    fun observeDailyMissions(userId: String, dateEpochDay: Long): Flow<List<DailyMissionEntity>> =
-        missions.observeForDay(userId, dateEpochDay)
+    fun observeDailyMissions(learnerId: String, dateEpochDay: Long): Flow<List<DailyMissionEntity>> =
+        missions.observeForDay(learnerId, dateEpochDay)
     suspend fun saveDailyMission(mission: DailyMissionEntity) = missions.upsert(mission)
 
-    fun observeSongProgress(userId: String): Flow<List<SongProgressEntity>> =
-        songs.observeForLearner(userId)
+    fun observeSongProgress(learnerId: String): Flow<List<SongProgressEntity>> =
+        songs.observeForLearner(learnerId)
     suspend fun saveSongProgress(progress: SongProgressEntity) = songs.upsert(progress)
 
-    suspend fun deleteLearnerProgress(userId: String) {
-        require(userId.isNotBlank())
+    suspend fun deleteLearnerProgress(learnerId: String) {
+        require(learnerId.isNotBlank())
         database.withTransaction {
-            lessons.deleteForLearner(userId)
-            sessions.deleteForLearner(userId)
-            achievements.deleteForLearner(userId)
-            missions.deleteForLearner(userId)
-            songs.deleteForLearner(userId)
-            profiles.delete(userId)
+            lessons.deleteForLearner(learnerId)
+            sessions.deleteForLearner(learnerId)
+            achievements.deleteForLearner(learnerId)
+            missions.deleteForLearner(learnerId)
+            songs.deleteForLearner(learnerId)
+            profiles.delete(learnerId)
         }
     }
 }

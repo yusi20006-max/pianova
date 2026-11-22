@@ -1,0 +1,63 @@
+package ir.pianova.app.core.database
+
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
+/**
+ * Moves the single-user v1 profile table into the family/learner model.
+ * Existing user IDs are retained as learner IDs and all existing progress
+ * rows keep their original ownership column values.
+ */
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS families (
+                familyId TEXT NOT NULL PRIMARY KEY,
+                createdAtEpochMillis INTEGER NOT NULL,
+                updatedAtEpochMillis INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT OR IGNORE INTO families (familyId, createdAtEpochMillis, updatedAtEpochMillis)
+            VALUES ('family-default', 0, 0)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS learner_profiles (
+                learnerId TEXT NOT NULL PRIMARY KEY,
+                familyId TEXT NOT NULL,
+                displayName TEXT NOT NULL,
+                birthDateEpochDay INTEGER,
+                audienceCategory TEXT NOT NULL,
+                avatarRef TEXT,
+                initialLevelId TEXT NOT NULL,
+                currentLevelId TEXT NOT NULL,
+                createdAtEpochMillis INTEGER NOT NULL,
+                updatedAtEpochMillis INTEGER NOT NULL,
+                FOREIGN KEY(familyId) REFERENCES families(familyId)
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO learner_profiles (
+                learnerId, familyId, displayName, birthDateEpochDay,
+                audienceCategory, avatarRef, initialLevelId, currentLevelId,
+                createdAtEpochMillis, updatedAtEpochMillis
+            )
+            SELECT
+                userId, 'family-default', displayName, NULL,
+                'unspecified', NULL, currentLevelId, currentLevelId,
+                createdAtEpochMillis, updatedAtEpochMillis
+            FROM user_profiles
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_learner_profiles_familyId ON learner_profiles(familyId)")
+        db.execSQL("DROP TABLE user_profiles")
+    }
+}
