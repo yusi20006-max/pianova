@@ -9,6 +9,7 @@ import ir.pianova.app.domain.family.LearnerAudience
 import ir.pianova.app.domain.family.LearnerProfile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,6 +50,9 @@ class LearnerSelectionScreenTest {
         composeRule.onNodeWithText("🌟").assertIsDisplayed()
         composeRule.onNodeWithText("کودک").assertIsDisplayed()
         composeRule.onNodeWithText("مدیریت خانواده و پروفایل‌ها").assertIsDisplayed()
+        composeRule.onNodeWithText("انتخاب هنرجو آزاد است و نیازی به رمز یا PIN ندارد.").assertIsDisplayed()
+        composeRule.runOnIdle { assertNull(selectedLearnerId) }
+        composeRule.onNodeWithText("انتخاب هنرجو").assertDoesNotExist()
         composeRule.onNodeWithText("نورا").performClick()
         composeRule.runOnIdle { assertEquals("learner-nora", selectedLearnerId) }
         composeRule.onNodeWithText("مدیریت خانواده و پروفایل‌ها").performClick()
