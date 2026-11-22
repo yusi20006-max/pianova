@@ -27,6 +27,9 @@ class LearnerSessionStore(context: Context) {
         preferences.edit()
             .remove(audienceKey(learnerId))
             .remove(destinationKey(learnerId))
+            .remove("volume.$learnerId")
+            .remove("label_mode.$learnerId")
+            .remove("first_midi.$learnerId")
             .apply {
                 if (lastActiveLearnerId() == learnerId) remove(KEY_LAST_ACTIVE_LEARNER)
             }
@@ -41,6 +44,30 @@ class LearnerSessionStore(context: Context) {
     fun saveAudience(learnerId: String, audience: LessonAudience) {
         require(learnerId.isNotBlank())
         preferences.edit().putString(audienceKey(learnerId), audience.storageValue).commit()
+    }
+
+    fun volumeFor(learnerId: String): Float =
+        preferences.getFloat("volume.$learnerId", 0.8f).coerceIn(0.05f, 1f)
+
+    fun saveVolume(learnerId: String, volume: Float) {
+        require(learnerId.isNotBlank() && volume in 0.05f..1f)
+        preferences.edit().putFloat("volume.$learnerId", volume).commit()
+    }
+
+    fun labelModeFor(learnerId: String): Int =
+        preferences.getInt("label_mode.$learnerId", 1).coerceIn(0, 2)
+
+    fun saveLabelMode(learnerId: String, mode: Int) {
+        require(learnerId.isNotBlank() && mode in 0..2)
+        preferences.edit().putInt("label_mode.$learnerId", mode).commit()
+    }
+
+    fun firstMidiFor(learnerId: String): Int =
+        preferences.getInt("first_midi.$learnerId", 60).coerceIn(21, 84)
+
+    fun saveFirstMidi(learnerId: String, firstMidi: Int) {
+        require(learnerId.isNotBlank() && firstMidi in 21..84 && firstMidi % 12 == 0)
+        preferences.edit().putInt("first_midi.$learnerId", firstMidi).commit()
     }
 
     fun destinationFor(learnerId: String): String {
