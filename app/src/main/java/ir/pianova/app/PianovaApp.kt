@@ -62,8 +62,6 @@ import ir.pianova.app.core.midi.PianoInput
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.data.persistence.RoomFamilyRepository
 import ir.pianova.app.domain.family.Family
-import ir.pianova.app.domain.family.LearnerProfile
-import kotlinx.coroutines.flow.collect
 import ir.pianova.app.data.lesson.AndroidLessonAssetSource
 import ir.pianova.app.data.lesson.LessonRepository
 import ir.pianova.app.domain.model.LessonAudience
@@ -101,8 +99,6 @@ fun PianovaApp(
     var familyId by remember { mutableStateOf("local-family") }
     val familyPreferences = remember(context) { context.getSharedPreferences("pianova_family", 0) }
     var onboardingComplete by remember { mutableStateOf(familyPreferences.getBoolean("onboarding_complete", false)) }
-    var familyLearners by remember { mutableStateOf<List<LearnerProfile>>(emptyList()) }
-
     LaunchedEffect(database) {
         val migratedFamily = database.familyDao().findById("family-default")
         val existingFamily = database.familyDao().findById("local-family")
@@ -116,11 +112,6 @@ fun PianovaApp(
         }
         onboardingComplete = familyPreferences.getBoolean("onboarding_complete", false)
         familyReady = true
-    }
-    LaunchedEffect(familyReady, familyId) {
-        if (familyReady) {
-            familyRepository.observeLearners(familyId).collect { familyLearners = it }
-        }
     }
     val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
     val audiencePreferences = remember(context) { context.getSharedPreferences("pianova_preferences", 0) }
@@ -137,7 +128,7 @@ fun PianovaApp(
         androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("در حال آماده‌سازی خانواده…", color = PianovaMuted)
         }
-    } else if (!onboardingComplete || familyLearners.isEmpty()) {
+    } else if (shouldShowFamilySetup(onboardingComplete)) {
         FamilyManagementScreen(
             repository = familyRepository,
             familyId = familyId,
