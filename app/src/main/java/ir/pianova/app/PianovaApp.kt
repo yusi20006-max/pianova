@@ -98,19 +98,28 @@ fun PianovaApp(
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val familyRepository = remember(database) { RoomFamilyRepository(database) }
     var familyReady by remember { mutableStateOf(false) }
+    var familyId by remember { mutableStateOf("local-family") }
+    val familyPreferences = remember(context) { context.getSharedPreferences("pianova_family", 0) }
+    var onboardingComplete by remember { mutableStateOf(familyPreferences.getBoolean("onboarding_complete", false)) }
     var familyLearners by remember { mutableStateOf<List<LearnerProfile>>(emptyList()) }
 
     LaunchedEffect(database) {
-        val familyId = "local-family"
-        if (database.familyDao().findById(familyId) == null) {
+        val migratedFamily = database.familyDao().findById("family-default")
+        val existingFamily = database.familyDao().findById("local-family")
+        val selectedFamily = migratedFamily ?: existingFamily
+        if (selectedFamily == null) {
             val now = System.currentTimeMillis()
-            familyRepository.saveFamily(Family(familyId, now, now))
+            familyRepository.saveFamily(Family("local-family", now, now))
+            familyId = "local-family"
+        } else {
+            familyId = selectedFamily.familyId
         }
+        onboardingComplete = familyPreferences.getBoolean("onboarding_complete", false)
         familyReady = true
     }
-    LaunchedEffect(familyReady) {
+    LaunchedEffect(familyReady, familyId) {
         if (familyReady) {
-            familyRepository.observeLearners("local-family").collect { familyLearners = it }
+            familyRepository.observeLearners(familyId).collect { familyLearners = it }
         }
     }
     val lessonRepository = remember(context) { LessonRepository(AndroidLessonAssetSource(context.assets)) }
@@ -128,8 +137,16 @@ fun PianovaApp(
         androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("در حال آماده‌سازی خانواده…", color = PianovaMuted)
         }
-    } else if (familyLearners.isEmpty()) {
-        FamilyManagementScreen(repository = familyRepository, initialSetup = true, onComplete = {})
+    } else if (!onboardingComplete || familyLearners.isEmpty()) {
+        FamilyManagementScreen(
+            repository = familyRepository,
+            familyId = familyId,
+            initialSetup = true,
+            onComplete = {
+                familyPreferences.edit().putBoolean("onboarding_complete", true).apply()
+                onboardingComplete = true
+            }
+        )
     } else {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -231,6 +248,7 @@ fun PianovaApp(
             composable("family") {
                 FamilyManagementScreen(
                     repository = familyRepository,
+                    familyId = familyId,
                     initialSetup = false,
                     onComplete = { navController.popBackStack() }
                 )
