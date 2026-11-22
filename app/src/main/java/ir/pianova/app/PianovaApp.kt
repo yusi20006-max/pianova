@@ -334,6 +334,15 @@ private fun LearnerWorkspace(
                 }
                 composable("practice") {
                     PianoScreen(
+                        learnerId = learner.learnerId,
+                        initialVolume = sessionStore.volumeFor(learner.learnerId),
+                        initialLabelMode = sessionStore.labelModeFor(learner.learnerId),
+                        initialFirstMidi = sessionStore.firstMidiFor(learner.learnerId),
+                        onLearnerPreferenceChanged = { volume, labelMode, firstMidi ->
+                            sessionStore.saveVolume(learner.learnerId, volume)
+                            sessionStore.saveLabelMode(learner.learnerId, labelMode)
+                            sessionStore.saveFirstMidi(learner.learnerId, firstMidi)
+                        },
                         status = pianoStatus,
                         ready = pianoReady,
                         running = pianoRunning,
