@@ -1,17 +1,42 @@
 package ir.pianova.app.core.database
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.ColumnInfo
+
+@Entity(tableName = "families")
+data class FamilyEntity(
+    @PrimaryKey val familyId: String,
+    val createdAtEpochMillis: Long,
+    val updatedAtEpochMillis: Long
+)
 
 /**
- * Local learner profile. IDs are stable and are the ownership key for all
- * learner-scoped records. Family relationships are added by the family model.
+ * The former user_profiles table is evolved into the learner profile table.
+ * The migration preserves existing userId values as stable learner IDs.
  */
-@Entity(tableName = "user_profiles")
-data class UserProfileEntity(
-    @PrimaryKey val userId: String,
+@Entity(
+    tableName = "learner_profiles",
+    foreignKeys = [
+        ForeignKey(
+            entity = FamilyEntity::class,
+            parentColumns = ["familyId"],
+            childColumns = ["familyId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("familyId")]
+)
+data class LearnerProfileEntity(
+    @PrimaryKey val learnerId: String,
+    val familyId: String,
     val displayName: String,
+    val birthDateEpochDay: Long? = null,
+    val audienceCategory: String = "unspecified",
+    val avatarRef: String? = null,
+    val initialLevelId: String = "beginner",
     val currentLevelId: String = "beginner",
     val createdAtEpochMillis: Long,
     val updatedAtEpochMillis: Long
@@ -24,19 +49,21 @@ data class UserProfileEntity(
 )
 data class LessonProgressEntity(
     val progressId: String,
-    val userId: String,
+    @ColumnInfo(name = "userId") val learnerId: String,
     val lessonId: String,
-    /** JSON array of completed step IDs, kept schema-neutral for lesson JSON evolution. */
     val completedStepIdsJson: String = "[]",
     val isCompleted: Boolean = false,
     val lastAccessedAtEpochMillis: Long,
     val completedAtEpochMillis: Long? = null
 )
 
-@Entity(tableName = "practice_sessions", indices = [Index("userId"), Index("startedAtEpochMillis")])
+@Entity(
+    tableName = "practice_sessions",
+    indices = [Index("userId"), Index("startedAtEpochMillis")]
+)
 data class PracticeSessionEntity(
     @PrimaryKey val sessionId: String,
-    val userId: String,
+    @ColumnInfo(name = "userId") val learnerId: String,
     val lessonId: String? = null,
     val startedAtEpochMillis: Long,
     val endedAtEpochMillis: Long? = null,
@@ -52,7 +79,7 @@ data class PracticeSessionEntity(
     indices = [Index("userId")]
 )
 data class UserAchievementEntity(
-    val userId: String,
+    @ColumnInfo(name = "userId") val learnerId: String,
     val achievementId: String,
     val unlockedAtEpochMillis: Long,
     val metadataJson: String = "{}"
@@ -64,7 +91,7 @@ data class UserAchievementEntity(
     indices = [Index("userId")]
 )
 data class DailyMissionEntity(
-    val userId: String,
+    @ColumnInfo(name = "userId") val learnerId: String,
     val missionId: String,
     val dateEpochDay: Long,
     val targetCount: Int,
@@ -78,7 +105,7 @@ data class DailyMissionEntity(
     indices = [Index("userId")]
 )
 data class SongProgressEntity(
-    val userId: String,
+    @ColumnInfo(name = "userId") val learnerId: String,
     val songId: String,
     val completedSectionsJson: String = "[]",
     val bestAccuracy: Float? = null,
