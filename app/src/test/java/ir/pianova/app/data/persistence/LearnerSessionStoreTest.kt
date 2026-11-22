@@ -57,7 +57,7 @@ class LearnerSessionStoreTest {
         store.saveDestination("learner-a", "practice")
         store.saveVolume("learner-a", 0.45f)
         store.saveLabelMode("learner-a", 2)
-        store.saveFirstMidi("learner-a", 72)
+        store.saveFirstMidi("learner-a", 73)
 
         assertEquals("learner-a", store.lastActiveLearnerId())
         assertEquals(LessonAudience.ADULTS, store.audienceFor("learner-a", LessonAudience.CHILDREN))
@@ -68,7 +68,7 @@ class LearnerSessionStoreTest {
         assertEquals(0.8f, store.volumeFor("learner-b"), 0.001f)
         assertEquals(2, store.labelModeFor("learner-a"))
         assertEquals(1, store.labelModeFor("learner-b"))
-        assertEquals(72, store.firstMidiFor("learner-a"))
+        assertEquals(73, store.firstMidiFor("learner-a"))
         assertEquals(60, store.firstMidiFor("learner-b"))
     }
 
@@ -79,11 +79,15 @@ class LearnerSessionStoreTest {
         store.saveDestination("learner-a", "practice")
         store.saveVolume("learner-a", 0.4f)
         store.saveAudience("learner-b", LessonAudience.CHILDREN)
+        store.saveDestination("learner-b", "library")
+        store.saveVolume("learner-b", 0.6f)
         store.clearForLearner("learner-a")
 
         assertNull(store.lastActiveLearnerId())
         assertEquals(LessonAudience.CHILDREN, store.audienceFor("learner-a", LessonAudience.CHILDREN))
         assertEquals(LessonAudience.CHILDREN, store.audienceFor("learner-b", LessonAudience.ADULTS))
+        assertEquals("library", store.destinationFor("learner-b"))
+        assertEquals(0.6f, store.volumeFor("learner-b"), 0.001f)
         assertEquals(0.8f, store.volumeFor("learner-a"), 0.001f)
     }
 }
