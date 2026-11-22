@@ -51,7 +51,7 @@ class LearnerSessionStore(context: Context) {
 
     fun saveVolume(learnerId: String, volume: Float) {
         require(learnerId.isNotBlank() && volume in 0.05f..1f)
-        preferences.edit().putFloat("volume.$learnerId", volume).commit()
+        preferences.edit().putFloat("volume.$learnerId", volume).apply()
     }
 
     fun labelModeFor(learnerId: String): Int =
@@ -59,15 +59,15 @@ class LearnerSessionStore(context: Context) {
 
     fun saveLabelMode(learnerId: String, mode: Int) {
         require(learnerId.isNotBlank() && mode in 0..2)
-        preferences.edit().putInt("label_mode.$learnerId", mode).commit()
+        preferences.edit().putInt("label_mode.$learnerId", mode).apply()
     }
 
     fun firstMidiFor(learnerId: String): Int =
         preferences.getInt("first_midi.$learnerId", 60).coerceIn(21, 84)
 
     fun saveFirstMidi(learnerId: String, firstMidi: Int) {
-        require(learnerId.isNotBlank() && firstMidi in 21..84 && firstMidi % 12 == 0)
-        preferences.edit().putInt("first_midi.$learnerId", firstMidi).commit()
+        require(learnerId.isNotBlank() && firstMidi in 21..84)
+        preferences.edit().putInt("first_midi.$learnerId", firstMidi).apply()
     }
 
     fun destinationFor(learnerId: String): String {
