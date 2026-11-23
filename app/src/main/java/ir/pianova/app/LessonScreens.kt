@@ -301,6 +301,31 @@ fun LessonPlayerScreen(
         mutableStateOf(initialHint?.revealsAnswer == true)
     }
 
+    LaunchedEffect(lesson.id, step.id) {
+        practiceScope.launch {
+            val existing = progressRepository.observeLesson(learnerId, lesson.id).first()
+            if (existing?.isCompleted != true) {
+                val savedIds = existing?.completedStepIdsJson?.let { raw ->
+                    runCatching { Json.decodeFromString(ListSerializer(String.serializer()), raw) }
+                        .getOrDefault(emptyList())
+                }.orEmpty()
+                val now = System.currentTimeMillis()
+                progressRepository.saveLessonProgress(
+                    ir.pianova.app.core.database.LessonProgressEntity(
+                        progressId = existing?.progressId ?: UUID.randomUUID().toString(),
+                        learnerId = learnerId,
+                        lessonId = lesson.id,
+                        completedStepIdsJson = Json.encodeToString(ListSerializer(String.serializer()), savedIds.distinct().sorted()),
+                        isCompleted = false,
+                        lastAccessedAtEpochMillis = now,
+                        completedAtEpochMillis = null,
+                        currentStepId = step.id
+                    )
+                )
+            }
+        }
+    }
+
     LaunchedEffect(step.id, evaluation.status, evaluation.receivedNotes.size) {
         if (evaluation.status in setOf(
                 EvaluationStatus.CORRECT,
@@ -595,7 +620,7 @@ fun LessonPlayerScreen(
                                 }.getOrDefault(emptyList())
                             }.orEmpty()
                             val allCompletedIds = (previousIds + updatedInSession).toSet()
-                            val lessonCompleted = entries.all { it.step.id in allCompletedIds }
+                            val lessonCompleted = existing?.isCompleted == true || entries.all { it.step.id in allCompletedIds }
                             val now = System.currentTimeMillis()
                             progressRepository.saveLessonProgress(
                                 ir.pianova.app.core.database.LessonProgressEntity(
@@ -605,7 +630,8 @@ fun LessonPlayerScreen(
                                     completedStepIdsJson = Json.encodeToString(ListSerializer(String.serializer()), allCompletedIds.sorted()),
                                     isCompleted = lessonCompleted,
                                     lastAccessedAtEpochMillis = now,
-                                    completedAtEpochMillis = if (lessonCompleted) existing?.completedAtEpochMillis ?: now else null
+                                    completedAtEpochMillis = if (lessonCompleted) existing?.completedAtEpochMillis ?: now else null,
+                                    currentStepId = if (lessonCompleted) null else entries.getOrNull(stepIndex + 1)?.step?.id
                                 )
                             )
                         }
