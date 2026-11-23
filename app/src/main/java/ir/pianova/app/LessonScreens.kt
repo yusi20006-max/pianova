@@ -78,6 +78,12 @@ import ir.pianova.app.domain.model.promptFor
 import ir.pianova.app.domain.model.LessonStep
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.UUID
 
@@ -313,7 +319,7 @@ fun LessonPlayerScreen(
                     skillId = step.skillId,
                     occurredAtEpochMillis = System.currentTimeMillis(),
                     status = evaluation.status.name,
-                    expectedMidiNotesCsv = evaluation.expectedNotes.joinToString(","),
+                    expectedMidiNotesCsv = evaluation.expectedNotes.ifEmpty { step.targetMidiNotes() }.joinToString(","),
                     receivedMidiNotesCsv = evaluation.receivedNotes.joinToString(","),
                     answerRevealingHintUsed = answerRevealingHintUsed
                 )
@@ -578,7 +584,30 @@ fun LessonPlayerScreen(
                 TextButton(onClick = onExit, modifier = Modifier.weight(1f)) { Text("خروج از درس") }
                 Button(
                     onClick = {
-                        completedStepIds = completedStepIds + step.id
+                        val updatedInSession = completedStepIds + step.id
+                        completedStepIds = updatedInSession
+                        practiceScope.launch {
+                            val existing = progressRepository.observeLesson(learnerId, lesson.id).first()
+                            val previousIds = existing?.completedStepIdsJson?.let { raw ->
+                                runCatching {
+                                    Json.decodeFromString(ListSerializer(String.serializer()), raw)
+                                }.getOrDefault(emptyList())
+                            }.orEmpty()
+                            val allCompletedIds = (previousIds + updatedInSession).toSet()
+                            val lessonCompleted = entries.all { it.step.id in allCompletedIds }
+                            val now = System.currentTimeMillis()
+                            progressRepository.saveLessonProgress(
+                                ir.pianova.app.core.database.LessonProgressEntity(
+                                    progressId = existing?.progressId ?: UUID.randomUUID().toString(),
+                                    learnerId = learnerId,
+                                    lessonId = lesson.id,
+                                    completedStepIdsJson = Json.encodeToString(ListSerializer(String.serializer()), allCompletedIds.sorted()),
+                                    isCompleted = lessonCompleted,
+                                    lastAccessedAtEpochMillis = now,
+                                    completedAtEpochMillis = if (lessonCompleted) existing?.completedAtEpochMillis ?: now else null
+                                )
+                            )
+                        }
                         if (stepIndex < entries.lastIndex) {
                             stepIndex++
                         } else {
