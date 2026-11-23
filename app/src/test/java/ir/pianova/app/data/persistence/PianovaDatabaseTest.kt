@@ -74,6 +74,7 @@ class PianovaDatabaseTest {
         assertEquals(1, repository.observeLessonProgress("learner-a").first().size)
         assertEquals("p-a-updated", repository.observeLessonProgress("learner-a").first().single().progressId)
         assertEquals(0, repository.observeLessonProgress("learner-c").first().size)
+        assertEquals("step-2", repository.observeLessonProgress("learner-b").first().single().currentStepId)
         assertEquals(1, repository.observePracticeSessions("learner-a").first().size)
         assertEquals("e-a", repository.observeEvaluationEvidence("learner-a").first().single().evaluationId)
         assertTrue(repository.observeEvaluationEvidence("learner-b").first().isEmpty())
