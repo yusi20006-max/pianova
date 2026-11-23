@@ -101,11 +101,15 @@ class PianovaDatabaseTest {
         repository.saveLearnerProfile(LearnerProfileEntity("a", "family-a", "الف", createdAtEpochMillis = 1, updatedAtEpochMillis = 1))
         repository.saveLearnerProfile(LearnerProfileEntity("b", "family-a", "ب", createdAtEpochMillis = 2, updatedAtEpochMillis = 2))
         repository.saveLessonProgress(LessonProgressEntity("pa", "a", "lesson", lastAccessedAtEpochMillis = 1))
+        repository.saveEvaluationEvidence(EvaluationEvidenceEntity("ea", "a", "sa", "lesson", "step", "pitch", 2, "CORRECT", "60", "60", false))
+        repository.saveEvaluationEvidence(EvaluationEvidenceEntity("eb", "b", "sb", "lesson", "step", "pitch", 2, "CORRECT", "60", "60", false))
         repository.saveLessonProgress(LessonProgressEntity("pb", "b", "lesson", lastAccessedAtEpochMillis = 1))
 
         repository.deleteLearnerProgress("a")
 
         assertNull(repository.observeLearner("a").first())
+        assertTrue(repository.observeEvaluationEvidence("a").first().isEmpty())
+        assertEquals("eb", repository.observeEvaluationEvidence("b").first().single().evaluationId)
         assertEquals("b", repository.observeLessonProgress("b").first().single().learnerId)
     }
 
