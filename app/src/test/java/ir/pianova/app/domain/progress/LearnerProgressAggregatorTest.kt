@@ -42,6 +42,15 @@ class LearnerProgressAggregatorTest {
         assertEquals(0, result.evaluationCount)
     }
 
+    @Test fun interruptedSessionCountsOnlyRecordedActiveDuration() {
+        val interrupted = session("a", "interrupted", 12_500).copy(isInterrupted = true)
+        val result = LearnerProgressAggregator.aggregate(
+            "a", listOf(interrupted), emptyList(), emptySet(), zone, now
+        )
+        assertEquals(12_500L, result.practiceMillis)
+        assertEquals(1, result.sessionCount)
+    }
+
     @Test fun accuracyUsesOnlyTerminalPersistedEvaluations() {
         val result = LearnerProgressAggregator.aggregate(
             "a", emptyList(),
