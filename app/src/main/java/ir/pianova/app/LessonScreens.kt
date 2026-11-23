@@ -93,7 +93,7 @@ import kotlinx.coroutines.flow.collect
 import java.util.UUID
 
 private object ProgressPersistenceScope {
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
 }
 
 @Composable
@@ -344,7 +344,8 @@ fun LessonPlayerScreen(
 
     LaunchedEffect(step.id, session) {
         val activeSession = session ?: return@LaunchedEffect
-        activeSession.transitions.collect { transition ->
+        ProgressPersistenceScope.scope.launch {
+            activeSession.transitions.collect { transition ->
             if (transition.status in setOf(
                     EvaluationStatus.CORRECT,
                     EvaluationStatus.WRONG_NOTE,
@@ -369,6 +370,7 @@ fun LessonPlayerScreen(
                         answerRevealingHintUsed = answerRevealingHintUsed
                     )
                 )
+            }
             }
         }
     }
