@@ -10,6 +10,7 @@ import ir.pianova.app.core.database.LearnerProfileEntity
 import ir.pianova.app.core.database.LessonProgressEntity
 import ir.pianova.app.core.database.MIGRATION_1_2
 import ir.pianova.app.core.database.MIGRATION_2_3
+import ir.pianova.app.core.database.MIGRATION_3_4
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.core.database.SongProgressEntity
