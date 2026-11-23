@@ -553,6 +553,7 @@ private fun ProgressScreen(learnerId: String) {
     val lessonProgress by progressRepository.observeLessonProgress(learnerId).collectAsState(initial = emptyList())
     val practiceSessions by progressRepository.observePracticeSessions(learnerId).collectAsState(initial = emptyList())
     val achievements by progressRepository.observeAchievements(learnerId).collectAsState(initial = emptyList())
+    val learnerGoal by progressRepository.observeLearnerGoal(learnerId).collectAsState(initial = null)
     val learnerProgress by progressRepository.observeLearnerProgress(learnerId).collectAsState(
         initial = LearnerProgressSnapshot(learnerId, 0L, 0, 0, 0, null, emptyList(), emptyList(), emptyList())
     )
@@ -560,11 +561,12 @@ private fun ProgressScreen(learnerId: String) {
     PageColumn {
         PageTitle("پیشرفت من", "مسیر تمرین و مهارت‌هایت را اینجا دنبال می‌کنی")
         if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty() &&
-            learnerProgress.evaluationCount == 0
+            learnerGoal == null && learnerProgress.evaluationCount == 0
         ) {
             EmptyState("هنوز گزارشی ثبت نشده است", "با شروع درس‌ها و تمرین‌ها، اطلاعات واقعی همین هنرجو در این صفحه نمایش داده می‌شود.")
         } else {
             run { val progress = learnerProgress
+                learnerGoal?.let { StatusCard("هدف هنرجو", it.goalText) }
                 StatusCard("درس‌های تکمیل‌شده", progress.completedLessonCount.toString())
                 StatusCard("درس‌های در حال انجام", lessonProgress.count { !it.isCompleted && it.currentStepId != null }.toString())
                 StatusCard("زمان تمرین فعال", "${progress.practiceMillis / 60_000} دقیقه")
