@@ -4,6 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import ir.pianova.app.core.database.EvaluationEvidenceEntity
 import ir.pianova.app.core.database.DailyMissionEntity
 import ir.pianova.app.core.database.FamilyEntity
 import ir.pianova.app.core.database.LearnerProfileEntity
@@ -11,6 +12,7 @@ import ir.pianova.app.core.database.LessonProgressEntity
 import ir.pianova.app.core.database.MIGRATION_1_2
 import ir.pianova.app.core.database.MIGRATION_2_3
 import ir.pianova.app.core.database.MIGRATION_3_4
+import ir.pianova.app.core.database.MIGRATION_4_5
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.core.database.SongProgressEntity
@@ -61,6 +63,7 @@ class PianovaDatabaseTest {
         repository.saveLessonProgress(LessonProgressEntity("p-a", "learner-a", "lesson-1", "[\"step-1\"]", true, 10, 11))
         repository.saveLessonProgress(LessonProgressEntity("p-b", "learner-b", "lesson-1", "[\"step-2\"]", false, 12))
         repository.savePracticeSession(PracticeSessionEntity("s-a", "learner-a", "lesson-1", 20, 30, 10, 3, 2, 1))
+        repository.saveEvaluationEvidence(EvaluationEvidenceEntity("e-a", "learner-a", "s-a", "lesson-1", "step-1", "pitch", 25, "CORRECT", "60", "60", false))
         repository.saveAchievement(UserAchievementEntity("learner-a", "first-note", 40))
         repository.saveDailyMission(DailyMissionEntity("learner-a", "practice-five-minutes", 20000, 5, 3, false))
         repository.saveSongProgress(SongProgressEntity("learner-a", "song-1", "[\"part-a\"]", 0.85f, 50, 2))
@@ -72,6 +75,8 @@ class PianovaDatabaseTest {
         assertEquals("p-a-updated", repository.observeLessonProgress("learner-a").first().single().progressId)
         assertEquals(0, repository.observeLessonProgress("learner-c").first().size)
         assertEquals(1, repository.observePracticeSessions("learner-a").first().size)
+        assertEquals("e-a", repository.observeEvaluationEvidence("learner-a").first().single().evaluationId)
+        assertTrue(repository.observeEvaluationEvidence("learner-b").first().isEmpty())
         assertTrue(repository.observePracticeSessions("learner-b").first().isEmpty())
         assertEquals(1, repository.observeAchievements("learner-a").first().size)
         assertTrue(repository.observeAchievements("learner-b").first().isEmpty())
@@ -262,7 +267,7 @@ class PianovaDatabaseTest {
         legacy.close()
 
         val migrated = Room.databaseBuilder(context, PianovaDatabase::class.java, databaseName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .allowMainThreadQueries()
             .build()
         try {
@@ -274,6 +279,7 @@ class PianovaDatabaseTest {
             assertTrue(migrated.learningPathAssignmentDao().observeHistory("legacy-learner").first().isEmpty())
             assertEquals("legacy-progress", migrated.lessonProgressDao().observeForLearner("legacy-learner").first().single().progressId)
             assertNull(migrated.learnerGoalDao().observeForLearner("legacy-learner").first())
+            assertTrue(migrated.evaluationEvidenceDao().observeForLearner("legacy-learner").first().isEmpty())
         } finally {
             migrated.close()
             context.deleteDatabase(databaseName)
