@@ -61,7 +61,7 @@ class PianovaDatabaseTest {
         repository.saveLearnerProfile(LearnerProfileEntity("learner-b", "family-a", "هنرجوی دوم", createdAtEpochMillis = 2, updatedAtEpochMillis = 2))
 
         repository.saveLessonProgress(LessonProgressEntity("p-a", "learner-a", "lesson-1", "[\"step-1\"]", true, 10, 11))
-        repository.saveLessonProgress(LessonProgressEntity("p-b", "learner-b", "lesson-1", "[\"step-2\"]", false, 12))
+        repository.saveLessonProgress(LessonProgressEntity("p-b", "learner-b", "lesson-1", "[\"step-2\"]", false, 12, currentStepId = "step-2"))
         repository.savePracticeSession(PracticeSessionEntity("s-a", "learner-a", "lesson-1", 20, 30, 10, 3, 2, 1))
         repository.saveEvaluationEvidence(EvaluationEvidenceEntity("e-a", "learner-a", "s-a", "lesson-1", "step-1", "pitch", 25, "CORRECT", "60", "60", false))
         repository.saveAchievement(UserAchievementEntity("learner-a", "first-note", 40))
