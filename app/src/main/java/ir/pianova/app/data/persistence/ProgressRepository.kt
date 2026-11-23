@@ -95,7 +95,8 @@ class ProgressRepository(private val database: PianovaDatabase) {
                     learnerId = row.learnerId,
                     startedAtEpochMillis = row.startedAtEpochMillis,
                     endedAtEpochMillis = row.endedAtEpochMillis,
-                    activeDurationMillis = row.durationMillis.coerceAtLeast(0)
+                    activeDurationMillis = row.durationMillis.coerceAtLeast(0),
+                    isInterrupted = row.wasInterrupted
                 )
             },
             evaluations = evaluationRows.map { row ->
