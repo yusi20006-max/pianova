@@ -71,7 +71,7 @@ data class PracticeSessionEntity(
     val notesPlayed: Int = 0,
     val correctNotes: Int = 0,
     val wrongNotes: Int = 0,
-    val wasInterrupted: Boolean = false
+    @ColumnInfo(defaultValue = "0") val wasInterrupted: Boolean = false
 )
 
 @Entity(
