@@ -210,7 +210,6 @@ fun LessonPlayerScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val masterySessionId = remember(lesson.id, startChapterId) { UUID.randomUUID().toString() }
     val practiceClock = remember(masterySessionId) { PracticeSessionClock() }
-    val practiceScope = rememberCoroutineScope()
     LaunchedEffect(masterySessionId, pianoInput) {
         pianoInput.events.collect { event ->
             if (event is PianoEvent.NoteOn) practiceClock.recordNote()
@@ -319,7 +318,7 @@ fun LessonPlayerScreen(
     }
 
     LaunchedEffect(lesson.id, step.id) {
-        practiceScope.launch {
+        ProgressPersistenceScope.scope.launch {
             val existing = progressRepository.observeLesson(learnerId, lesson.id).first()
             if (existing?.isCompleted != true) {
                 val savedIds = existing?.completedStepIdsJson?.let { raw ->
@@ -633,7 +632,7 @@ fun LessonPlayerScreen(
                     onClick = {
                         val updatedInSession = completedStepIds + step.id
                         completedStepIds = updatedInSession
-                        practiceScope.launch {
+                        ProgressPersistenceScope.scope.launch {
                             val existing = progressRepository.observeLesson(learnerId, lesson.id).first()
                             val previousIds = existing?.completedStepIdsJson?.let { raw ->
                                 runCatching {
