@@ -54,7 +54,8 @@ data class LessonProgressEntity(
     val completedStepIdsJson: String = "[]",
     val isCompleted: Boolean = false,
     val lastAccessedAtEpochMillis: Long,
-    val completedAtEpochMillis: Long? = null
+    val completedAtEpochMillis: Long? = null,
+    val currentStepId: String? = null
 )
 
 @Entity(
