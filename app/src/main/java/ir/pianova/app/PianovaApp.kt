@@ -72,6 +72,7 @@ import ir.pianova.app.domain.model.LessonAudience
 import ir.pianova.app.data.persistence.LearnerSessionStore
 import ir.pianova.app.data.persistence.activeLearnerOrNull
 import ir.pianova.app.data.persistence.ProgressRepository
+import ir.pianova.app.domain.progress.LearnerProgressSnapshot
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -552,16 +553,18 @@ private fun ProgressScreen(learnerId: String) {
     val lessonProgress by progressRepository.observeLessonProgress(learnerId).collectAsState(initial = emptyList())
     val practiceSessions by progressRepository.observePracticeSessions(learnerId).collectAsState(initial = emptyList())
     val achievements by progressRepository.observeAchievements(learnerId).collectAsState(initial = emptyList())
-    val learnerProgress by progressRepository.observeLearnerProgress(learnerId).collectAsState(initial = null)
+    val learnerProgress by progressRepository.observeLearnerProgress(learnerId).collectAsState(
+        initial = LearnerProgressSnapshot(learnerId, 0L, 0, 0, 0, null, emptyList(), emptyList(), emptyList())
+    )
 
     PageColumn {
         PageTitle("پیشرفت من", "مسیر تمرین و مهارت‌هایت را اینجا دنبال می‌کنی")
         if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty() &&
-            (learnerProgress == null || learnerProgress?.evaluationCount == 0)
+            learnerProgress.evaluationCount == 0
         ) {
             EmptyState("هنوز گزارشی ثبت نشده است", "با شروع درس‌ها و تمرین‌ها، اطلاعات واقعی همین هنرجو در این صفحه نمایش داده می‌شود.")
         } else {
-            learnerProgress?.let { progress ->
+            run { val progress = learnerProgress
                 StatusCard("درس‌های تکمیل‌شده", progress.completedLessonCount.toString())
                 StatusCard("زمان تمرین فعال", "${progress.practiceMillis / 60_000} دقیقه")
                 StatusCard("جلسه‌های تمرین", progress.sessionCount.toString())
@@ -590,10 +593,7 @@ private fun ProgressScreen(learnerId: String) {
                     )
                 }
             }
-            if (learnerProgress == null) {
-                StatusCard("جلسه‌های تمرین", practiceSessions.size.toString())
-                StatusCard("دستاوردها", achievements.size.toString())
-            }
+            StatusCard("دستاوردها", achievements.size.toString())
         }
     }
 }
