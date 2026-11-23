@@ -317,6 +317,7 @@ fun LessonPlayerScreen(
         }
         mutableStateOf(initialHint?.revealsAnswer == true)
     }
+    val answerHintEvidence = remember(lesson.id, step.id) { MutableStateFlow(answerRevealingHintUsed) }
 
     LaunchedEffect(lesson.id, step.id) {
         ProgressPersistenceScope.scope.launch {
@@ -368,7 +369,7 @@ fun LessonPlayerScreen(
                         status = transition.status.name,
                         expectedMidiNotesCsv = transition.expectedNotes.ifEmpty { step.targetMidiNotes() }.joinToString(","),
                         receivedMidiNotesCsv = transition.receivedNotes.joinToString(","),
-                        answerRevealingHintUsed = answerRevealingHintUsed
+                        answerRevealingHintUsed = answerHintEvidence.value
                     )
                 )
             }
@@ -522,7 +523,10 @@ fun LessonPlayerScreen(
                                             3 -> scaffolding.level3
                                             else -> scaffolding.level2
                                         }
-                                        if (hint.revealsAnswer) answerRevealingHintUsed = true
+                                        if (hint.revealsAnswer) {
+                                            answerRevealingHintUsed = true
+                                            answerHintEvidence.value = true
+                                        }
                                     }) { Text("راهنمایی $level") }
                                 }
                             }
