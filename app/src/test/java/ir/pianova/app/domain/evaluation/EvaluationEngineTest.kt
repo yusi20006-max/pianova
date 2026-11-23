@@ -3,6 +3,7 @@ package ir.pianova.app.domain.evaluation
 import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.core.midi.PianoInput
 import ir.pianova.app.domain.model.LessonStep
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
@@ -51,6 +52,25 @@ class EvaluationEngineTest {
         input.emit(PianoEvent.NoteOff(62, 2L))
         input.emit(PianoEvent.NoteOn(60, 0.8f, 3L))
         assertTrue(awaitStatus(session, EvaluationStatus.CORRECT).isComplete)
+    }
+
+    @Test
+    fun transitionStreamPreservesRapidWrongAndCorrectOutcomes() = runBlocking {
+        val input = FakePianoInput()
+        val session = EvaluationEngine(input).start(
+            LessonStep.PlayNote("middle-c", "دو وسط", 60),
+            this
+        )
+        val transitions = async { session.transitions.toList() }
+        yield()
+
+        input.emit(PianoEvent.NoteOn(62, 0.8f, 1L))
+        input.emit(PianoEvent.NoteOff(62, 2L))
+        input.emit(PianoEvent.NoteOn(60, 0.8f, 3L))
+
+        val statuses = transitions.await().map { it.status }
+        assertTrue(statuses.contains(EvaluationStatus.WRONG_NOTE))
+        assertTrue(statuses.contains(EvaluationStatus.CORRECT))
     }
 
     @Test
