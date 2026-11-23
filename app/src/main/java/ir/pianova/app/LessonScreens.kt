@@ -259,6 +259,7 @@ fun LessonPlayerScreen(
         entries.indexOfFirst { it.chapterId == startChapterId }.takeIf { it >= 0 } ?: 0
     }
     var stepIndex by remember(lesson.id, startChapterId) { mutableIntStateOf(startIndex) }
+    var retryAttempt by remember(lesson.id, startChapterId) { mutableIntStateOf(0) }
     var completedStepIds by remember(lesson.id, startChapterId) { mutableStateOf(emptySet<String>()) }
     var showCompleteDialog by remember(lesson.id, startChapterId) { mutableStateOf(false) }
     var masteryRefresh by remember(lesson.id) { mutableIntStateOf(0) }
@@ -278,7 +279,7 @@ fun LessonPlayerScreen(
     val coroutineScope = rememberCoroutineScope()
     var session by remember(lesson.id, step.id) { mutableStateOf<EvaluationSession?>(null) }
 
-    DisposableEffect(step.id) {
+    DisposableEffect(step.id, retryAttempt) {
         val created = if (playable) evaluationEngine.start(step, coroutineScope) else null
         session = created
         onDispose { created?.cancel() }
@@ -685,6 +686,7 @@ fun LessonPlayerScreen(
             dismissButton = {
                 TextButton(onClick = {
                     stepIndex = 0
+                    retryAttempt++
                     completedStepIds = emptySet()
                     showCompleteDialog = false
                 }) { Text("مرور دوباره") }
