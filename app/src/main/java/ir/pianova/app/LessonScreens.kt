@@ -715,7 +715,8 @@ internal data class PracticeClockSnapshot(
 
 /** Measures foreground time only; elapsedRealtime avoids wall-clock adjustments. */
 internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { SystemClock.elapsedRealtime() }) {
-    private val startedAtEpochMillis = System.currentTimeMillis()
+    private val createdAtEpochMillis = System.currentTimeMillis()
+    private var startedAtEpochMillis: Long? = null
     private var activeSinceElapsedMillis: Long? = null
     private var accumulatedActiveMillis = 0L
     private var wasInterrupted = false
@@ -731,6 +732,7 @@ internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { 
 
     @Synchronized fun recordNote() {
         notesPlayed++
+        if (startedAtEpochMillis == null) startedAtEpochMillis = System.currentTimeMillis()
         if (!isForeground) return
         val now = elapsedRealtime()
         activeSinceElapsedMillis?.let { previous ->
@@ -763,7 +765,7 @@ internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { 
             (elapsedRealtime() - it).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
         } ?: 0L
         return PracticeClockSnapshot(
-            startedAtEpochMillis = startedAtEpochMillis,
+            startedAtEpochMillis = startedAtEpochMillis ?: createdAtEpochMillis,
             endedAtEpochMillis = if (isForeground) null else System.currentTimeMillis(),
             activeDurationMillis = accumulatedActiveMillis + currentActive,
             wasInterrupted = wasInterrupted,
