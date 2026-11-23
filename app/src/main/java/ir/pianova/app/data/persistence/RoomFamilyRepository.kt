@@ -57,6 +57,7 @@ class RoomFamilyRepository(private val database: PianovaDatabase) : FamilyReposi
             if (learners.findById(learnerId) == null) return@withTransaction false
             database.lessonProgressDao().deleteForLearner(learnerId)
             database.practiceSessionDao().deleteForLearner(learnerId)
+            database.evaluationEvidenceDao().deleteForLearner(learnerId)
             database.userAchievementDao().deleteForLearner(learnerId)
             database.dailyMissionDao().deleteForLearner(learnerId)
             database.songProgressDao().deleteForLearner(learnerId)
