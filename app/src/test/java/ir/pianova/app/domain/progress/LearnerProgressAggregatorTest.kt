@@ -73,6 +73,15 @@ class LearnerProgressAggregatorTest {
             "a", emptyList(), attempts.map { it.copy(sessionId = "same") }, emptySet(), zone, now
         )
         assertFalse(oneSession.skills.single().isMastered)
+        val hinted = LearnerProgressAggregator.aggregate(
+            "a", emptyList(),
+            attempts.mapIndexed { index, evidence ->
+                if (index == 2) evidence.copy(answerRevealingHintUsed = true) else evidence
+            },
+            emptySet(), zone, now
+        )
+        assertEquals(2, hinted.skills.single().successfulAttempts)
+        assertFalse(hinted.skills.single().isMastered)
     }
 
     @Test fun recurringMistakesAndSkillsNeedingPracticeUsePersistedEvidence() {
