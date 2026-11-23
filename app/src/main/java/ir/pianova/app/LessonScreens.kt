@@ -54,6 +54,7 @@ import ir.pianova.app.core.designsystem.PianovaMuted
 import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.data.lesson.LessonRepository
 import ir.pianova.app.core.database.EvaluationEvidenceEntity
 import ir.pianova.app.core.database.PianovaDatabase
@@ -85,6 +86,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import java.util.UUID
 
 @Composable
@@ -202,6 +204,11 @@ fun LessonPlayerScreen(
     val masterySessionId = remember(lesson.id, startChapterId) { UUID.randomUUID().toString() }
     val practiceClock = remember(masterySessionId) { PracticeSessionClock() }
     val practiceScope = rememberCoroutineScope()
+    LaunchedEffect(masterySessionId, pianoInput) {
+        pianoInput.events.collect { event ->
+            if (event is PianoEvent.NoteOn) practiceClock.recordNote()
+        }
+    }
 
     DisposableEffect(lifecycleOwner, masterySessionId) {
         fun persistPracticeSession() {
@@ -593,7 +600,6 @@ fun LessonPlayerScreen(
                     labelMode = 0,
                     enabled = pianoRunning && playable,
                     onNoteOn = { note, velocity ->
-                        practiceClock.recordNote()
                         activityVersion++
                         onNoteOn(note, velocity)
                     },
