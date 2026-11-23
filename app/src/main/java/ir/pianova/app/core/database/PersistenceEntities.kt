@@ -70,7 +70,8 @@ data class PracticeSessionEntity(
     val durationMillis: Long = 0,
     val notesPlayed: Int = 0,
     val correctNotes: Int = 0,
-    val wrongNotes: Int = 0
+    val wrongNotes: Int = 0,
+    val wasInterrupted: Boolean = false
 )
 
 @Entity(
