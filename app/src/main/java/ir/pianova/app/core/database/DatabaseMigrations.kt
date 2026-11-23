@@ -107,6 +107,7 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
 /** Stores durable per-attempt evaluation evidence without changing existing progress rows. */
 val MIGRATION_4_5 = object : Migration(4, 5) {
     override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE practice_sessions ADD COLUMN wasInterrupted INTEGER NOT NULL DEFAULT 0")
         db.execSQL(
             """
             CREATE TABLE IF NOT EXISTS evaluation_evidence (
