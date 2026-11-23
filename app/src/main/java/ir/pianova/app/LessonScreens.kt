@@ -541,7 +541,10 @@ fun LessonPlayerScreen(
                                     3 -> scaffolding.level3
                                     else -> scaffolding.level2
                                 }
-                                if (hint.revealsAnswer) answerRevealingHintUsed = true
+                                if (hint.revealsAnswer) {
+                                    answerRevealingHintUsed = true
+                                    answerHintEvidence.value = true
+                                }
                             }) { Text("پیشنهاد تغییر به سطح $suggested") }
                         }
                     }
