@@ -552,15 +552,48 @@ private fun ProgressScreen(learnerId: String) {
     val lessonProgress by progressRepository.observeLessonProgress(learnerId).collectAsState(initial = emptyList())
     val practiceSessions by progressRepository.observePracticeSessions(learnerId).collectAsState(initial = emptyList())
     val achievements by progressRepository.observeAchievements(learnerId).collectAsState(initial = emptyList())
+    val learnerProgress by progressRepository.observeLearnerProgress(learnerId).collectAsState(initial = null)
 
     PageColumn {
         PageTitle("پیشرفت من", "مسیر تمرین و مهارت‌هایت را اینجا دنبال می‌کنی")
-        if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty()) {
-            EmptyState("هنوز گزارشی ثبت نشده است", "با شروع درس‌ها و تمرین‌ها، اطلاعات همین هنرجو در این صفحه نمایش داده می‌شود.")
+        if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty() &&
+            (learnerProgress == null || learnerProgress?.evaluationCount == 0)
+        ) {
+            EmptyState("هنوز گزارشی ثبت نشده است", "با شروع درس‌ها و تمرین‌ها، اطلاعات واقعی همین هنرجو در این صفحه نمایش داده می‌شود.")
         } else {
-            StatusCard("درس‌های تکمیل‌شده", lessonProgress.count { it.isCompleted }.toString())
-            StatusCard("جلسه‌های تمرین", practiceSessions.size.toString())
-            StatusCard("دستاوردها", achievements.size.toString())
+            learnerProgress?.let { progress ->
+                StatusCard("درس‌های تکمیل‌شده", progress.completedLessonCount.toString())
+                StatusCard("زمان تمرین فعال", "${progress.practiceMillis / 60_000} دقیقه")
+                StatusCard("جلسه‌های تمرین", progress.sessionCount.toString())
+                StatusCard(
+                    "دقت ارزیابی",
+                    progress.accuracy?.let { "${(it * 100).toInt()}٪" } ?: "هنوز ارزیابی کافی ثبت نشده"
+                )
+                StatusCard("تعداد ارزیابی‌ها", progress.evaluationCount.toString())
+                Text("مهارت‌ها", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                if (progress.skills.isEmpty()) {
+                    Text("برای مهارت‌ها هنوز شواهدی ثبت نشده است.", color = PianovaMuted)
+                } else {
+                    progress.skills.forEach { skill ->
+                        StatusCard(
+                            skill.skillId,
+                            if (skill.isMastered) "تسلط تأییدشده" else
+                                "${skill.successfulAttempts} موفق از ${skill.attempts} ارزیابی"
+                        )
+                    }
+                }
+                Text("روند هفتگی", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                progress.weekly.takeLast(4).forEach { period ->
+                    StatusCard(
+                        java.time.LocalDate.ofEpochDay(period.periodStartEpochDay).toString(),
+                        "${period.practiceMillis / 60_000} دقیقه تمرین · ${period.sessionCount} جلسه"
+                    )
+                }
+            }
+            if (learnerProgress == null) {
+                StatusCard("جلسه‌های تمرین", practiceSessions.size.toString())
+                StatusCard("دستاوردها", achievements.size.toString())
+            }
         }
     }
 }
