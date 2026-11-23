@@ -77,6 +77,9 @@ import ir.pianova.app.domain.model.displayTextFor
 import ir.pianova.app.domain.model.bodyFor
 import ir.pianova.app.domain.model.promptFor
 import ir.pianova.app.domain.model.LessonStep
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
@@ -88,6 +91,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import java.util.UUID
+
+private object ProgressPersistenceScope {
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+}
 
 @Composable
 fun LessonListScreen(
@@ -213,7 +220,7 @@ fun LessonPlayerScreen(
     DisposableEffect(lifecycleOwner, masterySessionId) {
         fun persistPracticeSession() {
             val snapshot = practiceClock.snapshot()
-            practiceScope.launch {
+            ProgressPersistenceScope.scope.launch {
                 progressRepository.savePracticeSession(
                     PracticeSessionEntity(
                         sessionId = masterySessionId,
@@ -336,31 +343,34 @@ fun LessonPlayerScreen(
         }
     }
 
-    LaunchedEffect(step.id, evaluation.status, evaluation.receivedNotes.size) {
-        if (evaluation.status in setOf(
-                EvaluationStatus.CORRECT,
-                EvaluationStatus.WRONG_NOTE,
-                EvaluationStatus.MISSING_NOTE,
-                EvaluationStatus.EXTRA_NOTE
-            ) && evaluation.receivedNotes.isNotEmpty()
-        ) {
-            practiceClock.recordEvaluation(evaluation.status)
-            val evidenceId = "${masterySessionId}:${step.id}:${evaluation.receivedNotes.size}:${evaluation.status.name}"
-            progressRepository.saveEvaluationEvidence(
-                EvaluationEvidenceEntity(
-                    evaluationId = evidenceId,
-                    learnerId = learnerId,
-                    sessionId = masterySessionId,
-                    lessonId = lesson.id,
-                    stepId = step.id,
-                    skillId = step.skillId,
-                    occurredAtEpochMillis = System.currentTimeMillis(),
-                    status = evaluation.status.name,
-                    expectedMidiNotesCsv = evaluation.expectedNotes.ifEmpty { step.targetMidiNotes() }.joinToString(","),
-                    receivedMidiNotesCsv = evaluation.receivedNotes.joinToString(","),
-                    answerRevealingHintUsed = answerRevealingHintUsed
+    LaunchedEffect(step.id, session) {
+        val activeSession = session ?: return@LaunchedEffect
+        activeSession.transitions.collect { transition ->
+            if (transition.status in setOf(
+                    EvaluationStatus.CORRECT,
+                    EvaluationStatus.WRONG_NOTE,
+                    EvaluationStatus.MISSING_NOTE,
+                    EvaluationStatus.EXTRA_NOTE
+                ) && (transition.receivedNotes.isNotEmpty() || transition.status == EvaluationStatus.MISSING_NOTE)
+            ) {
+                practiceClock.recordEvaluation(transition.status)
+                val evidenceId = "${masterySessionId}:${step.id}:${transition.receivedNotes.size}:${transition.status.name}"
+                progressRepository.saveEvaluationEvidence(
+                    EvaluationEvidenceEntity(
+                        evaluationId = evidenceId,
+                        learnerId = learnerId,
+                        sessionId = masterySessionId,
+                        lessonId = lesson.id,
+                        stepId = step.id,
+                        skillId = step.skillId,
+                        occurredAtEpochMillis = System.currentTimeMillis(),
+                        status = transition.status.name,
+                        expectedMidiNotesCsv = transition.expectedNotes.ifEmpty { step.targetMidiNotes() }.joinToString(","),
+                        receivedMidiNotesCsv = transition.receivedNotes.joinToString(","),
+                        answerRevealingHintUsed = answerRevealingHintUsed
+                    )
                 )
-            )
+            }
         }
     }
 
