@@ -354,7 +354,7 @@ fun LessonPlayerScreen(
                 ) && (transition.receivedNotes.isNotEmpty() || transition.status == EvaluationStatus.MISSING_NOTE)
             ) {
                 practiceClock.recordEvaluation(transition.status)
-                val evidenceId = "${masterySessionId}:${step.id}:${transition.receivedNotes.size}:${transition.status.name}"
+                val evidenceId = "${masterySessionId}:${activeSession.attemptId}:${transition.receivedNotes.size}:${transition.status.name}"
                 progressRepository.saveEvaluationEvidence(
                     EvaluationEvidenceEntity(
                         evaluationId = evidenceId,
