@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +42,9 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -57,10 +59,6 @@ import kotlin.math.roundToInt
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.data.persistence.ProgressRepository
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.UUID
 
 private val PianoWhite = Color(0xFFF1F5F6)
@@ -105,60 +103,78 @@ fun PianoScreen(
     val context = LocalContext.current
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val progressRepository = remember(database) { ProgressRepository(database) }
-    val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val practiceClock = remember(learnerId) { PracticeSessionClock() }
     var practiceSessionId by remember(learnerId) { mutableStateOf<String?>(null) }
-    var practiceStartedAt by remember(learnerId) { mutableStateOf<Long?>(null) }
-    var notesPlayed by remember(learnerId) { mutableIntStateOf(0) }
+
+    fun persistPracticeSession() {
+        val sessionId = practiceSessionId ?: return
+        val snapshot = practiceClock.snapshot()
+        if (snapshot.notesPlayed == 0) return
+        ProgressPersistenceScope.scope.launch {
+            progressRepository.savePracticeSession(
+                PracticeSessionEntity(
+                    sessionId = sessionId,
+                    learnerId = learnerId,
+                    startedAtEpochMillis = snapshot.startedAtEpochMillis,
+                    endedAtEpochMillis = snapshot.endedAtEpochMillis,
+                    durationMillis = snapshot.activeDurationMillis,
+                    notesPlayed = snapshot.notesPlayed,
+                    correctNotes = snapshot.correctNotes,
+                    wrongNotes = snapshot.wrongNotes,
+                    wasInterrupted = snapshot.wasInterrupted
+                )
+            )
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, learnerId) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> practiceClock.resume()
+                Lifecycle.Event.ON_STOP -> {
+                    practiceClock.pause()
+                    persistPracticeSession()
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            practiceClock.resume()
+        }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            practiceClock.pause()
+            persistPracticeSession()
+        }
+    }
 
     val trackedNoteOn: (Int, Float) -> Boolean = { note, velocity ->
         val accepted = onNoteOn(note, velocity)
         if (accepted) {
-            val now = System.currentTimeMillis()
+            practiceClock.recordNote()
             val sessionId = practiceSessionId ?: UUID.randomUUID().toString().also {
                 practiceSessionId = it
-                practiceStartedAt = now
             }
-            val startedAt = practiceStartedAt ?: now
-            notesPlayed++
-            val count = notesPlayed
-            scope.launch {
+            val snapshot = practiceClock.snapshot()
+            ProgressPersistenceScope.scope.launch {
                 progressRepository.savePracticeSession(
                     PracticeSessionEntity(
                         sessionId = sessionId,
                         learnerId = learnerId,
-                        startedAtEpochMillis = startedAt,
-                        durationMillis = (now - startedAt).coerceAtLeast(0),
-                        notesPlayed = count
+                        startedAtEpochMillis = snapshot.startedAtEpochMillis,
+                        endedAtEpochMillis = snapshot.endedAtEpochMillis,
+                        durationMillis = snapshot.activeDurationMillis,
+                        notesPlayed = snapshot.notesPlayed,
+                        correctNotes = snapshot.correctNotes,
+                        wrongNotes = snapshot.wrongNotes,
+                        wasInterrupted = snapshot.wasInterrupted
                     )
                 )
             }
         }
         accepted
-    }
-
-    LaunchedEffect(learnerId) {
-        try {
-            awaitCancellation()
-        } finally {
-            val sessionId = practiceSessionId
-            val startedAt = practiceStartedAt
-            val count = notesPlayed
-            if (sessionId != null && startedAt != null && count > 0) {
-                val endedAt = System.currentTimeMillis()
-                withContext(NonCancellable) {
-                    progressRepository.savePracticeSession(
-                        PracticeSessionEntity(
-                            sessionId = sessionId,
-                            learnerId = learnerId,
-                            startedAtEpochMillis = startedAt,
-                            endedAtEpochMillis = endedAt,
-                            durationMillis = (endedAt - startedAt).coerceAtLeast(0),
-                            notesPlayed = count
-                        )
-                    )
-                }
-            }
-        }
     }
 
     LaunchedEffect(running) {
