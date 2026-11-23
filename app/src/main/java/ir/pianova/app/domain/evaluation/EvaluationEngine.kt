@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 enum class EvaluationStatus {
     READY,
@@ -67,6 +68,7 @@ class EvaluationEngine(
 class EvaluationSession internal constructor(
     private val step: LessonStep
 ) {
+    val attemptId: String = UUID.randomUUID().toString()
     private val _state = MutableStateFlow(initialState(step))
     val state: StateFlow<EvaluationState> = _state.asStateFlow()
     private val transitionChannel = Channel<EvaluationState>(Channel.UNLIMITED)
