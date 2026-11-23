@@ -31,6 +31,10 @@ class LearningPathCatalogTest {
     }
     @Test fun lessonDiscoveryFiltersAudienceLevelSkillAndPrerequisitesWithoutDuplicatingLessons() {
         assertEquals(5, LessonCatalogIndex.discover(LearnerAudience.CHILD, masteredSkillIds = setOf("identify-white-keys", "identify-black-keys", "find-middle-c", "play-do-re-mi", "play-fa-sol-la-si")).size)
+        val mastered = setOf("identify-white-keys", "identify-black-keys", "find-middle-c", "play-do-re-mi", "play-fa-sol-la-si")
+        val childIds = LessonCatalogIndex.discover(LearnerAudience.CHILD, masteredSkillIds = mastered).map { it.lessonId }
+        assertEquals(childIds, LessonCatalogIndex.discover(LearnerAudience.TEEN, masteredSkillIds = mastered).map { it.lessonId })
+        assertEquals(childIds, LessonCatalogIndex.discover(LearnerAudience.ADULT, masteredSkillIds = mastered).map { it.lessonId })
         assertEquals(5, LessonCatalogIndex.entries.map { it.lessonId }.distinct().size)
         assertTrue(LessonCatalogIndex.discover(LearnerAudience.TEEN, skillId = "find-middle-c").isEmpty())
         assertEquals("lesson-02-middle-c", LessonCatalogIndex.discover(

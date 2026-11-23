@@ -37,7 +37,7 @@ object LearningPathCatalog {
 }
 data class LessonCatalogDescriptor(
     val lessonId: String, val levelId: String, val skillIds: List<String>,
-    val prerequisiteSkillIds: List<String>, val audiences: Set<LearnerAudience>
+    val prerequisiteSkillIds: List<String>, val recommendedFor: Set<LearnerAudience>
 )
 /** Metadata references existing lesson assets; lesson copy remains in one JSON source. */
 object LessonCatalogIndex {
@@ -50,6 +50,7 @@ object LessonCatalogIndex {
         LessonCatalogDescriptor("lesson-05-first-melody", "beginner", listOf("play-first-seven-note-melody"), listOf("play-fa-sol-la-si"), allAudiences)
     )
     fun discover(audience: LearnerAudience, levelId: String? = null, skillId: String? = null, masteredSkillIds: Set<String> = emptySet()): List<LessonCatalogDescriptor> =
-        entries.filter { it.audiences.contains(audience) && (levelId == null || it.levelId == levelId) &&
+        entries.filter { (levelId == null || it.levelId == levelId) &&
             (skillId == null || it.skillIds.contains(skillId)) && it.prerequisiteSkillIds.all { skill -> masteredSkillIds.contains(skill) } }
+            .sortedByDescending { audience in it.recommendedFor }
 }
