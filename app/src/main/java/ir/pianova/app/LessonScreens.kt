@@ -38,6 +38,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import android.os.SystemClock
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,6 +55,10 @@ import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
 import ir.pianova.app.data.lesson.LessonRepository
+import ir.pianova.app.core.database.EvaluationEvidenceEntity
+import ir.pianova.app.core.database.PianovaDatabase
+import ir.pianova.app.core.database.PracticeSessionEntity
+import ir.pianova.app.data.persistence.ProgressRepository
 import ir.pianova.app.data.lesson.SkillAttemptStore
 import ir.pianova.app.domain.evaluation.EvaluationEngine
 import ir.pianova.app.domain.evaluation.EvaluationSession
@@ -69,6 +77,7 @@ import ir.pianova.app.domain.model.bodyFor
 import ir.pianova.app.domain.model.promptFor
 import ir.pianova.app.domain.model.LessonStep
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.UUID
 
@@ -181,7 +190,47 @@ fun LessonPlayerScreen(
 ) {
     val context = LocalContext.current
     val attemptStore = remember(context, learnerId) { SkillAttemptStore(context.applicationContext, learnerId) }
+    val database = remember(context) { PianovaDatabase.getInstance(context) }
+    val progressRepository = remember(database) { ProgressRepository(database) }
+    val lifecycleOwner = LocalLifecycleOwner.current
     val masterySessionId = remember(lesson.id, startChapterId) { UUID.randomUUID().toString() }
+    val practiceClock = remember(masterySessionId) { PracticeSessionClock() }
+    val practiceScope = rememberCoroutineScope()
+
+    DisposableEffect(lifecycleOwner, masterySessionId) {
+        fun persistPracticeSession() {
+            val snapshot = practiceClock.snapshot()
+            practiceScope.launch {
+                progressRepository.savePracticeSession(
+                    PracticeSessionEntity(
+                        sessionId = masterySessionId,
+                        learnerId = learnerId,
+                        lessonId = lesson.id,
+                        startedAtEpochMillis = snapshot.startedAtEpochMillis,
+                        endedAtEpochMillis = snapshot.endedAtEpochMillis,
+                        durationMillis = snapshot.activeDurationMillis
+                    )
+                )
+            }
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> practiceClock.resume()
+                Lifecycle.Event.ON_STOP -> {
+                    practiceClock.pause()
+                    persistPracticeSession()
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) practiceClock.resume()
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            practiceClock.pause()
+            persistPracticeSession()
+        }
+    }
     val entries = remember(lesson) { lesson.flattenedSteps() }
     val startIndex = remember(lesson.id, startChapterId, entries) {
         entries.indexOfFirst { it.chapterId == startChapterId }.takeIf { it >= 0 } ?: 0
@@ -243,6 +292,33 @@ fun LessonPlayerScreen(
             }
         }
         mutableStateOf(initialHint?.revealsAnswer == true)
+    }
+
+    LaunchedEffect(step.id, evaluation.status, evaluation.receivedNotes.size) {
+        if (evaluation.status in setOf(
+                EvaluationStatus.CORRECT,
+                EvaluationStatus.WRONG_NOTE,
+                EvaluationStatus.MISSING_NOTE,
+                EvaluationStatus.EXTRA_NOTE
+            ) && evaluation.receivedNotes.isNotEmpty()
+        ) {
+            val evidenceId = "${masterySessionId}:${step.id}:${evaluation.receivedNotes.size}:${evaluation.status.name}"
+            progressRepository.saveEvaluationEvidence(
+                EvaluationEvidenceEntity(
+                    evaluationId = evidenceId,
+                    learnerId = learnerId,
+                    sessionId = masterySessionId,
+                    lessonId = lesson.id,
+                    stepId = step.id,
+                    skillId = step.skillId,
+                    occurredAtEpochMillis = System.currentTimeMillis(),
+                    status = evaluation.status.name,
+                    expectedMidiNotesCsv = evaluation.expectedNotes.joinToString(","),
+                    receivedMidiNotesCsv = evaluation.receivedNotes.joinToString(","),
+                    answerRevealingHintUsed = answerRevealingHintUsed
+                )
+            )
+        }
     }
 
     LaunchedEffect(step.id, evaluation.isComplete) {
@@ -535,6 +611,41 @@ fun LessonPlayerScreen(
                     showCompleteDialog = false
                 }) { Text("مرور دوباره") }
             }
+        )
+    }
+}
+
+
+private data class PracticeClockSnapshot(
+    val startedAtEpochMillis: Long,
+    val endedAtEpochMillis: Long?,
+    val activeDurationMillis: Long
+)
+
+/** Measures foreground time only; elapsedRealtime avoids wall-clock adjustments. */
+private class PracticeSessionClock {
+    private val startedAtEpochMillis = System.currentTimeMillis()
+    private var activeSinceElapsedMillis: Long? = null
+    private var accumulatedActiveMillis = 0L
+
+    @Synchronized fun resume() {
+        if (activeSinceElapsedMillis == null) activeSinceElapsedMillis = SystemClock.elapsedRealtime()
+    }
+
+    @Synchronized fun pause() {
+        val activeSince = activeSinceElapsedMillis ?: return
+        accumulatedActiveMillis += (SystemClock.elapsedRealtime() - activeSince).coerceAtLeast(0L)
+        activeSinceElapsedMillis = null
+    }
+
+    @Synchronized fun snapshot(): PracticeClockSnapshot {
+        val currentActive = activeSinceElapsedMillis?.let {
+            (SystemClock.elapsedRealtime() - it).coerceAtLeast(0L)
+        } ?: 0L
+        return PracticeClockSnapshot(
+            startedAtEpochMillis = startedAtEpochMillis,
+            endedAtEpochMillis = if (activeSinceElapsedMillis == null) System.currentTimeMillis() else null,
+            activeDurationMillis = accumulatedActiveMillis + currentActive
         )
     }
 }
