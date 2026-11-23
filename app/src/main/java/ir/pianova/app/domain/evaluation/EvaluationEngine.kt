@@ -6,6 +6,9 @@ import ir.pianova.app.domain.model.LessonStep
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.StateFlow
@@ -66,6 +69,12 @@ class EvaluationSession internal constructor(
 ) {
     private val _state = MutableStateFlow(initialState(step))
     val state: StateFlow<EvaluationState> = _state.asStateFlow()
+    private val transitionChannel = Channel<EvaluationState>(Channel.UNLIMITED)
+    val transitions: Flow<EvaluationState> = transitionChannel.receiveAsFlow()
+
+    init {
+        transitionChannel.trySend(_state.value)
+    }
 
     private val heldNotes = mutableSetOf<Int>()
     private val receivedNotes = mutableListOf<Int>()
@@ -125,7 +134,11 @@ class EvaluationSession internal constructor(
                     feedbackFa = "چند نت جا مانده؛ دوباره تلاش کن.",
                     isComplete = false,
                     isFinished = true
-                ).also { _state.value = it }
+                ).also {
+                    _state.value = it
+                    transitionChannel.trySend(it)
+                    transitionChannel.close()
+                }
             }
         }
         collectorJob?.cancel()
@@ -141,6 +154,7 @@ class EvaluationSession internal constructor(
             if (!_state.value.isFinished) {
                 _state.value = _state.value.copy(isFinished = true)
             }
+            transitionChannel.close()
         }
         collectorJob?.cancel()
     }
@@ -272,7 +286,7 @@ class EvaluationSession internal constructor(
         completed: Int = completedUnits(),
         total: Int = totalUnits()
     ) {
-        _state.value = EvaluationState(
+        val next = EvaluationState(
             status = status,
             expectedNotes = expected,
             receivedNotes = receivedNotes.toList(),
@@ -282,9 +296,14 @@ class EvaluationSession internal constructor(
             isComplete = complete,
             isFinished = complete
         )
+        _state.value = next
+        transitionChannel.trySend(next)
         // A successful session is terminal. Stop collecting immediately so
         // the parent scope is not kept alive by an idle SharedFlow collector.
-        if (complete) collectorJob?.cancel()
+        if (complete) {
+            collectorJob?.cancel()
+            transitionChannel.close()
+        }
     }
 
     companion object {
