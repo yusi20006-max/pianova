@@ -219,6 +219,7 @@ class PianovaDatabaseTest {
         repository.saveLearner(first)
         repository.saveLearner(second)
         repository.saveGoal(first.learnerId, "یادگیری یک قطعه")
+        ProgressRepository(database).saveEvaluationEvidence(EvaluationEvidenceEntity("evidence-one", first.learnerId, "session-one", "lesson-one", "step-one", "pitch", 4, "CORRECT", "60", "60", false))
         repository.saveGoal(second.learnerId, "تمرین روزانه")
         assertEquals("یادگیری یک قطعه", repository.observeGoal(first.learnerId).first())
 
@@ -227,6 +228,7 @@ class PianovaDatabaseTest {
 
         assertTrue(repository.deleteLearner(first.learnerId))
         assertNull(repository.observeGoal(first.learnerId).first())
+        assertTrue(ProgressRepository(database).observeEvaluationEvidence(first.learnerId).first().isEmpty())
         assertEquals("تمرین روزانه", repository.observeGoal(second.learnerId).first())
         assertEquals(listOf("learner-two"), repository.observeLearners("local-family").first().map { it.learnerId })
     }
