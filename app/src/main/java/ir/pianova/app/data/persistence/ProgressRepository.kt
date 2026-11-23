@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import ir.pianova.app.core.database.EvaluationEvidenceEntity
 import ir.pianova.app.core.database.DailyMissionDao
 import ir.pianova.app.core.database.DailyMissionEntity
+import ir.pianova.app.core.database.LearnerGoalEntity
 import ir.pianova.app.core.database.LearnerProfileDao
 import ir.pianova.app.core.database.LearnerProfileEntity
 import ir.pianova.app.core.database.LessonProgressDao
@@ -26,6 +27,7 @@ import java.time.ZoneId
 /** All learner-owned progress queries require an explicit stable learnerId. */
 class ProgressRepository(private val database: PianovaDatabase) {
     private val profiles: LearnerProfileDao = database.learnerProfileDao()
+    private val goals = database.learnerGoalDao()
     private val lessons: LessonProgressDao = database.lessonProgressDao()
     private val sessions: PracticeSessionDao = database.practiceSessionDao()
     private val achievements: UserAchievementDao = database.userAchievementDao()
@@ -48,6 +50,15 @@ class ProgressRepository(private val database: PianovaDatabase) {
             }
             profiles.upsert(profile)
         }
+    }
+
+    fun observeLearnerGoal(learnerId: String): Flow<LearnerGoalEntity?> =
+        goals.observeForLearner(learnerId)
+
+    suspend fun saveLearnerGoal(learnerId: String, goalText: String, updatedAtEpochMillis: Long) {
+        requireLearner(learnerId)
+        require(goalText.isNotBlank() && updatedAtEpochMillis >= 0)
+        goals.upsert(LearnerGoalEntity(learnerId, goalText.trim(), updatedAtEpochMillis))
     }
 
     fun observeLessonProgress(learnerId: String): Flow<List<LessonProgressEntity>> =
