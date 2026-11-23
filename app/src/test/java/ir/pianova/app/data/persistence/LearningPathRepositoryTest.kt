@@ -65,6 +65,15 @@ class LearningPathRepositoryTest {
         assertEquals("advanced", database.learnerProfileDao().findById("learner-a")!!.currentLevelId)
         assertEquals("beginner", database.learnerProfileDao().findById("learner-b")!!.currentLevelId)
     }
+    @Test fun deletingLearnerCascadesOnlyThatLearnersPathHistory() = runBlocking {
+        repository.ensureInitialAssignment("learner-a", LearnerAudience.ADULT, "beginner")
+        repository.ensureInitialAssignment("learner-b", LearnerAudience.CHILD, "beginner")
+        val family = RoomFamilyRepository(database)
+        assertTrue(family.deleteLearner("learner-a"))
+        assertTrue(repository.observeHistory("learner-a").first().isEmpty())
+        assertEquals(1, repository.observeHistory("learner-b").first().size)
+    }
+
     @Test fun invalidPathLevelAndUnknownLearnerAreRejected() = runBlocking {
         repository.ensureInitialAssignment("learner-a", LearnerAudience.ADULT, "beginner")
         assertFalse(runCatching { repository.switchPath("learner-a", "missing-path") }.isSuccess)
