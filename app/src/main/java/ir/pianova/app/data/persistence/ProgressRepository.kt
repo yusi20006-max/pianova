@@ -1,6 +1,7 @@
 package ir.pianova.app.data.persistence
 
 import androidx.room.withTransaction
+import ir.pianova.app.core.database.EvaluationEvidenceEntity
 import ir.pianova.app.core.database.DailyMissionDao
 import ir.pianova.app.core.database.DailyMissionEntity
 import ir.pianova.app.core.database.LearnerProfileDao
@@ -14,7 +15,13 @@ import ir.pianova.app.core.database.SongProgressDao
 import ir.pianova.app.core.database.SongProgressEntity
 import ir.pianova.app.core.database.UserAchievementDao
 import ir.pianova.app.core.database.UserAchievementEntity
+import ir.pianova.app.domain.progress.EvaluationEvidence
+import ir.pianova.app.domain.progress.LearnerProgressAggregator
+import ir.pianova.app.domain.progress.LearnerProgressSnapshot
+import ir.pianova.app.domain.progress.PracticeEvidence
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import java.time.ZoneId
 
 /** All learner-owned progress queries require an explicit stable learnerId. */
 class ProgressRepository(private val database: PianovaDatabase) {
@@ -24,6 +31,7 @@ class ProgressRepository(private val database: PianovaDatabase) {
     private val achievements: UserAchievementDao = database.userAchievementDao()
     private val missions: DailyMissionDao = database.dailyMissionDao()
     private val songs: SongProgressDao = database.songProgressDao()
+    private val evaluationEvidence = database.evaluationEvidenceDao()
 
     fun observeLearners(familyId: String): Flow<List<LearnerProfileEntity>> =
         profiles.observeForFamily(familyId)
@@ -60,6 +68,59 @@ class ProgressRepository(private val database: PianovaDatabase) {
         sessions.upsert(session)
     }
 
+    fun observeEvaluationEvidence(learnerId: String): Flow<List<EvaluationEvidenceEntity>> =
+        evaluationEvidence.observeForLearner(learnerId)
+
+    suspend fun saveEvaluationEvidence(evidence: EvaluationEvidenceEntity) {
+        requireLearner(evidence.learnerId)
+        require(evidence.evaluationId.isNotBlank() && evidence.sessionId.isNotBlank())
+        require(evidence.lessonId.isNotBlank() && evidence.stepId.isNotBlank())
+        require(evidence.occurredAtEpochMillis >= 0)
+        evaluationEvidence.upsert(evidence)
+    }
+
+    fun observeLearnerProgress(
+        learnerId: String,
+        zoneId: ZoneId = ZoneId.systemDefault()
+    ): Flow<LearnerProgressSnapshot> = combine(
+        sessions.observeForLearner(learnerId),
+        lessons.observeForLearner(learnerId),
+        evaluationEvidence.observeForLearner(learnerId)
+    ) { practiceRows, lessonRows, evaluationRows ->
+        LearnerProgressAggregator.aggregate(
+            learnerId = learnerId,
+            sessions = practiceRows.map { row ->
+                PracticeEvidence(
+                    sessionId = row.sessionId,
+                    learnerId = row.learnerId,
+                    startedAtEpochMillis = row.startedAtEpochMillis,
+                    endedAtEpochMillis = row.endedAtEpochMillis,
+                    activeDurationMillis = row.durationMillis.coerceAtLeast(0)
+                )
+            },
+            evaluations = evaluationRows.map { row ->
+                EvaluationEvidence(
+                    evaluationId = row.evaluationId,
+                    learnerId = row.learnerId,
+                    sessionId = row.sessionId,
+                    lessonId = row.lessonId,
+                    stepId = row.stepId,
+                    skillId = row.skillId,
+                    occurredAtEpochMillis = row.occurredAtEpochMillis,
+                    status = row.status,
+                    expectedMidiNotes = row.expectedMidiNotesCsv.decodeMidiNotes(),
+                    receivedMidiNotes = row.receivedMidiNotesCsv.decodeMidiNotes(),
+                    answerRevealingHintUsed = row.answerRevealingHintUsed
+                )
+            },
+            completedLessonIds = lessonRows.filter { it.isCompleted }.map { it.lessonId }.toSet(),
+            zoneId = zoneId
+        )
+    }
+
+    private fun String.decodeMidiNotes(): List<Int> =
+        split(',').mapNotNull { it.trim().toIntOrNull() }
+
     fun observeAchievements(learnerId: String): Flow<List<UserAchievementEntity>> =
         achievements.observeForLearner(learnerId)
     suspend fun saveAchievement(achievement: UserAchievementEntity) {
@@ -91,6 +152,7 @@ class ProgressRepository(private val database: PianovaDatabase) {
         database.withTransaction {
             lessons.deleteForLearner(learnerId)
             sessions.deleteForLearner(learnerId)
+            evaluationEvidence.deleteForLearner(learnerId)
             achievements.deleteForLearner(learnerId)
             missions.deleteForLearner(learnerId)
             songs.deleteForLearner(learnerId)
