@@ -13,7 +13,7 @@ The app records:
 
 ## Time and accuracy
 
-Practice duration is measured with Android's monotonic elapsed clock while the app is in the foreground. Time spent in the background is excluded. A session interrupted by leaving the foreground retains only its accumulated active duration.
+Practice duration is measured with Android's monotonic elapsed clock from piano note activity. The app must be in the foreground, and idle gaps are capped at 60 seconds after the last note event; longer idle periods are excluded. Time spent in the background is excluded. A session interrupted by leaving the foreground retains only its accumulated active duration.
 
 Progress metrics are calculated from persisted session and evaluation records. Missing evidence is represented as an empty state or a null accuracy value, never as seeded sample metrics.
 
