@@ -75,6 +75,22 @@ class LearnerProgressAggregatorTest {
         assertFalse(oneSession.skills.single().isMastered)
     }
 
+    @Test fun recurringMistakesAndSkillsNeedingPracticeUsePersistedEvidence() {
+        val wrongOne = evaluation("a", "wrong-1", "WRONG_NOTE", "s1", "pitch").copy(receivedMidiNotes = listOf(61))
+        val wrongTwo = evaluation("a", "wrong-2", "EXTRA_NOTE", "s2", "pitch").copy(receivedMidiNotes = listOf(61))
+        val correct = evaluation("a", "correct", "CORRECT", "s3", "pitch")
+        val result = LearnerProgressAggregator.aggregate(
+            "a", emptyList(), listOf(wrongOne, wrongTwo, correct, wrongOne),
+            emptySet(), zone, now
+        )
+        assertEquals(3, result.evaluationCount)
+        assertEquals(2, result.commonMistakes.single().occurrences)
+        assertEquals(60, result.commonMistakes.single().expectedMidiNote)
+        assertEquals(61, result.commonMistakes.single().receivedMidiNote)
+        assertTrue(result.skills.single().needsPractice)
+        assertTrue(result.strengths.isEmpty())
+    }
+
     @Test fun weeklyBucketsRespectHalfOpenDateBoundaries() {
         val monday = LocalDate.of(2026, 11, 23).atStartOfDay(zone).toInstant().toEpochMilli()
         val result = LearnerProgressAggregator.aggregate(
