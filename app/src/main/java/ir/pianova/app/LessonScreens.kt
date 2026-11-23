@@ -694,7 +694,7 @@ internal data class PracticeClockSnapshot(
 )
 
 /** Measures foreground time only; elapsedRealtime avoids wall-clock adjustments. */
-internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { elapsedRealtime() }) {
+internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { SystemClock.elapsedRealtime() }) {
     private val startedAtEpochMillis = System.currentTimeMillis()
     private var activeSinceElapsedMillis: Long? = null
     private var accumulatedActiveMillis = 0L
@@ -712,7 +712,7 @@ internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { 
     @Synchronized fun recordNote() {
         notesPlayed++
         if (!isForeground) return
-        val now = SystemClock.elapsedRealtime()
+        val now = elapsedRealtime()
         activeSinceElapsedMillis?.let { previous ->
             accumulatedActiveMillis += (now - previous).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
         }
@@ -729,7 +729,7 @@ internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { 
 
     @Synchronized fun pause() {
         if (!isForeground) return
-        val now = SystemClock.elapsedRealtime()
+        val now = elapsedRealtime()
         activeSinceElapsedMillis?.let { previous ->
             accumulatedActiveMillis += (now - previous).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
         }
@@ -740,7 +740,7 @@ internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { 
 
     @Synchronized fun snapshot(): PracticeClockSnapshot {
         val currentActive = activeSinceElapsedMillis?.let {
-            (SystemClock.elapsedRealtime() - it).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
+            (elapsedRealtime() - it).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
         } ?: 0L
         return PracticeClockSnapshot(
             startedAtEpochMillis = startedAtEpochMillis,
