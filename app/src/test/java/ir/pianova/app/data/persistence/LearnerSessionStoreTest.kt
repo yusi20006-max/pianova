@@ -39,7 +39,7 @@ class LearnerSessionStoreTest {
 
     @Test
     fun safeTopLevelDestinationsAreRestored() {
-        listOf("home", "learning", "practice", "library", "progress", "more", "settings").forEach {
+        listOf("home", "learning", "paths", "practice", "library", "progress", "more", "settings").forEach {
             assertEquals(it, safeLearnerDestination(it))
         }
     }
