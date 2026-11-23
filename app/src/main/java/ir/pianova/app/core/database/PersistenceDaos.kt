@@ -44,6 +44,8 @@ interface LessonProgressDao {
     fun observeForLearner(learnerId: String): Flow<List<LessonProgressEntity>>
     @Query("SELECT * FROM lesson_progress WHERE userId = :learnerId AND lessonId = :lessonId LIMIT 1")
     fun observeLesson(learnerId: String, lessonId: String): Flow<LessonProgressEntity?>
+    @Query("SELECT * FROM lesson_progress WHERE userId = :learnerId AND lessonId = :lessonId LIMIT 1")
+    suspend fun findLesson(learnerId: String, lessonId: String): LessonProgressEntity?
     @Query("DELETE FROM lesson_progress WHERE userId = :learnerId")
     suspend fun deleteForLearner(learnerId: String)
 }
