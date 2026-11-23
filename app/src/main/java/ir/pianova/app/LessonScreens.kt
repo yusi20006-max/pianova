@@ -92,7 +92,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import java.util.UUID
 
-private object ProgressPersistenceScope {
+internal object ProgressPersistenceScope {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
 }
 
@@ -306,7 +306,7 @@ fun LessonPlayerScreen(
     var consecutiveErrors by remember(lesson.id) { mutableIntStateOf(0) }
     var consecutiveSuccesses by remember(lesson.id) { mutableIntStateOf(0) }
     var activityVersion by remember(lesson.id, step.id) { mutableIntStateOf(0) }
-    var answerRevealingHintUsed by remember(lesson.id, step.id) {
+    var answerRevealingHintUsed by remember(lesson.id, step.id, retryAttempt) {
         val initialLevel = lesson.pedagogy?.visualGuidance?.defaultLevel ?: 2
         val initialHint = step.scaffolding?.let { scaffold ->
             when (initialLevel) {
@@ -317,7 +317,7 @@ fun LessonPlayerScreen(
         }
         mutableStateOf(initialHint?.revealsAnswer == true)
     }
-    val answerHintEvidence = remember(lesson.id, step.id) { MutableStateFlow(answerRevealingHintUsed) }
+    val answerHintEvidence = remember(lesson.id, step.id, retryAttempt) { MutableStateFlow(answerRevealingHintUsed) }
 
     LaunchedEffect(lesson.id, step.id) {
         ProgressPersistenceScope.scope.launch {
