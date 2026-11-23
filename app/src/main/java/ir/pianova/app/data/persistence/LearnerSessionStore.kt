@@ -118,7 +118,7 @@ class LearnerSessionStore(context: Context) {
 
 /** Lesson evaluation is ephemeral; manager routes are never restored as learner sessions. */
 internal fun safeLearnerDestination(route: String?): String = when (route) {
-    "home", "learning", "practice", "library", "progress", "more", "settings" -> route
+    "home", "learning", "paths", "practice", "library", "progress", "more", "settings" -> route
     else -> "learning"
 }
 

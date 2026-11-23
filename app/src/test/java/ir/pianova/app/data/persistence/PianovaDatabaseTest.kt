@@ -10,6 +10,7 @@ import ir.pianova.app.core.database.LearnerProfileEntity
 import ir.pianova.app.core.database.LessonProgressEntity
 import ir.pianova.app.core.database.MIGRATION_1_2
 import ir.pianova.app.core.database.MIGRATION_2_3
+import ir.pianova.app.core.database.MIGRATION_3_4
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.core.database.SongProgressEntity
@@ -261,7 +262,7 @@ class PianovaDatabaseTest {
         legacy.close()
 
         val migrated = Room.databaseBuilder(context, PianovaDatabase::class.java, databaseName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
         try {
@@ -270,6 +271,7 @@ class PianovaDatabaseTest {
             assertEquals("legacy-learner", learners.single().learnerId)
             assertEquals("beginner", learners.single().initialLevelId)
             assertEquals("unspecified", learners.single().audienceCategory)
+            assertTrue(migrated.learningPathAssignmentDao().observeHistory("legacy-learner").first().isEmpty())
             assertEquals("legacy-progress", migrated.lessonProgressDao().observeForLearner("legacy-learner").first().single().progressId)
             assertNull(migrated.learnerGoalDao().observeForLearner("legacy-learner").first())
         } finally {

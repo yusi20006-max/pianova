@@ -89,4 +89,21 @@ class AudienceContentTest {
         assertEquals("متن پایه", step.displayTextFor(LessonAudience.ADULTS))
         assertEquals("گویندگی پایه", step.narrationTextFor(LessonAudience.ADULTS))
     }
+
+    @Test
+    fun teenModeUsesTeenCopyWhenAvailableAndFallsBackToAdultCopyOtherwise() {
+        val adultFallback = LessonStep.PlayNote(
+            id = "teen-fallback", title = "عنوان", midiNote = 60,
+            narrationText = "گویندگی پایه",
+            audienceContent = AudienceContent(adults = AudienceCopy(narrationText = "گویندگی خنثی بزرگسال"))
+        )
+        assertEquals("گویندگی خنثی بزرگسال", adultFallback.narrationTextFor(LessonAudience.TEENS))
+        val teenSpecific = adultFallback.copy(
+            audienceContent = AudienceContent(
+                adults = AudienceCopy(narrationText = "گویندگی بزرگسال"),
+                teens = AudienceCopy(narrationText = "گویندگی نوجوان")
+            )
+        )
+        assertEquals("گویندگی نوجوان", teenSpecific.narrationTextFor(LessonAudience.TEENS))
+    }
 }

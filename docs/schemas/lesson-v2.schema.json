@@ -370,6 +370,9 @@
         },
         "adults": {
           "$ref": "#/$defs/audienceCopy"
+        },
+        "teens": {
+          "$ref": "#/$defs/audienceCopy"
         }
       }
     },
