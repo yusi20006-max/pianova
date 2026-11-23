@@ -89,8 +89,6 @@ class AudienceContentTest {
         assertEquals("متن پایه", step.displayTextFor(LessonAudience.ADULTS))
         assertEquals("گویندگی پایه", step.narrationTextFor(LessonAudience.ADULTS))
     }
-}
-
 
     @Test
     fun teenModeUsesTeenCopyWhenAvailableAndFallsBackToAdultCopyOtherwise() {
@@ -108,3 +106,4 @@ class AudienceContentTest {
         )
         assertEquals("گویندگی نوجوان", teenSpecific.narrationTextFor(LessonAudience.TEENS))
     }
+}
