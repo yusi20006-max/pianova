@@ -15,9 +15,10 @@ import androidx.room.RoomDatabase
         DailyMissionEntity::class,
         SongProgressEntity::class,
         LearnerGoalEntity::class,
-        LearningPathAssignmentEntity::class
+        LearningPathAssignmentEntity::class,
+        EvaluationEvidenceEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class PianovaDatabase : RoomDatabase() {
@@ -30,6 +31,7 @@ abstract class PianovaDatabase : RoomDatabase() {
     abstract fun songProgressDao(): SongProgressDao
     abstract fun learnerGoalDao(): LearnerGoalDao
     abstract fun learningPathAssignmentDao(): LearningPathAssignmentDao
+    abstract fun evaluationEvidenceDao(): EvaluationEvidenceDao
 
     companion object {
         @Volatile private var INSTANCE: PianovaDatabase? = null
@@ -40,7 +42,7 @@ abstract class PianovaDatabase : RoomDatabase() {
                     context.applicationContext,
                     PianovaDatabase::class.java,
                     DATABASE_NAME
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { INSTANCE = it }
             }
 
         private const val DATABASE_NAME = "pianova.db"
