@@ -707,7 +707,6 @@ private class PracticeSessionClock {
 
     @Synchronized fun resume() {
         isForeground = true
-        wasInterrupted = false
     }
 
     @Synchronized fun recordNote() {
