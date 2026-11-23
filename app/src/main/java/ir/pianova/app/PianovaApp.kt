@@ -576,15 +576,30 @@ private fun ProgressScreen(learnerId: String) {
                     progress.accuracy?.let { "${(it * 100).toInt()}٪" } ?: "هنوز ارزیابی کافی ثبت نشده"
                 )
                 StatusCard("تعداد ارزیابی‌ها", progress.evaluationCount.toString())
-                Text("مهارت‌ها", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
-                if (progress.skills.isEmpty()) {
-                    Text("برای مهارت‌ها هنوز شواهدی ثبت نشده است.", color = PianovaMuted)
+                Text("نقاط قوت", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                if (progress.strengths.isEmpty()) {
+                    Text("هنوز مهارتی با شواهد کافی برای تأیید تسلط وجود ندارد.", color = PianovaMuted)
                 } else {
-                    progress.skills.forEach { skill ->
+                    progress.strengths.forEach { skill ->
+                        StatusCard(skill.skillId, "تسلط تأییدشده")
+                    }
+                }
+                Text("مهارت‌های نیازمند تمرین", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                if (progress.skillsNeedingPractice.isEmpty()) {
+                    Text("هنوز مهارتی با شواهد کافی برای این دسته ثبت نشده است.", color = PianovaMuted)
+                } else {
+                    progress.skillsNeedingPractice.forEach { skill ->
+                        StatusCard(skill.skillId, "${skill.successfulAttempts} موفق از ${skill.attempts} ارزیابی")
+                    }
+                }
+                Text("اشتباه‌های پرتکرار", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                if (progress.commonMistakes.isEmpty()) {
+                    Text("هنوز الگوی اشتباه تکرارشونده‌ای ثبت نشده است.", color = PianovaMuted)
+                } else {
+                    progress.commonMistakes.forEach { mistake ->
                         StatusCard(
-                            skill.skillId,
-                            if (skill.isMastered) "تسلط تأییدشده" else
-                                "${skill.successfulAttempts} موفق از ${skill.attempts} ارزیابی"
+                            "نت مورد انتظار ${mistake.expectedMidiNote}",
+                            "نت نواخته‌شده ${mistake.receivedMidiNote} · ${mistake.occurrences} بار"
                         )
                     }
                 }
