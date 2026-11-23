@@ -2,6 +2,7 @@ package ir.pianova.app.core.database
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Insert
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -31,6 +32,9 @@ interface LearnerProfileDao {
 
     @Query("DELETE FROM learner_profiles WHERE learnerId = :learnerId")
     suspend fun delete(learnerId: String)
+
+    @Query("UPDATE learner_profiles SET currentLevelId = :levelId, updatedAtEpochMillis = :updatedAt WHERE learnerId = :learnerId")
+    suspend fun updateCurrentLevel(learnerId: String, levelId: String, updatedAt: Long)
 }
 
 @Dao
@@ -89,4 +93,18 @@ interface LearnerGoalDao {
     fun observeForLearner(learnerId: String): Flow<LearnerGoalEntity?>
     @Query("DELETE FROM learner_goals WHERE learnerId = :learnerId")
     suspend fun deleteForLearner(learnerId: String)
+}
+
+
+@Dao
+interface LearningPathAssignmentDao {
+    @Insert suspend fun insert(assignment: LearningPathAssignmentEntity)
+    @Query("SELECT * FROM learning_path_assignments WHERE learnerId = :learnerId AND isActive = 1 ORDER BY startedAtEpochMillis DESC LIMIT 1")
+    fun observeActive(learnerId: String): Flow<LearningPathAssignmentEntity?>
+    @Query("SELECT * FROM learning_path_assignments WHERE learnerId = :learnerId AND isActive = 1 ORDER BY startedAtEpochMillis DESC LIMIT 1")
+    suspend fun findActive(learnerId: String): LearningPathAssignmentEntity?
+    @Query("SELECT * FROM learning_path_assignments WHERE learnerId = :learnerId ORDER BY startedAtEpochMillis DESC")
+    fun observeHistory(learnerId: String): Flow<List<LearningPathAssignmentEntity>>
+    @Query("UPDATE learning_path_assignments SET isActive = 0, endedAtEpochMillis = :endedAt WHERE learnerId = :learnerId AND isActive = 1")
+    suspend fun closeActiveForLearner(learnerId: String, endedAt: Long)
 }

@@ -119,3 +119,19 @@ data class LearnerGoalEntity(
     val goalText: String,
     val updatedAtEpochMillis: Long
 )
+
+
+@Entity(
+    tableName = "learning_path_assignments",
+    foreignKeys = [ForeignKey(entity = LearnerProfileEntity::class, parentColumns = ["learnerId"], childColumns = ["learnerId"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index("learnerId"), Index(value = ["learnerId", "isActive"])]
+)
+data class LearningPathAssignmentEntity(
+    @PrimaryKey val assignmentId: String,
+    val learnerId: String,
+    val pathId: String,
+    val levelId: String,
+    val startedAtEpochMillis: Long,
+    val endedAtEpochMillis: Long? = null,
+    val isActive: Boolean = true
+)

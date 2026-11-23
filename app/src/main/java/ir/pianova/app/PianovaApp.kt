@@ -256,7 +256,7 @@ private fun LearnerWorkspace(
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     mainTabs.forEach { tab ->
                         NavigationBarItem(
-                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family") else route == tab.route,
+                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family", "paths") else route == tab.route,
                             onClick = {
                                 navController.navigate(tab.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -297,7 +297,8 @@ private fun LearnerWorkspace(
                         onContinue = { navController.navigate("learning") },
                         onPractice = { navController.navigate("practice") },
                         onLibrary = { navController.navigate("library") },
-                        onProgress = { navController.navigate("progress") }
+                        onProgress = { navController.navigate("progress") },
+                        onLearningPaths = { navController.navigate("paths") }
                     )
                 }
                 composable("learning") {
@@ -367,6 +368,7 @@ private fun LearnerWorkspace(
                         onVolume = onVolume
                     )
                 }
+                composable("paths") { LearningPathScreen(learner) }
                 composable("library") { LibraryScreen(learner.learnerId) }
                 composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
                 composable("progress") { ProgressScreen(learner.learnerId) }
@@ -398,6 +400,7 @@ private fun audienceLabel(audience: LearnerAudience): String = when (audience) {
 private fun destinationLabel(route: String): String = when (route) {
     "home" -> "خانه"
     "learning" -> "مسیر یادگیری"
+    "paths" -> "مسیرهای آموزشی"
     "practice" -> "تمرین"
     "library" -> "کتابخانه"
     "progress" -> "پیشرفت"
@@ -444,7 +447,8 @@ fun HomeScreen(
     onContinue: () -> Unit,
     onPractice: () -> Unit,
     onLibrary: () -> Unit,
-    onProgress: () -> Unit
+    onProgress: () -> Unit,
+    onLearningPaths: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -465,6 +469,7 @@ fun HomeScreen(
         item {
             Text("یادگیری و اجرا", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
         }
+        item { ActionCard("انتخاب مسیر و سطح", "مسیر مناسب را انتخاب کنید و هر زمان تغییر دهید؛ سابقه حفظ می‌شود.", "مدیریت مسیر آموزشی", onLearningPaths) }
         item { ActionCard("پیانو آزاد", "نواختن با صدای پیانوی Classic Grand", "شروع نواختن", onPractice) }
         item { ActionCard("کتابخانه آهنگ‌ها", "قطعات آموزشی و آهنگ‌های مورد علاقه", "مشاهده کتابخانه", onLibrary) }
         item { ActionCard("پیشرفت من", "گزارش تمرین‌ها و مهارت‌های آموخته‌شده", "مشاهده پیشرفت", onProgress) }
@@ -576,6 +581,7 @@ private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Uni
         "یادگیری و تمرین" to listOf(
             MenuEntry("خانه و داشبورد", "آماده", "home"),
             MenuEntry("مسیر یادگیری", "آماده", "learning"),
+            MenuEntry("انتخاب مسیر و سطح", "آماده", "paths"),
             MenuEntry("درس‌ها و دوره‌ها", "در حال توسعه", "learning"),
             MenuEntry("تمرین روزانه", "در حال توسعه", "learning"),
             MenuEntry("پیانو آزاد", "آماده", "practice")

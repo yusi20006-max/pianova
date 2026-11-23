@@ -78,3 +78,27 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         )
     }
 }
+
+
+/** Adds local, learner-owned learning-path selection history. */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS learning_path_assignments (
+                assignmentId TEXT NOT NULL PRIMARY KEY,
+                learnerId TEXT NOT NULL,
+                pathId TEXT NOT NULL,
+                levelId TEXT NOT NULL,
+                startedAtEpochMillis INTEGER NOT NULL,
+                endedAtEpochMillis INTEGER,
+                isActive INTEGER NOT NULL,
+                FOREIGN KEY(learnerId) REFERENCES learner_profiles(learnerId)
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_learning_path_assignments_learnerId ON learning_path_assignments(learnerId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_learning_path_assignments_learnerId_isActive ON learning_path_assignments(learnerId, isActive)")
+    }
+}
