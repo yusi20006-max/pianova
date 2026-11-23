@@ -703,14 +703,22 @@ private class PracticeSessionClock {
     private var correctNotes = 0
     private var wrongNotes = 0
 
+    private var isForeground = false
+
     @Synchronized fun resume() {
-        if (activeSinceElapsedMillis == null) {
-            activeSinceElapsedMillis = SystemClock.elapsedRealtime()
-            wasInterrupted = false
-        }
+        isForeground = true
+        wasInterrupted = false
     }
 
-    @Synchronized fun recordNote() { notesPlayed++ }
+    @Synchronized fun recordNote() {
+        notesPlayed++
+        if (!isForeground) return
+        val now = SystemClock.elapsedRealtime()
+        activeSinceElapsedMillis?.let { previous ->
+            accumulatedActiveMillis += (now - previous).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
+        }
+        activeSinceElapsedMillis = now
+    }
 
     @Synchronized fun recordEvaluation(status: EvaluationStatus) {
         when (status) {
@@ -721,25 +729,33 @@ private class PracticeSessionClock {
     }
 
     @Synchronized fun pause() {
-        val activeSince = activeSinceElapsedMillis ?: return
-        accumulatedActiveMillis += (SystemClock.elapsedRealtime() - activeSince).coerceAtLeast(0L)
+        if (!isForeground) return
+        val now = SystemClock.elapsedRealtime()
+        activeSinceElapsedMillis?.let { previous ->
+            accumulatedActiveMillis += (now - previous).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
+        }
         activeSinceElapsedMillis = null
+        isForeground = false
         wasInterrupted = true
     }
 
     @Synchronized fun snapshot(): PracticeClockSnapshot {
         val currentActive = activeSinceElapsedMillis?.let {
-            (SystemClock.elapsedRealtime() - it).coerceAtLeast(0L)
+            (SystemClock.elapsedRealtime() - it).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
         } ?: 0L
         return PracticeClockSnapshot(
             startedAtEpochMillis = startedAtEpochMillis,
-            endedAtEpochMillis = if (activeSinceElapsedMillis == null) System.currentTimeMillis() else null,
+            endedAtEpochMillis = if (isForeground) null else System.currentTimeMillis(),
             activeDurationMillis = accumulatedActiveMillis + currentActive,
             wasInterrupted = wasInterrupted,
             notesPlayed = notesPlayed,
             correctNotes = correctNotes,
             wrongNotes = wrongNotes
         )
+    }
+
+    private companion object {
+        const val IDLE_TIMEOUT_MILLIS = 60_000L
     }
 }
 
