@@ -214,7 +214,8 @@ fun LessonPlayerScreen(
                         lessonId = lesson.id,
                         startedAtEpochMillis = snapshot.startedAtEpochMillis,
                         endedAtEpochMillis = snapshot.endedAtEpochMillis,
-                        durationMillis = snapshot.activeDurationMillis
+                        durationMillis = snapshot.activeDurationMillis,
+                        wasInterrupted = snapshot.wasInterrupted
                     )
                 )
             }
@@ -648,7 +649,8 @@ fun LessonPlayerScreen(
 private data class PracticeClockSnapshot(
     val startedAtEpochMillis: Long,
     val endedAtEpochMillis: Long?,
-    val activeDurationMillis: Long
+    val activeDurationMillis: Long,
+    val wasInterrupted: Boolean
 )
 
 /** Measures foreground time only; elapsedRealtime avoids wall-clock adjustments. */
@@ -656,15 +658,20 @@ private class PracticeSessionClock {
     private val startedAtEpochMillis = System.currentTimeMillis()
     private var activeSinceElapsedMillis: Long? = null
     private var accumulatedActiveMillis = 0L
+    private var wasInterrupted = false
 
     @Synchronized fun resume() {
-        if (activeSinceElapsedMillis == null) activeSinceElapsedMillis = SystemClock.elapsedRealtime()
+        if (activeSinceElapsedMillis == null) {
+            activeSinceElapsedMillis = SystemClock.elapsedRealtime()
+            wasInterrupted = false
+        }
     }
 
     @Synchronized fun pause() {
         val activeSince = activeSinceElapsedMillis ?: return
         accumulatedActiveMillis += (SystemClock.elapsedRealtime() - activeSince).coerceAtLeast(0L)
         activeSinceElapsedMillis = null
+        wasInterrupted = true
     }
 
     @Synchronized fun snapshot(): PracticeClockSnapshot {
@@ -674,7 +681,8 @@ private class PracticeSessionClock {
         return PracticeClockSnapshot(
             startedAtEpochMillis = startedAtEpochMillis,
             endedAtEpochMillis = if (activeSinceElapsedMillis == null) System.currentTimeMillis() else null,
-            activeDurationMillis = accumulatedActiveMillis + currentActive
+            activeDurationMillis = accumulatedActiveMillis + currentActive,
+            wasInterrupted = wasInterrupted
         )
     }
 }
