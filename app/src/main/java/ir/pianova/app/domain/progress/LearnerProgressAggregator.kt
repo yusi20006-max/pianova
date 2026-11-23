@@ -54,7 +54,16 @@ data class SkillMasteryEvidence(
     val isMastered: Boolean
         get() = attempts >= 3 && successfulAttempts >= 3 &&
             independentSessions >= 2 && confidence >= 0.8
+
+    val needsPractice: Boolean
+        get() = attempts >= 2 && confidence < 0.8
 }
+
+data class CommonMistakeEvidence(
+    val expectedMidiNote: Int,
+    val receivedMidiNote: Int,
+    val occurrences: Int
+)
 
 data class PeriodProgress(
     val periodStartEpochDay: Long,
@@ -77,8 +86,12 @@ data class LearnerProgressSnapshot(
     val accuracy: Double?,
     val skills: List<SkillMasteryEvidence>,
     val weekly: List<PeriodProgress>,
-    val monthly: List<PeriodProgress>
-)
+    val monthly: List<PeriodProgress>,
+    val commonMistakes: List<CommonMistakeEvidence> = emptyList()
+) {
+    val strengths: List<SkillMasteryEvidence> get() = skills.filter { it.isMastered }
+    val skillsNeedingPractice: List<SkillMasteryEvidence> get() = skills.filter { it.needsPractice }
+}
 
 /**
  * Pure aggregation over records already filtered to one learner by the caller.
@@ -98,7 +111,21 @@ object LearnerProgressAggregator {
         val learnerEvaluations = evaluations.filter { it.learnerId == learnerId }
         val validSessions = learnerSessions.filter { it.activeDurationMillis > 0 }
         val completed = learnerEvaluations.filter { it.status in TERMINAL_STATUSES }
-        val correct = completed.count { it.isSuccessful }
+        val uniqueCompleted = completed.distinctBy { it.evaluationId }
+        val correct = uniqueCompleted.count { it.isSuccessful }
+        val mistakes = uniqueCompleted
+            .filter { it.status == "WRONG_NOTE" || it.status == "EXTRA_NOTE" }
+            .mapNotNull { evidence ->
+                val expected = evidence.expectedMidiNotes.firstOrNull()
+                val received = evidence.receivedMidiNotes.lastOrNull()
+                if (expected == null || received == null || expected == received) null
+                else expected to received
+            }
+            .groupingBy { it }
+            .eachCount()
+            .map { (notes, count) -> CommonMistakeEvidence(notes.first, notes.second, count) }
+            .sortedByDescending { it.occurrences }
+            .take(5)
         val skills = learnerEvaluations.filter { !it.skillId.isNullOrBlank() }
             .groupBy { it.skillId!! }
             .map { (skillId, records) ->
@@ -116,19 +143,20 @@ object LearnerProgressAggregator {
             }.sortedBy { it.skillId }
 
         val today = Instant.ofEpochMilli(nowEpochMillis).atZone(zoneId).toLocalDate()
-        val weekly = periodBuckets(validSessions, completed, today, zoneId, weekly = true)
-        val monthly = periodBuckets(validSessions, completed, today, zoneId, weekly = false)
+        val weekly = periodBuckets(validSessions, uniqueCompleted, today, zoneId, weekly = true)
+        val monthly = periodBuckets(validSessions, uniqueCompleted, today, zoneId, weekly = false)
 
         return LearnerProgressSnapshot(
             learnerId = learnerId,
             practiceMillis = validSessions.sumOf { it.activeDurationMillis },
             sessionCount = validSessions.size,
             completedLessonCount = completedLessonIds.size,
-            evaluationCount = completed.size,
-            accuracy = if (completed.isEmpty()) null else correct.toDouble() / completed.size,
+            evaluationCount = uniqueCompleted.size,
+            accuracy = if (uniqueCompleted.isEmpty()) null else correct.toDouble() / uniqueCompleted.size,
             skills = skills,
             weekly = weekly,
-            monthly = monthly
+            monthly = monthly,
+            commonMistakes = mistakes
         )
     }
 
@@ -150,7 +178,7 @@ object LearnerProgressAggregator {
             val periodSessions = sessions.filter {
                 it.startedAtEpochMillis >= from && it.startedAtEpochMillis < until && it.activeDurationMillis > 0
             }
-            val periodEvaluations = evaluations.filter {
+            val periodEvaluations = evaluations.distinctBy { it.evaluationId }.filter {
                 it.occurredAtEpochMillis >= from && it.occurredAtEpochMillis < until &&
                     it.status in TERMINAL_STATUSES
             }
