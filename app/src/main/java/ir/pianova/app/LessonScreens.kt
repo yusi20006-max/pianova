@@ -683,7 +683,7 @@ fun LessonPlayerScreen(
 }
 
 
-private data class PracticeClockSnapshot(
+internal data class PracticeClockSnapshot(
     val startedAtEpochMillis: Long,
     val endedAtEpochMillis: Long?,
     val activeDurationMillis: Long,
@@ -694,7 +694,7 @@ private data class PracticeClockSnapshot(
 )
 
 /** Measures foreground time only; elapsedRealtime avoids wall-clock adjustments. */
-private class PracticeSessionClock {
+internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { elapsedRealtime() }) {
     private val startedAtEpochMillis = System.currentTimeMillis()
     private var activeSinceElapsedMillis: Long? = null
     private var accumulatedActiveMillis = 0L
