@@ -592,6 +592,13 @@ private fun ProgressScreen(learnerId: String) {
                         "${period.practiceMillis / 60_000} دقیقه تمرین · ${period.sessionCount} جلسه"
                     )
                 }
+                Text("روند ماهانه", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                progress.monthly.takeLast(3).forEach { period ->
+                    StatusCard(
+                        java.time.LocalDate.ofEpochDay(period.periodStartEpochDay).toString(),
+                        "${period.practiceMillis / 60_000} دقیقه تمرین · ${period.sessionCount} جلسه"
+                    )
+                }
             }
             StatusCard("دستاوردها", achievements.size.toString())
         }
