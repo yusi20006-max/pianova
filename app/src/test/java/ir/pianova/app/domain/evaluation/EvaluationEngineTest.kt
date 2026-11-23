@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -53,6 +54,19 @@ class EvaluationEngineTest {
         input.emit(PianoEvent.NoteOff(62, 2L))
         input.emit(PianoEvent.NoteOn(60, 0.8f, 3L))
         assertTrue(awaitStatus(session, EvaluationStatus.CORRECT).isComplete)
+    }
+
+    @Test
+    fun eachRepeatedStepSessionGetsANewAttemptId() = runBlocking {
+        val input = FakePianoInput()
+        val engine = EvaluationEngine(input)
+        val step = LessonStep.PlayNote("middle-c", "دو وسط", 60)
+        val first = engine.start(step, this)
+        val second = engine.start(step, this)
+
+        assertNotEquals(first.attemptId, second.attemptId)
+        first.cancel()
+        second.cancel()
     }
 
     @Test
