@@ -566,6 +566,7 @@ private fun ProgressScreen(learnerId: String) {
         } else {
             run { val progress = learnerProgress
                 StatusCard("درس‌های تکمیل‌شده", progress.completedLessonCount.toString())
+                StatusCard("درس‌های در حال انجام", lessonProgress.count { !it.isCompleted && it.currentStepId != null }.toString())
                 StatusCard("زمان تمرین فعال", "${progress.practiceMillis / 60_000} دقیقه")
                 StatusCard("جلسه‌های تمرین", progress.sessionCount.toString())
                 StatusCard(
