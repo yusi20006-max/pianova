@@ -102,3 +102,30 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("CREATE INDEX IF NOT EXISTS index_learning_path_assignments_learnerId_isActive ON learning_path_assignments(learnerId, isActive)")
     }
 }
+
+
+/** Stores durable per-attempt evaluation evidence without changing existing progress rows. */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS evaluation_evidence (
+                evaluationId TEXT NOT NULL PRIMARY KEY,
+                learnerId TEXT NOT NULL,
+                sessionId TEXT NOT NULL,
+                lessonId TEXT NOT NULL,
+                stepId TEXT NOT NULL,
+                skillId TEXT,
+                occurredAtEpochMillis INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                expectedMidiNotesCsv TEXT NOT NULL,
+                receivedMidiNotesCsv TEXT NOT NULL,
+                answerRevealingHintUsed INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_evaluation_evidence_learnerId_occurredAtEpochMillis ON evaluation_evidence(learnerId, occurredAtEpochMillis)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_evaluation_evidence_sessionId ON evaluation_evidence(sessionId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_evaluation_evidence_lessonId_stepId ON evaluation_evidence(lessonId, stepId)")
+    }
+}
