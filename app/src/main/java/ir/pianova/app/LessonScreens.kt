@@ -215,6 +215,9 @@ fun LessonPlayerScreen(
                         startedAtEpochMillis = snapshot.startedAtEpochMillis,
                         endedAtEpochMillis = snapshot.endedAtEpochMillis,
                         durationMillis = snapshot.activeDurationMillis,
+                        notesPlayed = snapshot.notesPlayed,
+                        correctNotes = snapshot.correctNotes,
+                        wrongNotes = snapshot.wrongNotes,
                         wasInterrupted = snapshot.wasInterrupted
                     )
                 )
@@ -334,6 +337,7 @@ fun LessonPlayerScreen(
                 EvaluationStatus.EXTRA_NOTE
             ) && evaluation.receivedNotes.isNotEmpty()
         ) {
+            practiceClock.recordEvaluation(evaluation.status)
             val evidenceId = "${masterySessionId}:${step.id}:${evaluation.receivedNotes.size}:${evaluation.status.name}"
             progressRepository.saveEvaluationEvidence(
                 EvaluationEvidenceEntity(
@@ -589,6 +593,7 @@ fun LessonPlayerScreen(
                     labelMode = 0,
                     enabled = pianoRunning && playable,
                     onNoteOn = { note, velocity ->
+                        practiceClock.recordNote()
                         activityVersion++
                         onNoteOn(note, velocity)
                     },
@@ -676,7 +681,10 @@ private data class PracticeClockSnapshot(
     val startedAtEpochMillis: Long,
     val endedAtEpochMillis: Long?,
     val activeDurationMillis: Long,
-    val wasInterrupted: Boolean
+    val wasInterrupted: Boolean,
+    val notesPlayed: Int,
+    val correctNotes: Int,
+    val wrongNotes: Int
 )
 
 /** Measures foreground time only; elapsedRealtime avoids wall-clock adjustments. */
@@ -685,11 +693,24 @@ private class PracticeSessionClock {
     private var activeSinceElapsedMillis: Long? = null
     private var accumulatedActiveMillis = 0L
     private var wasInterrupted = false
+    private var notesPlayed = 0
+    private var correctNotes = 0
+    private var wrongNotes = 0
 
     @Synchronized fun resume() {
         if (activeSinceElapsedMillis == null) {
             activeSinceElapsedMillis = SystemClock.elapsedRealtime()
             wasInterrupted = false
+        }
+    }
+
+    @Synchronized fun recordNote() { notesPlayed++ }
+
+    @Synchronized fun recordEvaluation(status: EvaluationStatus) {
+        when (status) {
+            EvaluationStatus.CORRECT -> correctNotes++
+            EvaluationStatus.WRONG_NOTE, EvaluationStatus.MISSING_NOTE, EvaluationStatus.EXTRA_NOTE -> wrongNotes++
+            else -> Unit
         }
     }
 
@@ -708,7 +729,10 @@ private class PracticeSessionClock {
             startedAtEpochMillis = startedAtEpochMillis,
             endedAtEpochMillis = if (activeSinceElapsedMillis == null) System.currentTimeMillis() else null,
             activeDurationMillis = accumulatedActiveMillis + currentActive,
-            wasInterrupted = wasInterrupted
+            wasInterrupted = wasInterrupted,
+            notesPlayed = notesPlayed,
+            correctNotes = correctNotes,
+            wrongNotes = wrongNotes
         )
     }
 }
