@@ -4,16 +4,17 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 enum class LessonAudience(val storageValue: String) {
-    CHILDREN("children"), ADULTS("adults");
+    CHILDREN("children"), TEENS("teens"), ADULTS("adults");
     companion object {
         fun fromStorageValue(value: String?): LessonAudience =
             values().firstOrNull { it.storageValue == value } ?: CHILDREN
     }
 }
 @Serializable
-data class AudienceContent(val children: AudienceCopy? = null, val adults: AudienceCopy? = null) {
+data class AudienceContent(val children: AudienceCopy? = null, val adults: AudienceCopy? = null, val teens: AudienceCopy? = null) {
     fun forAudience(audience: LessonAudience): AudienceCopy? = when (audience) {
         LessonAudience.CHILDREN -> children
+        LessonAudience.TEENS -> teens ?: adults ?: children
         LessonAudience.ADULTS -> adults ?: children
     }
 }

@@ -114,6 +114,8 @@ fun LessonListScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (audience == LessonAudience.CHILDREN) Button(onClick = { onAudienceChange(LessonAudience.CHILDREN) }) { Text("کودکان") }
                             else TextButton(onClick = { onAudienceChange(LessonAudience.CHILDREN) }) { Text("کودکان") }
+                            if (audience == LessonAudience.TEENS) Button(onClick = { onAudienceChange(LessonAudience.TEENS) }) { Text("نوجوانان") }
+                            else TextButton(onClick = { onAudienceChange(LessonAudience.TEENS) }) { Text("نوجوانان") }
                             if (audience == LessonAudience.ADULTS) Button(onClick = { onAudienceChange(LessonAudience.ADULTS) }) { Text("بزرگسالان") }
                             else TextButton(onClick = { onAudienceChange(LessonAudience.ADULTS) }) { Text("بزرگسالان") }
                         }

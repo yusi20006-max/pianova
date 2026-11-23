@@ -387,8 +387,12 @@ private fun LearnerWorkspace(
     if (showAboutDialog) AboutDialog(onDismiss = { showAboutDialog = false })
 }
 
-private fun defaultLessonAudience(audience: LearnerAudience): LessonAudience =
-    if (audience == LearnerAudience.ADULT) LessonAudience.ADULTS else LessonAudience.CHILDREN
+private fun defaultLessonAudience(audience: LearnerAudience): LessonAudience = when (audience) {
+    LearnerAudience.CHILD -> LessonAudience.CHILDREN
+    LearnerAudience.TEEN -> LessonAudience.TEENS
+    LearnerAudience.ADULT -> LessonAudience.ADULTS
+    LearnerAudience.UNSPECIFIED -> LessonAudience.CHILDREN
+}
 
 private fun audienceLabel(audience: LearnerAudience): String = when (audience) {
     LearnerAudience.CHILD -> "کودک"
