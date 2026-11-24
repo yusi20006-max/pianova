@@ -32,7 +32,7 @@ class PracticeSessionClockTest {
 
         assertEquals(90_000L, clock.snapshot().activeDurationMillis)
 
-        clock.pause()
+        clock.pause(interrupted = true)
         val interrupted = clock.snapshot()
         assertEquals(90_000L, interrupted.activeDurationMillis)
         assertTrue(interrupted.wasInterrupted)
