@@ -5,7 +5,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -85,7 +84,6 @@ class FamilyProgressReportsScreenTest {
 
         composeRule.onNodeWithText("گزارش خانواده").assertIsDisplayed()
         composeRule.onNodeWithText("آراد").performClick()
-        composeRule.onRoot().printToLog("FamilyReportAfterArad")
         composeRule.onNodeWithText("گزارش آراد").assertIsDisplayed()
         composeRule.onNodeWithText("تمرین روزانه آراد").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText("10 دقیقه").fetchSemanticsNodes().isNotEmpty())
@@ -112,7 +110,6 @@ class FamilyProgressReportsScreenTest {
         }
 
         composeRule.onNodeWithText("سارا").performClick()
-        composeRule.onRoot().printToLog("FamilyReportAfterSara")
         composeRule.onNodeWithText("گزارش سارا").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText("آخرین فعالیت در درس").fetchSemanticsNodes().isNotEmpty())
     }
