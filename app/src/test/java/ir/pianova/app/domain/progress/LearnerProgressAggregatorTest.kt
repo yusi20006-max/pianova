@@ -100,6 +100,21 @@ class LearnerProgressAggregatorTest {
         assertTrue(result.strengths.isEmpty())
     }
 
+    @Test fun chordExtrasAreNotAssignedAnArbitraryExpectedTone() {
+        val chordExtra = evaluation("a", "chord-extra", "EXTRA_NOTE")
+            .copy(expectedMidiNotes = listOf(60, 64, 67), receivedMidiNotes = listOf(72))
+        val singleNoteWrong = evaluation("a", "single-wrong", "WRONG_NOTE")
+            .copy(expectedMidiNotes = listOf(60), receivedMidiNotes = listOf(61))
+
+        val result = LearnerProgressAggregator.aggregate(
+            "a", emptyList(), listOf(chordExtra, singleNoteWrong), emptySet(), zone, now
+        )
+
+        assertEquals(1, result.commonMistakes.size)
+        assertEquals(60, result.commonMistakes.single().expectedMidiNote)
+        assertEquals(61, result.commonMistakes.single().receivedMidiNote)
+    }
+
     @Test fun weeklyBucketsRespectHalfOpenDateBoundaries() {
         val monday = LocalDate.of(2026, 11, 23).atStartOfDay(zone).toInstant().toEpochMilli()
         val result = LearnerProgressAggregator.aggregate(
