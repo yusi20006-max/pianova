@@ -1,5 +1,7 @@
 package ir.pianova.app
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -72,6 +74,7 @@ import ir.pianova.app.domain.model.LessonAudience
 import ir.pianova.app.data.persistence.LearnerSessionStore
 import ir.pianova.app.data.persistence.activeLearnerOrNull
 import ir.pianova.app.data.persistence.ProgressRepository
+import ir.pianova.app.domain.progress.LearnerProgressSnapshot
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -414,9 +417,14 @@ private fun destinationLabel(route: String): String = when (route) {
 }
 
 @Composable
-private fun PageColumn(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun PageColumn(
+    scrollable: Boolean = false,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
+) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 20.dp),
+        modifier = Modifier.fillMaxSize()
+            .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+            .padding(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content
     )
@@ -552,14 +560,71 @@ private fun ProgressScreen(learnerId: String) {
     val lessonProgress by progressRepository.observeLessonProgress(learnerId).collectAsState(initial = emptyList())
     val practiceSessions by progressRepository.observePracticeSessions(learnerId).collectAsState(initial = emptyList())
     val achievements by progressRepository.observeAchievements(learnerId).collectAsState(initial = emptyList())
+    val learnerGoal by progressRepository.observeLearnerGoal(learnerId).collectAsState(initial = null)
+    val learnerProgress by progressRepository.observeLearnerProgress(learnerId).collectAsState(
+        initial = LearnerProgressSnapshot(learnerId, 0L, 0, 0, 0, null, emptyList(), emptyList(), emptyList())
+    )
 
-    PageColumn {
+    PageColumn(scrollable = true) {
         PageTitle("پیشرفت من", "مسیر تمرین و مهارت‌هایت را اینجا دنبال می‌کنی")
-        if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty()) {
-            EmptyState("هنوز گزارشی ثبت نشده است", "با شروع درس‌ها و تمرین‌ها، اطلاعات همین هنرجو در این صفحه نمایش داده می‌شود.")
+        if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty() &&
+            learnerGoal == null && learnerProgress.evaluationCount == 0
+        ) {
+            EmptyState("هنوز گزارشی ثبت نشده است", "با شروع درس‌ها و تمرین‌ها، اطلاعات واقعی همین هنرجو در این صفحه نمایش داده می‌شود.")
         } else {
-            StatusCard("درس‌های تکمیل‌شده", lessonProgress.count { it.isCompleted }.toString())
-            StatusCard("جلسه‌های تمرین", practiceSessions.size.toString())
+            run { val progress = learnerProgress
+                learnerGoal?.let { StatusCard("هدف هنرجو", it.goalText) }
+                StatusCard("درس‌های تکمیل‌شده", progress.completedLessonCount.toString())
+                StatusCard("درس‌های در حال انجام", lessonProgress.count { !it.isCompleted && it.currentStepId != null }.toString())
+                StatusCard("زمان تمرین فعال", "${progress.practiceMillis / 60_000} دقیقه")
+                StatusCard("جلسه‌های تمرین", progress.sessionCount.toString())
+                StatusCard(
+                    "دقت ارزیابی",
+                    progress.accuracy?.let { "${(it * 100).toInt()}٪" } ?: "هنوز ارزیابی کافی ثبت نشده"
+                )
+                StatusCard("تعداد ارزیابی‌ها", progress.evaluationCount.toString())
+                Text("نقاط قوت", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                if (progress.strengths.isEmpty()) {
+                    Text("هنوز مهارتی با شواهد کافی برای تأیید تسلط وجود ندارد.", color = PianovaMuted)
+                } else {
+                    progress.strengths.forEach { skill ->
+                        StatusCard(skill.skillId, "تسلط تأییدشده")
+                    }
+                }
+                Text("مهارت‌های نیازمند تمرین", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                if (progress.skillsNeedingPractice.isEmpty()) {
+                    Text("هنوز مهارتی با شواهد کافی برای این دسته ثبت نشده است.", color = PianovaMuted)
+                } else {
+                    progress.skillsNeedingPractice.forEach { skill ->
+                        StatusCard(skill.skillId, "${skill.successfulAttempts} موفق از ${skill.attempts} ارزیابی")
+                    }
+                }
+                Text("اشتباه‌های پرتکرار", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                if (progress.commonMistakes.isEmpty()) {
+                    Text("هنوز الگوی اشتباه تکرارشونده‌ای ثبت نشده است.", color = PianovaMuted)
+                } else {
+                    progress.commonMistakes.forEach { mistake ->
+                        StatusCard(
+                            "نت مورد انتظار ${mistake.expectedMidiNote}",
+                            "نت نواخته‌شده ${mistake.receivedMidiNote} · ${mistake.occurrences} بار"
+                        )
+                    }
+                }
+                Text("روند هفتگی", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                progress.weekly.takeLast(4).forEach { period ->
+                    StatusCard(
+                        java.time.LocalDate.ofEpochDay(period.periodStartEpochDay).toString(),
+                        "${period.practiceMillis / 60_000} دقیقه تمرین · ${period.sessionCount} جلسه"
+                    )
+                }
+                Text("روند ماهانه", style = MaterialTheme.typography.titleMedium, color = PianovaInk)
+                progress.monthly.takeLast(3).forEach { period ->
+                    StatusCard(
+                        java.time.LocalDate.ofEpochDay(period.periodStartEpochDay).toString(),
+                        "${period.practiceMillis / 60_000} دقیقه تمرین · ${period.sessionCount} جلسه"
+                    )
+                }
+            }
             StatusCard("دستاوردها", achievements.size.toString())
         }
     }

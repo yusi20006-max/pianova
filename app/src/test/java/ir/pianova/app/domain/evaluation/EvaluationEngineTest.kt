@@ -3,13 +3,16 @@ package ir.pianova.app.domain.evaluation
 import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.core.midi.PianoInput
 import ir.pianova.app.domain.model.LessonStep
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -51,6 +54,38 @@ class EvaluationEngineTest {
         input.emit(PianoEvent.NoteOff(62, 2L))
         input.emit(PianoEvent.NoteOn(60, 0.8f, 3L))
         assertTrue(awaitStatus(session, EvaluationStatus.CORRECT).isComplete)
+    }
+
+    @Test
+    fun eachRepeatedStepSessionGetsANewAttemptId() = runBlocking {
+        val input = FakePianoInput()
+        val engine = EvaluationEngine(input)
+        val step = LessonStep.PlayNote("middle-c", "دو وسط", 60)
+        val first = engine.start(step, this)
+        val second = engine.start(step, this)
+
+        assertNotEquals(first.attemptId, second.attemptId)
+        first.cancel()
+        second.cancel()
+    }
+
+    @Test
+    fun transitionStreamPreservesRapidWrongAndCorrectOutcomes() = runBlocking {
+        val input = FakePianoInput()
+        val session = EvaluationEngine(input).start(
+            LessonStep.PlayNote("middle-c", "دو وسط", 60),
+            this
+        )
+        val transitions = async { session.transitions.toList() }
+        yield()
+
+        input.emit(PianoEvent.NoteOn(62, 0.8f, 1L))
+        input.emit(PianoEvent.NoteOff(62, 2L))
+        input.emit(PianoEvent.NoteOn(60, 0.8f, 3L))
+
+        val statuses = withTimeout(5_000) { transitions.await() }.map { it.status }
+        assertTrue(statuses.contains(EvaluationStatus.WRONG_NOTE))
+        assertTrue(statuses.contains(EvaluationStatus.CORRECT))
     }
 
     @Test

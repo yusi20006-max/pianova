@@ -38,6 +38,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import android.os.SystemClock
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,7 +54,12 @@ import ir.pianova.app.core.designsystem.PianovaMuted
 import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.data.lesson.LessonRepository
+import ir.pianova.app.core.database.EvaluationEvidenceEntity
+import ir.pianova.app.core.database.PianovaDatabase
+import ir.pianova.app.core.database.PracticeSessionEntity
+import ir.pianova.app.data.persistence.ProgressRepository
 import ir.pianova.app.data.lesson.SkillAttemptStore
 import ir.pianova.app.domain.evaluation.EvaluationEngine
 import ir.pianova.app.domain.evaluation.EvaluationSession
@@ -68,9 +77,28 @@ import ir.pianova.app.domain.model.displayTextFor
 import ir.pianova.app.domain.model.bodyFor
 import ir.pianova.app.domain.model.promptFor
 import ir.pianova.app.domain.model.LessonStep
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import java.util.UUID
+
+internal object ProgressPersistenceScope {
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        android.util.Log.e("PianovaProgress", "Progress persistence failed", throwable)
+    }
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1) + exceptionHandler)
+}
 
 @Composable
 fun LessonListScreen(
@@ -181,12 +209,61 @@ fun LessonPlayerScreen(
 ) {
     val context = LocalContext.current
     val attemptStore = remember(context, learnerId) { SkillAttemptStore(context.applicationContext, learnerId) }
+    val database = remember(context) { PianovaDatabase.getInstance(context) }
+    val progressRepository = remember(database) { ProgressRepository(database) }
+    val lifecycleOwner = LocalLifecycleOwner.current
     val masterySessionId = remember(lesson.id, startChapterId) { UUID.randomUUID().toString() }
+    val practiceClock = remember(masterySessionId) { PracticeSessionClock() }
+    LaunchedEffect(masterySessionId, pianoInput) {
+        pianoInput.events.collect { event ->
+            if (event is PianoEvent.NoteOn) practiceClock.recordNote()
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, masterySessionId) {
+        fun persistPracticeSession() {
+            val snapshot = practiceClock.snapshot()
+            ProgressPersistenceScope.scope.launch {
+                progressRepository.savePracticeSession(
+                    PracticeSessionEntity(
+                        sessionId = masterySessionId,
+                        learnerId = learnerId,
+                        lessonId = lesson.id,
+                        startedAtEpochMillis = snapshot.startedAtEpochMillis,
+                        endedAtEpochMillis = snapshot.endedAtEpochMillis,
+                        durationMillis = snapshot.activeDurationMillis,
+                        notesPlayed = snapshot.notesPlayed,
+                        correctNotes = snapshot.correctNotes,
+                        wrongNotes = snapshot.wrongNotes,
+                        wasInterrupted = snapshot.wasInterrupted
+                    )
+                )
+            }
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> practiceClock.resume()
+                Lifecycle.Event.ON_STOP -> {
+                    practiceClock.pause(interrupted = true)
+                    persistPracticeSession()
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) practiceClock.resume()
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            practiceClock.pause()
+            persistPracticeSession()
+        }
+    }
     val entries = remember(lesson) { lesson.flattenedSteps() }
     val startIndex = remember(lesson.id, startChapterId, entries) {
         entries.indexOfFirst { it.chapterId == startChapterId }.takeIf { it >= 0 } ?: 0
     }
     var stepIndex by remember(lesson.id, startChapterId) { mutableIntStateOf(startIndex) }
+    var retryAttempt by remember(lesson.id, startChapterId) { mutableIntStateOf(0) }
     var completedStepIds by remember(lesson.id, startChapterId) { mutableStateOf(emptySet<String>()) }
     var showCompleteDialog by remember(lesson.id, startChapterId) { mutableStateOf(false) }
     var masteryRefresh by remember(lesson.id) { mutableIntStateOf(0) }
@@ -206,7 +283,7 @@ fun LessonPlayerScreen(
     val coroutineScope = rememberCoroutineScope()
     var session by remember(lesson.id, step.id) { mutableStateOf<EvaluationSession?>(null) }
 
-    DisposableEffect(step.id) {
+    DisposableEffect(step.id, retryAttempt) {
         val created = if (playable) evaluationEngine.start(step, coroutineScope) else null
         session = created
         onDispose { created?.cancel() }
@@ -233,7 +310,7 @@ fun LessonPlayerScreen(
     var consecutiveErrors by remember(lesson.id) { mutableIntStateOf(0) }
     var consecutiveSuccesses by remember(lesson.id) { mutableIntStateOf(0) }
     var activityVersion by remember(lesson.id, step.id) { mutableIntStateOf(0) }
-    var answerRevealingHintUsed by remember(lesson.id, step.id) {
+    var answerRevealingHintUsed by remember(lesson.id, step.id, retryAttempt) {
         val initialLevel = lesson.pedagogy?.visualGuidance?.defaultLevel ?: 2
         val initialHint = step.scaffolding?.let { scaffold ->
             when (initialLevel) {
@@ -243,6 +320,65 @@ fun LessonPlayerScreen(
             }
         }
         mutableStateOf(initialHint?.revealsAnswer == true)
+    }
+    val answerHintEvidence = remember(lesson.id, step.id, retryAttempt) { MutableStateFlow(answerRevealingHintUsed) }
+
+    LaunchedEffect(lesson.id, step.id) {
+        ProgressPersistenceScope.scope.launch {
+            val existing = progressRepository.observeLesson(learnerId, lesson.id).first()
+            if (existing?.isCompleted != true) {
+                val savedIds = existing?.completedStepIdsJson?.let { raw ->
+                    runCatching { Json.decodeFromString(ListSerializer(String.serializer()), raw) }
+                        .getOrDefault(emptyList())
+                }.orEmpty()
+                val now = System.currentTimeMillis()
+                progressRepository.saveLessonProgress(
+                    ir.pianova.app.core.database.LessonProgressEntity(
+                        progressId = existing?.progressId ?: UUID.randomUUID().toString(),
+                        learnerId = learnerId,
+                        lessonId = lesson.id,
+                        completedStepIdsJson = Json.encodeToString(ListSerializer(String.serializer()), savedIds.distinct().sorted()),
+                        isCompleted = false,
+                        lastAccessedAtEpochMillis = now,
+                        completedAtEpochMillis = null,
+                        currentStepId = step.id
+                    )
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(step.id, session) {
+        val activeSession = session ?: return@LaunchedEffect
+        ProgressPersistenceScope.scope.launch {
+            activeSession.transitions.collect { transition ->
+            if (transition.status in setOf(
+                    EvaluationStatus.CORRECT,
+                    EvaluationStatus.WRONG_NOTE,
+                    EvaluationStatus.MISSING_NOTE,
+                    EvaluationStatus.EXTRA_NOTE
+                ) && (transition.receivedNotes.isNotEmpty() || transition.status == EvaluationStatus.MISSING_NOTE)
+            ) {
+                practiceClock.recordEvaluation(transition.status)
+                val evidenceId = "${masterySessionId}:${activeSession.attemptId}:${transition.receivedNotes.size}:${transition.status.name}"
+                progressRepository.saveEvaluationEvidence(
+                    EvaluationEvidenceEntity(
+                        evaluationId = evidenceId,
+                        learnerId = learnerId,
+                        sessionId = masterySessionId,
+                        lessonId = lesson.id,
+                        stepId = step.id,
+                        skillId = step.skillId,
+                        occurredAtEpochMillis = System.currentTimeMillis(),
+                        status = transition.status.name,
+                        expectedMidiNotesCsv = transition.expectedNotes.ifEmpty { step.targetMidiNotes() }.joinToString(","),
+                        receivedMidiNotesCsv = transition.receivedNotes.joinToString(","),
+                        answerRevealingHintUsed = answerHintEvidence.value
+                    )
+                )
+            }
+            }
+        }
     }
 
     LaunchedEffect(step.id, evaluation.isComplete) {
@@ -391,7 +527,10 @@ fun LessonPlayerScreen(
                                             3 -> scaffolding.level3
                                             else -> scaffolding.level2
                                         }
-                                        if (hint.revealsAnswer) answerRevealingHintUsed = true
+                                        if (hint.revealsAnswer) {
+                                            answerRevealingHintUsed = true
+                                            answerHintEvidence.value = true
+                                        }
                                     }) { Text("راهنمایی $level") }
                                 }
                             }
@@ -406,7 +545,10 @@ fun LessonPlayerScreen(
                                     3 -> scaffolding.level3
                                     else -> scaffolding.level2
                                 }
-                                if (hint.revealsAnswer) answerRevealingHintUsed = true
+                                if (hint.revealsAnswer) {
+                                    answerRevealingHintUsed = true
+                                    answerHintEvidence.value = true
+                                }
                             }) { Text("پیشنهاد تغییر به سطح $suggested") }
                         }
                     }
@@ -502,7 +644,31 @@ fun LessonPlayerScreen(
                 TextButton(onClick = onExit, modifier = Modifier.weight(1f)) { Text("خروج از درس") }
                 Button(
                     onClick = {
-                        completedStepIds = completedStepIds + step.id
+                        val updatedInSession = completedStepIds + step.id
+                        completedStepIds = updatedInSession
+                        ProgressPersistenceScope.scope.launch {
+                            val existing = progressRepository.observeLesson(learnerId, lesson.id).first()
+                            val previousIds = existing?.completedStepIdsJson?.let { raw ->
+                                runCatching {
+                                    Json.decodeFromString(ListSerializer(String.serializer()), raw)
+                                }.getOrDefault(emptyList())
+                            }.orEmpty()
+                            val allCompletedIds = (previousIds + updatedInSession).toSet()
+                            val lessonCompleted = existing?.isCompleted == true || entries.all { it.step.id in allCompletedIds }
+                            val now = System.currentTimeMillis()
+                            progressRepository.saveLessonProgress(
+                                ir.pianova.app.core.database.LessonProgressEntity(
+                                    progressId = existing?.progressId ?: UUID.randomUUID().toString(),
+                                    learnerId = learnerId,
+                                    lessonId = lesson.id,
+                                    completedStepIdsJson = Json.encodeToString(ListSerializer(String.serializer()), allCompletedIds.sorted()),
+                                    isCompleted = lessonCompleted,
+                                    lastAccessedAtEpochMillis = now,
+                                    completedAtEpochMillis = if (lessonCompleted) existing?.completedAtEpochMillis ?: now else null,
+                                    currentStepId = if (lessonCompleted) null else entries.getOrNull(stepIndex + 1)?.step?.id
+                                )
+                            )
+                        }
                         if (stepIndex < entries.lastIndex) {
                             stepIndex++
                         } else {
@@ -531,11 +697,90 @@ fun LessonPlayerScreen(
             dismissButton = {
                 TextButton(onClick = {
                     stepIndex = 0
+                    retryAttempt++
                     completedStepIds = emptySet()
                     showCompleteDialog = false
                 }) { Text("مرور دوباره") }
             }
         )
+    }
+}
+
+
+internal data class PracticeClockSnapshot(
+    val startedAtEpochMillis: Long,
+    val endedAtEpochMillis: Long?,
+    val activeDurationMillis: Long,
+    val wasInterrupted: Boolean,
+    val notesPlayed: Int,
+    val correctNotes: Int,
+    val wrongNotes: Int
+)
+
+/** Measures foreground time only; elapsedRealtime avoids wall-clock adjustments. */
+internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { SystemClock.elapsedRealtime() }) {
+    private val createdAtEpochMillis = System.currentTimeMillis()
+    private var startedAtEpochMillis: Long? = null
+    private var activeSinceElapsedMillis: Long? = null
+    private var accumulatedActiveMillis = 0L
+    private var wasInterrupted = false
+    private var notesPlayed = 0
+    private var correctNotes = 0
+    private var wrongNotes = 0
+
+    private var isForeground = false
+
+    @Synchronized fun resume() {
+        isForeground = true
+    }
+
+    @Synchronized fun recordNote() {
+        notesPlayed++
+        if (startedAtEpochMillis == null) startedAtEpochMillis = System.currentTimeMillis()
+        if (!isForeground) return
+        val now = elapsedRealtime()
+        activeSinceElapsedMillis?.let { previous ->
+            accumulatedActiveMillis += (now - previous).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
+        }
+        activeSinceElapsedMillis = now
+    }
+
+    @Synchronized fun recordEvaluation(status: EvaluationStatus) {
+        when (status) {
+            EvaluationStatus.CORRECT -> correctNotes++
+            EvaluationStatus.WRONG_NOTE, EvaluationStatus.MISSING_NOTE, EvaluationStatus.EXTRA_NOTE -> wrongNotes++
+            else -> Unit
+        }
+    }
+
+    @Synchronized fun pause(interrupted: Boolean = false) {
+        if (!isForeground) return
+        val now = elapsedRealtime()
+        activeSinceElapsedMillis?.let { previous ->
+            accumulatedActiveMillis += (now - previous).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
+        }
+        activeSinceElapsedMillis = null
+        isForeground = false
+        wasInterrupted = wasInterrupted || interrupted
+    }
+
+    @Synchronized fun snapshot(): PracticeClockSnapshot {
+        val currentActive = activeSinceElapsedMillis?.let {
+            (elapsedRealtime() - it).coerceIn(0L, IDLE_TIMEOUT_MILLIS)
+        } ?: 0L
+        return PracticeClockSnapshot(
+            startedAtEpochMillis = startedAtEpochMillis ?: createdAtEpochMillis,
+            endedAtEpochMillis = if (isForeground) null else System.currentTimeMillis(),
+            activeDurationMillis = accumulatedActiveMillis + currentActive,
+            wasInterrupted = wasInterrupted,
+            notesPlayed = notesPlayed,
+            correctNotes = correctNotes,
+            wrongNotes = wrongNotes
+        )
+    }
+
+    private companion object {
+        const val IDLE_TIMEOUT_MILLIS = 60_000L
     }
 }
 

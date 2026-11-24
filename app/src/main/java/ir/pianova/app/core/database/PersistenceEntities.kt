@@ -54,7 +54,8 @@ data class LessonProgressEntity(
     val completedStepIdsJson: String = "[]",
     val isCompleted: Boolean = false,
     val lastAccessedAtEpochMillis: Long,
-    val completedAtEpochMillis: Long? = null
+    val completedAtEpochMillis: Long? = null,
+    val currentStepId: String? = null
 )
 
 @Entity(
@@ -70,7 +71,8 @@ data class PracticeSessionEntity(
     val durationMillis: Long = 0,
     val notesPlayed: Int = 0,
     val correctNotes: Int = 0,
-    val wrongNotes: Int = 0
+    val wrongNotes: Int = 0,
+    @ColumnInfo(defaultValue = "0") val wasInterrupted: Boolean = false
 )
 
 @Entity(
