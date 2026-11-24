@@ -205,6 +205,27 @@ class PianovaDatabaseTest {
     }
 
     @Test
+    fun concurrentLessonProgressUpdatesMergeCompletedStepsAndKeepNewestCurrentStep() = runBlocking {
+        database.familyDao().upsert(FamilyEntity("family-a", 1, 1))
+        val repository = ProgressRepository(database)
+        repository.saveLearnerProfile(
+            LearnerProfileEntity("learner-a", "family-a", "هنرجو", createdAtEpochMillis = 1, updatedAtEpochMillis = 1)
+        )
+
+        repository.saveLessonProgress(
+            LessonProgressEntity("progress-1", "learner-a", "lesson-1", """["step-1"]""", false, 20, currentStepId = "step-3")
+        )
+        repository.saveLessonProgress(
+            LessonProgressEntity("progress-2", "learner-a", "lesson-1", """["step-2"]""", false, 10, currentStepId = "step-2")
+        )
+
+        val saved = repository.observeLesson("learner-a", "lesson-1").first()!!
+        assertEquals("""["step-1","step-2"]""", saved.completedStepIdsJson)
+        assertEquals("step-3", saved.currentStepId)
+        assertEquals(20L, saved.lastAccessedAtEpochMillis)
+    }
+
+    @Test
     fun familyProfileLifecyclePersistsGoalsAndDeletesOnlySelectedLearner() = runBlocking {
         val repository = RoomFamilyRepository(database)
         repository.saveFamily(Family("local-family", 1, 1))
