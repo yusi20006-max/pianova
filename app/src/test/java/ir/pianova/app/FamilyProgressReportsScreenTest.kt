@@ -1,6 +1,7 @@
 package ir.pianova.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -9,7 +10,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import android.content.Context
 import ir.pianova.app.core.database.FamilyEntity
-import ir.pianova.app.core.database.LearnerProfileEntity
+import ir.pianova.app.core.database.LessonProgressEntity
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.data.persistence.ProgressRepository
@@ -42,6 +43,7 @@ class FamilyProgressReportsScreenTest {
             familyRepository.saveFamily(ir.pianova.app.domain.family.Family("family-a", 1, 1))
             familyRepository.saveLearner(learner("learner-a", "آراد"))
             familyRepository.saveLearner(learner("learner-b", "نورا"))
+            familyRepository.saveLearner(learner("learner-c", "سارا"))
             familyRepository.saveGoal("learner-a", "تمرین روزانه آراد")
             familyRepository.saveGoal("learner-b", "تمرین روزانه نورا")
             val progress = ProgressRepository(database)
@@ -50,6 +52,9 @@ class FamilyProgressReportsScreenTest {
             )
             progress.savePracticeSession(
                 PracticeSessionEntity("session-b", "learner-b", "lesson-1", 1_000, 181_000, 180_000, 6, 5, 1)
+            )
+            progress.saveLessonProgress(
+                LessonProgressEntity("progress-c", "learner-c", "lesson-open", "[]", false, 300_000, currentStepId = "step-1")
             )
         }
     }
@@ -84,6 +89,24 @@ class FamilyProgressReportsScreenTest {
         composeRule.onNodeWithText("تمرین روزانه نورا").assertIsDisplayed()
         composeRule.onNodeWithText("3 دقیقه").assertIsDisplayed()
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
+    }
+
+    @Test
+    fun lessonOnlyRecentActivityIsNotHiddenByTheEmptyState() {
+        composeRule.setContent {
+            MaterialTheme {
+                FamilyProgressReportsScreen(
+                    familyId = "family-a",
+                    familyRepository = familyRepository,
+                    database = database,
+                    onBack = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("سارا").performClick()
+        composeRule.onNodeWithText("آخرین فعالیت در درس").assertIsDisplayed()
+        composeRule.onNodeWithText("هنوز گزارشی برای این هنرجو ثبت نشده است").assertDoesNotExist()
     }
 
     private fun learner(id: String, name: String) = ir.pianova.app.domain.family.LearnerProfile(
