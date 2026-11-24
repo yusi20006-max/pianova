@@ -103,8 +103,10 @@ class ProgressRepository(private val database: PianovaDatabase) {
     fun observePracticeSessionsBetween(learnerId: String, from: Long, until: Long): Flow<List<PracticeSessionEntity>> =
         sessions.observeBetween(learnerId, from, until)
     suspend fun savePracticeSession(session: PracticeSessionEntity) {
-        requireLearner(session.learnerId)
-        sessions.upsert(session)
+        database.withTransaction {
+            requireLearner(session.learnerId)
+            sessions.upsert(session)
+        }
     }
 
     fun observeEvaluationEvidence(learnerId: String): Flow<List<EvaluationEvidenceEntity>> =
@@ -166,22 +168,28 @@ class ProgressRepository(private val database: PianovaDatabase) {
     fun observeAchievements(learnerId: String): Flow<List<UserAchievementEntity>> =
         achievements.observeForLearner(learnerId)
     suspend fun saveAchievement(achievement: UserAchievementEntity) {
-        requireLearner(achievement.learnerId)
-        achievements.upsert(achievement)
+        database.withTransaction {
+            requireLearner(achievement.learnerId)
+            achievements.upsert(achievement)
+        }
     }
 
     fun observeDailyMissions(learnerId: String, dateEpochDay: Long): Flow<List<DailyMissionEntity>> =
         missions.observeForDay(learnerId, dateEpochDay)
     suspend fun saveDailyMission(mission: DailyMissionEntity) {
-        requireLearner(mission.learnerId)
-        missions.upsert(mission)
+        database.withTransaction {
+            requireLearner(mission.learnerId)
+            missions.upsert(mission)
+        }
     }
 
     fun observeSongProgress(learnerId: String): Flow<List<SongProgressEntity>> =
         songs.observeForLearner(learnerId)
     suspend fun saveSongProgress(progress: SongProgressEntity) {
-        requireLearner(progress.learnerId)
-        songs.upsert(progress)
+        database.withTransaction {
+            requireLearner(progress.learnerId)
+            songs.upsert(progress)
+        }
     }
 
     private suspend fun requireLearner(learnerId: String) {
