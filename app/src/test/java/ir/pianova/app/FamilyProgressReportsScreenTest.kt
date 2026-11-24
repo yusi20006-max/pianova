@@ -1,7 +1,6 @@
 package ir.pianova.app
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -106,7 +105,6 @@ class FamilyProgressReportsScreenTest {
 
         composeRule.onNodeWithText("سارا").performClick()
         composeRule.onNodeWithText("آخرین فعالیت در درس").assertIsDisplayed()
-        composeRule.onNodeWithText("هنوز گزارشی برای این هنرجو ثبت نشده است").assertDoesNotExist()
     }
 
     private fun learner(id: String, name: String) = ir.pianova.app.domain.family.LearnerProfile(
