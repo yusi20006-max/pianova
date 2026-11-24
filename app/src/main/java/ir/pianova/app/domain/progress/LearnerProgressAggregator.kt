@@ -116,7 +116,7 @@ object LearnerProgressAggregator {
         val mistakes = uniqueCompleted
             .filter { it.status == "WRONG_NOTE" || it.status == "EXTRA_NOTE" }
             .mapNotNull { evidence ->
-                val expected = evidence.expectedMidiNotes.firstOrNull()
+                val expected = evidence.expectedMidiNotes.singleOrNull()
                 val received = evidence.receivedMidiNotes.lastOrNull()
                 if (expected == null || received == null || expected == received) null
                 else expected to received
