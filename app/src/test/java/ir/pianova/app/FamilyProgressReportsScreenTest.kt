@@ -5,10 +5,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import android.content.Context
-import ir.pianova.app.core.database.FamilyEntity
 import ir.pianova.app.core.database.LessonProgressEntity
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.PracticeSessionEntity
@@ -65,7 +65,7 @@ class FamilyProgressReportsScreenTest {
 
     @Test
     fun learnerReportsShowOnlyThatLearnersPersistedMetricsWithoutSwitchingProfile() {
-        var activeLearnerId = "learner-a"
+        val activeLearnerId = "learner-a"
         composeRule.setContent {
             MaterialTheme {
                 FamilyProgressReportsScreen(
