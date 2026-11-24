@@ -1,6 +1,8 @@
 package ir.pianova.app.domain.progress
 
 import ir.pianova.app.domain.family.LearnerProfile
+import java.time.DayOfWeek
+import java.time.LocalDate
 
 data class LearnerActivityEvidence(
     val learnerId: String,
@@ -64,4 +66,16 @@ object FamilyProgressOverviewFactory {
             totalSessionCount = reports.sumOf { it.progress.sessionCount },
             totalCompletedLessonCount = reports.sumOf { it.progress.completedLessonCount }
         )
+}
+
+object CompletedPeriodSelector {
+    fun weeks(periods: List<PeriodProgress>, today: LocalDate): List<PeriodProgress> {
+        val currentWeekStart = today.with(DayOfWeek.MONDAY)
+        return periods.filter { LocalDate.ofEpochDay(it.periodStartEpochDay).isBefore(currentWeekStart) }
+    }
+
+    fun months(periods: List<PeriodProgress>, today: LocalDate): List<PeriodProgress> {
+        val currentMonthStart = today.withDayOfMonth(1)
+        return periods.filter { LocalDate.ofEpochDay(it.periodStartEpochDay).isBefore(currentMonthStart) }
+    }
 }
