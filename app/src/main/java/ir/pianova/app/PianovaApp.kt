@@ -676,7 +676,7 @@ private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Uni
         ),
         "کتابخانه و پیشرفت" to listOf(
             MenuEntry("کتابخانه آهنگ‌ها", "در حال توسعه", "library"),
-            MenuEntry("پیشرفت و دستاوردها", "آماده", "progress"),
+            MenuEntry("پیشرفت و دستاوردها", "در حال توسعه", "progress"),
             MenuEntry("گزارش خانواده", "آماده", "family-reports")
         ),
         "ابزارهای آموزشی" to listOf(
