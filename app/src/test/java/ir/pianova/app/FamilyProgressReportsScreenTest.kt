@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -15,6 +16,7 @@ import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.data.persistence.ProgressRepository
 import ir.pianova.app.data.persistence.RoomFamilyRepository
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -56,6 +58,9 @@ class FamilyProgressReportsScreenTest {
             progress.saveLessonProgress(
                 LessonProgressEntity("progress-c", "learner-c", "lesson-open", "[]", false, 300_000, currentStepId = "step-1")
             )
+            assertEquals(600_000L, progress.observeLearnerProgress("learner-a").first().practiceMillis)
+            assertEquals("تمرین روزانه آراد", progress.observeLearnerGoal("learner-a").first()?.goalText)
+            assertEquals(1, progress.observeLessonProgress("learner-c").first().size)
         }
     }
 
@@ -80,6 +85,8 @@ class FamilyProgressReportsScreenTest {
 
         composeRule.onNodeWithText("گزارش خانواده").assertIsDisplayed()
         composeRule.onNodeWithText("آراد").performClick()
+        composeRule.onRoot().printToLog("FamilyReportAfterArad")
+        composeRule.onNodeWithText("گزارش آراد").assertIsDisplayed()
         composeRule.onNodeWithText("تمرین روزانه آراد").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText("10 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
@@ -105,6 +112,8 @@ class FamilyProgressReportsScreenTest {
         }
 
         composeRule.onNodeWithText("سارا").performClick()
+        composeRule.onRoot().printToLog("FamilyReportAfterSara")
+        composeRule.onNodeWithText("گزارش سارا").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText("آخرین فعالیت در درس").fetchSemanticsNodes().isNotEmpty())
     }
 
