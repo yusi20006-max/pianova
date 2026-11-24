@@ -90,6 +90,42 @@ class FamilyProgressReportTest {
         )
     }
 
+    @Test
+    fun comparisonsExcludeTheCurrentPartialWeekAndMonth() {
+        val weeks = listOf(
+            period("2026-11-09"),
+            period("2026-11-16"),
+            period("2026-11-23")
+        )
+        val months = listOf(
+            period("2026-09-01"),
+            period("2026-10-01"),
+            period("2026-11-01")
+        )
+        val today = java.time.LocalDate.of(2026, 11, 24)
+
+        assertEquals(
+            listOf("2026-11-09", "2026-11-16"),
+            CompletedPeriodSelector.weeks(weeks, today).map {
+                java.time.LocalDate.ofEpochDay(it.periodStartEpochDay).toString()
+            }
+        )
+        assertEquals(
+            listOf("2026-09-01", "2026-10-01"),
+            CompletedPeriodSelector.months(months, today).map {
+                java.time.LocalDate.ofEpochDay(it.periodStartEpochDay).toString()
+            }
+        )
+    }
+
+    private fun period(date: String) = PeriodProgress(
+        periodStartEpochDay = java.time.LocalDate.parse(date).toEpochDay(),
+        practiceMillis = 60_000,
+        sessionCount = 1,
+        completedEvaluations = 1,
+        correctEvaluations = 1
+    )
+
     private fun learner(id: String) = LearnerProfile(
         learnerId = id,
         familyId = "family-a",
