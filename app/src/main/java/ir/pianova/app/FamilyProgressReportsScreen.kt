@@ -168,7 +168,6 @@ fun FamilyProgressReportsScreen(
 @Composable
 private fun LearnerReportCard(report: FamilyLearnerReport, onOpen: () -> Unit) {
     Card(
-        onClick = onOpen,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = PianovaWhite),
