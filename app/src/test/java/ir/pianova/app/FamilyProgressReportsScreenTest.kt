@@ -1,9 +1,9 @@
 package ir.pianova.app
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.room.Room
@@ -17,6 +17,7 @@ import ir.pianova.app.data.persistence.RoomFamilyRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -80,13 +81,13 @@ class FamilyProgressReportsScreenTest {
         composeRule.onNodeWithText("گزارش خانواده").assertIsDisplayed()
         composeRule.onNodeWithText("آراد").performClick()
         composeRule.onNodeWithText("تمرین روزانه آراد").assertIsDisplayed()
-        composeRule.onNodeWithText("10 دقیقه").assertExists()
+        assertTrue(composeRule.onAllNodesWithText("10 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
 
         composeRule.onNodeWithText("گزارش خانواده").performClick()
         composeRule.onNodeWithText("نورا").performClick()
         composeRule.onNodeWithText("تمرین روزانه نورا").assertIsDisplayed()
-        composeRule.onNodeWithText("3 دقیقه").assertExists()
+        assertTrue(composeRule.onAllNodesWithText("3 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
     }
 
@@ -104,7 +105,7 @@ class FamilyProgressReportsScreenTest {
         }
 
         composeRule.onNodeWithText("سارا").performClick()
-        composeRule.onNodeWithText("آخرین فعالیت در درس").assertExists()
+        assertTrue(composeRule.onAllNodesWithText("آخرین فعالیت در درس").fetchSemanticsNodes().isNotEmpty())
     }
 
     private fun learner(id: String, name: String) = ir.pianova.app.domain.family.LearnerProfile(
