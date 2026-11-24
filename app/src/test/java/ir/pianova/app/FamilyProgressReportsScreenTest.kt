@@ -81,13 +81,13 @@ class FamilyProgressReportsScreenTest {
         composeRule.onNodeWithText("گزارش خانواده").assertIsDisplayed()
         composeRule.onNodeWithText("آراد").performClick()
         composeRule.onNodeWithText("تمرین روزانه آراد").assertIsDisplayed()
-        composeRule.onNodeWithText("10 دقیقه").assertIsDisplayed()
+        composeRule.onNodeWithText("10 دقیقه").performScrollTo().assertIsDisplayed()
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
 
         composeRule.onNodeWithText("گزارش خانواده").performClick()
         composeRule.onNodeWithText("نورا").performClick()
         composeRule.onNodeWithText("تمرین روزانه نورا").assertIsDisplayed()
-        composeRule.onNodeWithText("3 دقیقه").assertIsDisplayed()
+        composeRule.onNodeWithText("3 دقیقه").performScrollTo().assertIsDisplayed()
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
     }
 
