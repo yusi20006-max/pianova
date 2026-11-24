@@ -134,7 +134,7 @@ fun FamilyProgressReportsScreen(
                 }
                 TextButton(onClick = {
                     if (selectedReport != null) selectedLearnerId = null else onBack()
-                }) { Text(if (selectedReport != null) "گزارش خانواده" else "بازگشت") }
+                }) { Text(if (selectedReport != null) "بازگشت به گزارش خانواده" else "بازگشت") }
             }
 
             if (selectedReport == null) {
