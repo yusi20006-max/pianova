@@ -1,5 +1,7 @@
 package ir.pianova.app
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -415,9 +417,14 @@ private fun destinationLabel(route: String): String = when (route) {
 }
 
 @Composable
-private fun PageColumn(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun PageColumn(
+    scrollable: Boolean = false,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
+) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 20.dp),
+        modifier = Modifier.fillMaxSize()
+            .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+            .padding(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content
     )
@@ -558,7 +565,7 @@ private fun ProgressScreen(learnerId: String) {
         initial = LearnerProgressSnapshot(learnerId, 0L, 0, 0, 0, null, emptyList(), emptyList(), emptyList())
     )
 
-    PageColumn {
+    PageColumn(scrollable = true) {
         PageTitle("پیشرفت من", "مسیر تمرین و مهارت‌هایت را اینجا دنبال می‌کنی")
         if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty() &&
             learnerGoal == null && learnerProgress.evaluationCount == 0
