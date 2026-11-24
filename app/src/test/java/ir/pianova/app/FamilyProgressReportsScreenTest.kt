@@ -84,14 +84,14 @@ class FamilyProgressReportsScreenTest {
         }
 
         composeRule.onNodeWithText("گزارش خانواده").assertIsDisplayed()
-        composeRule.onNodeWithText("آراد").performClick()
+        composeRule.onNodeWithText("مشاهده گزارش آراد").performScrollTo().performClick()
         composeRule.onNodeWithText("گزارش آراد").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText("تمرین روزانه آراد").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("10 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
 
         composeRule.onNodeWithText("بازگشت به گزارش خانواده").performClick()
-        composeRule.onNodeWithText("نورا").performScrollTo().performClick()
+        composeRule.onNodeWithText("مشاهده گزارش نورا").performScrollTo().performClick()
         assertTrue(composeRule.onAllNodesWithText("تمرین روزانه نورا").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("3 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
@@ -110,7 +110,7 @@ class FamilyProgressReportsScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("سارا").performScrollTo().performClick()
+        composeRule.onNodeWithText("مشاهده گزارش سارا").performScrollTo().performClick()
         composeRule.onNodeWithText("گزارش سارا").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText("آخرین فعالیت در درس").fetchSemanticsNodes().isNotEmpty())
     }
