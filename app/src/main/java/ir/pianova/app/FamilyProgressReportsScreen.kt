@@ -201,7 +201,7 @@ private fun LearnerReportDetail(report: FamilyLearnerReport) {
     val progress = report.progress
     report.goal?.let { ReportMetricCard("هدف یادگیری", it) }
     val hasEvidence = progress.practiceMillis > 0 || progress.evaluationCount > 0 ||
-        progress.completedLessonCount > 0 || progress.skills.isNotEmpty()
+        progress.completedLessonCount > 0 || progress.skills.isNotEmpty() || report.recentActivity != null
     if (!hasEvidence) {
         ReportEmptyState(
             "هنوز گزارشی برای این هنرجو ثبت نشده است",
