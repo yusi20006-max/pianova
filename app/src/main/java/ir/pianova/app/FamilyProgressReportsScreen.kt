@@ -29,6 +29,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import ir.pianova.app.core.database.PianovaDatabase
+import ir.pianova.app.core.designsystem.PianovaBorder
+import ir.pianova.app.core.designsystem.PianovaGreen
+import ir.pianova.app.core.designsystem.PianovaInk
+import ir.pianova.app.core.designsystem.PianovaMuted
+import ir.pianova.app.core.designsystem.PianovaSage
+import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.data.persistence.ProgressRepository
 import ir.pianova.app.data.persistence.RoomFamilyRepository
 import ir.pianova.app.domain.family.LearnerAudience
