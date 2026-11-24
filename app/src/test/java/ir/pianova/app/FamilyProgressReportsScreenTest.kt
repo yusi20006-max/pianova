@@ -90,7 +90,7 @@ class FamilyProgressReportsScreenTest {
         assertTrue(composeRule.onAllNodesWithText("10 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
 
-        composeRule.onNodeWithText("گزارش خانواده").performClick()
+        composeRule.onNodeWithText("بازگشت به گزارش خانواده").performClick()
         composeRule.onNodeWithText("نورا").performScrollTo().performClick()
         assertTrue(composeRule.onAllNodesWithText("تمرین روزانه نورا").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("3 دقیقه").fetchSemanticsNodes().isNotEmpty())
