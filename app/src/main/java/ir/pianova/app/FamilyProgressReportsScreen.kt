@@ -181,7 +181,7 @@ private fun LearnerReportCard(report: FamilyLearnerReport, onOpen: () -> Unit) {
                     Text(report.learner.displayName, color = PianovaInk, fontWeight = FontWeight.Bold)
                     Text(audienceLabel(report.learner.audience), color = PianovaMuted, style = MaterialTheme.typography.bodySmall)
                 }
-                Text("مشاهده گزارش", color = PianovaGreen, style = MaterialTheme.typography.labelLarge)
+                TextButton(onClick = onOpen) { Text("مشاهده گزارش ${report.learner.displayName}") }
             }
             Text(
                 "تمرین فعال: ${formatPracticeTime(report.progress.practiceMillis)} · ${report.progress.sessionCount} جلسه",
