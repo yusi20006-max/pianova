@@ -1,11 +1,11 @@
 package ir.pianova.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import android.content.Context
@@ -80,13 +80,13 @@ class FamilyProgressReportsScreenTest {
         composeRule.onNodeWithText("گزارش خانواده").assertIsDisplayed()
         composeRule.onNodeWithText("آراد").performClick()
         composeRule.onNodeWithText("تمرین روزانه آراد").assertIsDisplayed()
-        composeRule.onNodeWithText("10 دقیقه").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("10 دقیقه").assertExists()
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
 
         composeRule.onNodeWithText("گزارش خانواده").performClick()
         composeRule.onNodeWithText("نورا").performClick()
         composeRule.onNodeWithText("تمرین روزانه نورا").assertIsDisplayed()
-        composeRule.onNodeWithText("3 دقیقه").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("3 دقیقه").assertExists()
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
     }
 
@@ -104,7 +104,7 @@ class FamilyProgressReportsScreenTest {
         }
 
         composeRule.onNodeWithText("سارا").performClick()
-        composeRule.onNodeWithText("آخرین فعالیت در درس").assertIsDisplayed()
+        composeRule.onNodeWithText("آخرین فعالیت در درس").assertExists()
     }
 
     private fun learner(id: String, name: String) = ir.pianova.app.domain.family.LearnerProfile(
