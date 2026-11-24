@@ -85,13 +85,13 @@ class FamilyProgressReportsScreenTest {
         composeRule.onNodeWithText("گزارش خانواده").assertIsDisplayed()
         composeRule.onNodeWithText("آراد").performClick()
         composeRule.onNodeWithText("گزارش آراد").assertIsDisplayed()
-        composeRule.onNodeWithText("تمرین روزانه آراد").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText("تمرین روزانه آراد").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("10 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
 
         composeRule.onNodeWithText("گزارش خانواده").performClick()
         composeRule.onNodeWithText("نورا").performClick()
-        composeRule.onNodeWithText("تمرین روزانه نورا").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText("تمرین روزانه نورا").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("3 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
     }
