@@ -22,6 +22,11 @@ import ir.pianova.app.domain.progress.LearnerProgressSnapshot
 import ir.pianova.app.domain.progress.PracticeEvidence
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.time.ZoneId
 
 /** All learner-owned progress queries require an explicit stable learnerId. */
@@ -56,9 +61,11 @@ class ProgressRepository(private val database: PianovaDatabase) {
         goals.observeForLearner(learnerId)
 
     suspend fun saveLearnerGoal(learnerId: String, goalText: String, updatedAtEpochMillis: Long) {
-        requireLearner(learnerId)
         require(goalText.isNotBlank() && updatedAtEpochMillis >= 0)
-        goals.upsert(LearnerGoalEntity(learnerId, goalText.trim(), updatedAtEpochMillis))
+        database.withTransaction {
+            requireLearner(learnerId)
+            goals.upsert(LearnerGoalEntity(learnerId, goalText.trim(), updatedAtEpochMillis))
+        }
     }
 
     fun observeLessonProgress(learnerId: String): Flow<List<LessonProgressEntity>> =
@@ -66,8 +73,29 @@ class ProgressRepository(private val database: PianovaDatabase) {
     fun observeLesson(learnerId: String, lessonId: String): Flow<LessonProgressEntity?> =
         lessons.observeLesson(learnerId, lessonId)
     suspend fun saveLessonProgress(progress: LessonProgressEntity) {
-        requireLearner(progress.learnerId)
-        lessons.upsert(progress)
+        database.withTransaction {
+            requireLearner(progress.learnerId)
+            val current = lessons.findLesson(progress.learnerId, progress.lessonId)
+            val serializer = ListSerializer(String.serializer())
+            val existingSteps = current?.completedStepIdsJson?.let { encoded ->
+                runCatching { Json.decodeFromString(serializer, encoded) }.getOrDefault(emptyList())
+            }.orEmpty()
+            val incomingSteps = runCatching {
+                Json.decodeFromString(serializer, progress.completedStepIdsJson)
+            }.getOrDefault(emptyList())
+            val mergedSteps = Json.encodeToString(serializer, (existingSteps + incomingSteps).distinct())
+            val incomingIsNewer = current == null ||
+                progress.lastAccessedAtEpochMillis >= current.lastAccessedAtEpochMillis
+            lessons.upsert(
+                progress.copy(
+                    completedStepIdsJson = mergedSteps,
+                    isCompleted = progress.isCompleted || current?.isCompleted == true,
+                    completedAtEpochMillis = progress.completedAtEpochMillis ?: current?.completedAtEpochMillis,
+                    currentStepId = if (incomingIsNewer) progress.currentStepId else current?.currentStepId,
+                    lastAccessedAtEpochMillis = maxOf(progress.lastAccessedAtEpochMillis, current?.lastAccessedAtEpochMillis ?: 0L)
+                )
+            )
+        }
     }
 
     fun observePracticeSessions(learnerId: String): Flow<List<PracticeSessionEntity>> =
@@ -83,11 +111,13 @@ class ProgressRepository(private val database: PianovaDatabase) {
         evaluationEvidence.observeForLearner(learnerId)
 
     suspend fun saveEvaluationEvidence(evidence: EvaluationEvidenceEntity) {
-        requireLearner(evidence.learnerId)
         require(evidence.evaluationId.isNotBlank() && evidence.sessionId.isNotBlank())
         require(evidence.lessonId.isNotBlank() && evidence.stepId.isNotBlank())
         require(evidence.occurredAtEpochMillis >= 0)
-        evaluationEvidence.upsert(evidence)
+        database.withTransaction {
+            requireLearner(evidence.learnerId)
+            evaluationEvidence.upsert(evidence)
+        }
     }
 
     fun observeLearnerProgress(
