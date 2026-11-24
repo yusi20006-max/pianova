@@ -78,6 +78,7 @@ import ir.pianova.app.domain.model.bodyFor
 import ir.pianova.app.domain.model.promptFor
 import ir.pianova.app.domain.model.LessonStep
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -93,7 +94,10 @@ import kotlinx.coroutines.flow.collect
 import java.util.UUID
 
 internal object ProgressPersistenceScope {
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        android.util.Log.e("PianovaProgress", "Progress persistence failed", throwable)
+    }
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1) + exceptionHandler)
 }
 
 @Composable
@@ -240,7 +244,7 @@ fun LessonPlayerScreen(
             when (event) {
                 Lifecycle.Event.ON_START -> practiceClock.resume()
                 Lifecycle.Event.ON_STOP -> {
-                    practiceClock.pause()
+                    practiceClock.pause(interrupted = true)
                     persistPracticeSession()
                 }
                 else -> Unit
@@ -749,7 +753,7 @@ internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { 
         }
     }
 
-    @Synchronized fun pause() {
+    @Synchronized fun pause(interrupted: Boolean = false) {
         if (!isForeground) return
         val now = elapsedRealtime()
         activeSinceElapsedMillis?.let { previous ->
@@ -757,7 +761,7 @@ internal class PracticeSessionClock(private val elapsedRealtime: () -> Long = { 
         }
         activeSinceElapsedMillis = null
         isForeground = false
-        wasInterrupted = true
+        wasInterrupted = wasInterrupted || interrupted
     }
 
     @Synchronized fun snapshot(): PracticeClockSnapshot {
