@@ -39,6 +39,7 @@ import ir.pianova.app.data.persistence.ProgressRepository
 import ir.pianova.app.data.persistence.RoomFamilyRepository
 import ir.pianova.app.domain.family.LearnerAudience
 import ir.pianova.app.domain.progress.ActivityType
+import ir.pianova.app.domain.progress.CompletedPeriodSelector
 import ir.pianova.app.domain.progress.FamilyLearnerReport
 import ir.pianova.app.domain.progress.FamilyProgressOverviewFactory
 import ir.pianova.app.domain.progress.FamilyProgressReportFactory
@@ -244,7 +245,7 @@ private fun LearnerReportDetail(report: FamilyLearnerReport) {
                 "${formatPracticeTime(period.practiceMillis)} · ${period.sessionCount} جلسه · ${period.accuracy?.let { "${(it * 100).toInt()}٪ دقت" } ?: "بدون ارزیابی"}"
             )
         }
-        ReportPeriodComparison(progress.weekly.takeLast(2))
+        ReportPeriodComparison(CompletedPeriodSelector.weeks(progress.weekly, LocalDate.now()).takeLast(2))
 
         Text("روند ماهانه", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
         progress.monthly.takeLast(3).forEach { period ->
@@ -253,13 +254,16 @@ private fun LearnerReportDetail(report: FamilyLearnerReport) {
                 "${formatPracticeTime(period.practiceMillis)} · ${period.sessionCount} جلسه · ${period.accuracy?.let { "${(it * 100).toInt()}٪ دقت" } ?: "بدون ارزیابی"}"
             )
         }
-        ReportPeriodComparison(progress.monthly.takeLast(2))
+        ReportPeriodComparison(CompletedPeriodSelector.months(progress.monthly, LocalDate.now()).takeLast(2))
     }
 }
 
 @Composable
 private fun ReportPeriodComparison(periods: List<PeriodProgress>) {
-    if (periods.size < 2) return
+    if (periods.size < 2) {
+        Text("برای مقایسه دو دوره کامل هنوز داده کافی وجود ندارد.", color = PianovaMuted, style = MaterialTheme.typography.bodySmall)
+        return
+    }
     val previous = periods[0]
     val current = periods[1]
     if (previous.practiceMillis == 0L && current.practiceMillis == 0L &&
@@ -275,7 +279,7 @@ private fun ReportPeriodComparison(periods: List<PeriodProgress>) {
         else -> "بدون تغییر"
     }
     Text(
-        "$label زمان تمرین نسبت به دوره قبل: ${formatPracticeTime(kotlin.math.abs(delta))}",
+        "$label زمان تمرین نسبت به دوره کامل قبلی: ${formatPracticeTime(kotlin.math.abs(delta))}",
         color = PianovaMuted,
         style = MaterialTheme.typography.bodySmall
     )
