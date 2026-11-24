@@ -20,6 +20,20 @@ class PracticeSessionClockTest {
     }
 
     @Test
+    fun normalForegroundExitDoesNotMarkSessionInterrupted() {
+        var elapsed = 2_000L
+        val clock = PracticeSessionClock { elapsed }
+        clock.resume()
+        clock.recordNote()
+        elapsed += 5_000L
+
+        clock.pause()
+
+        assertEquals(5_000L, clock.snapshot().activeDurationMillis)
+        assertEquals(false, clock.snapshot().wasInterrupted)
+    }
+
+    @Test
     fun noteActivityCountsOnlyUntilIdleTimeoutAndExcludesBackground() {
         var elapsed = 1_000L
         val clock = PracticeSessionClock { elapsed }
