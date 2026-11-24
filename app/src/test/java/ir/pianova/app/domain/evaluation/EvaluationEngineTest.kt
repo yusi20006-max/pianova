@@ -83,7 +83,7 @@ class EvaluationEngineTest {
         input.emit(PianoEvent.NoteOff(62, 2L))
         input.emit(PianoEvent.NoteOn(60, 0.8f, 3L))
 
-        val statuses = transitions.await().map { it.status }
+        val statuses = withTimeout(5_000) { transitions.await() }.map { it.status }
         assertTrue(statuses.contains(EvaluationStatus.WRONG_NOTE))
         assertTrue(statuses.contains(EvaluationStatus.CORRECT))
     }
