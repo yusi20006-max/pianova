@@ -41,7 +41,8 @@ fun LearnerSelectionScreen(
     lastActiveLearnerId: String?,
     destinationLabel: (String) -> String,
     onSelectLearner: (LearnerProfile) -> Unit,
-    onManageFamily: () -> Unit
+    onManageFamily: () -> Unit,
+    onFamilyReports: () -> Unit = {}
 ) {
     androidx.compose.runtime.CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
@@ -120,6 +121,9 @@ fun LearnerSelectionScreen(
             }
 
             Spacer(Modifier.height(4.dp))
+            OutlinedButton(onClick = onFamilyReports, modifier = Modifier.fillMaxWidth()) {
+                Text("گزارش پیشرفت خانواده")
+            }
             OutlinedButton(onClick = onManageFamily, modifier = Modifier.fillMaxWidth()) {
                 Text("مدیریت خانواده و پروفایل‌ها")
             }
