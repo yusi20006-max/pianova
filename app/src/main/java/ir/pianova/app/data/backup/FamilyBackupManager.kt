@@ -6,7 +6,9 @@ import androidx.room.withTransaction
 import ir.pianova.app.core.database.*
 import ir.pianova.app.core.datastore.PianoSettings
 import ir.pianova.app.core.datastore.SettingsDataStore
+import ir.pianova.app.domain.lesson.SkillAttempt
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.content
@@ -223,6 +225,53 @@ object FamilyBackupCodec {
                 it.startsWith("label_mode.") || it.startsWith("first_midi.") }
             .all { key -> learnerIds.any { key.endsWith(".$it") } }) {
             "Backup contains a preference for an unknown learner"
+        }
+        require(payload.preferences.learnerSession.values.all { it.length >= 2 && it[1] == ':' && it[0] in "sbilf" } &&
+            payload.preferences.family.values.all { it.length >= 2 && it[1] == ':' && it[0] in "sbilf" } &&
+            payload.preferences.legacy.values.all { it.length >= 2 && it[1] == ':' && it[0] in "sbilf" }) {
+            "Backup contains an invalid preference value"
+        }
+        require(payload.preferences.learnerSession["last_active_learner_id"]?.startsWith("s:") != false) {
+            "Backup active-learner preference has an invalid type"
+        }
+        require(payload.preferences.learnerSession["legacy_audience_assigned"]?.startsWith("b:") != false) {
+            "Backup legacy-audience preference has an invalid type"
+        }
+        require(payload.preferences.family["onboarding_complete"]?.startsWith("b:") != false) {
+            "Backup onboarding preference has an invalid type"
+        }
+        require(payload.preferences.legacy["lesson_audience"]?.startsWith("s:") != false) {
+            "Backup legacy audience preference has an invalid type"
+        }
+        payload.preferences.learnerSession.forEach { (key, value) ->
+            val raw = value.substring(2)
+            when {
+                key.startsWith("audience.") -> require(value.startsWith("s:") && raw in setOf("children", "teens", "adults")) {
+                    "Backup contains an invalid learner audience"
+                }
+                key.startsWith("destination.") -> require(value.startsWith("s:") &&
+                    raw in setOf("home", "learning", "paths", "practice", "library", "progress", "more", "settings")) {
+                    "Backup contains an invalid learner destination"
+                }
+                key.startsWith("volume.") -> require(value.startsWith("f:") &&
+                    raw.toFloatOrNull()?.let { it.isFinite() && it in 0.05f..1f } == true) {
+                    "Backup contains an invalid learner volume"
+                }
+                key.startsWith("label_mode.") -> require(value.startsWith("i:") && raw.toIntOrNull() in 0..2) {
+                    "Backup contains an invalid note-label preference"
+                }
+                key.startsWith("first_midi.") -> require(value.startsWith("i:") && raw.toIntOrNull() in 21..84) {
+                    "Backup contains an invalid keyboard range preference"
+                }
+            }
+        }
+        require(payload.preferences.legacy["lesson_audience"]?.removePrefix("s:") in setOf(null, "children", "teens", "adults")) {
+            "Backup contains an invalid legacy audience"
+        }
+        require(payload.preferences.lessonMastery.values.all { raw ->
+            runCatching { Json.decodeFromString(ListSerializer(SkillAttempt.serializer()), raw) }.isSuccess
+        }) {
+            "Backup contains invalid learner mastery data"
         }
     }
 
