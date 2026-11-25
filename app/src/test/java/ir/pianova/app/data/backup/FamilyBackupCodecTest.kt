@@ -147,12 +147,7 @@ class FamilyBackupCodecTest {
         )
         repository.saveLessonProgress(LessonProgressEntity("old-progress", "old-learner", "old-lesson", lastAccessedAtEpochMillis = 3))
 
-        val invalid = samplePayload().copy(
-            lessonProgress = listOf(
-                LessonProgressEntity("duplicate-progress", "learner-a", "lesson-a", lastAccessedAtEpochMillis = 4),
-                LessonProgressEntity("duplicate-progress", "learner-b", "lesson-b", lastAccessedAtEpochMillis = 5)
-            )
-        )
+        val invalid = samplePayload().copy(families = emptyList())
         val restoreFailed = try {
             FamilyBackupManager.replaceDatabase(database, invalid)
             false
