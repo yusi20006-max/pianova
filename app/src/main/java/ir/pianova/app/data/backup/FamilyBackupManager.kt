@@ -60,6 +60,8 @@ object FamilyBackupCodec {
     const val CURRENT_SCHEMA_VERSION = 1
     const val MAX_BACKUP_BYTES = 25 * 1024 * 1024
 
+    private val sessionKeysForValidation = setOf("last_active_learner_id", "legacy_audience_assigned")
+
     private val json = Json {
         ignoreUnknownKeys = false
         encodeDefaults = true
@@ -141,6 +143,21 @@ object FamilyBackupCodec {
         require(payload.practiceSessions.map { it.sessionId }.distinct().size == payload.practiceSessions.size) {
             "Backup contains duplicate practice-session identifiers"
         }
+        require(payload.lessonProgress.map { it.progressId }.distinct().size == payload.lessonProgress.size) {
+            "Backup contains duplicate lesson-progress identifiers"
+        }
+        require(payload.achievements.map { it.learnerId to it.achievementId }.distinct().size == payload.achievements.size) {
+            "Backup contains duplicate achievements"
+        }
+        require(payload.dailyMissions.map { Triple(it.learnerId, it.missionId, it.dateEpochDay) }.distinct().size == payload.dailyMissions.size) {
+            "Backup contains duplicate daily missions"
+        }
+        require(payload.songProgress.map { it.learnerId to it.songId }.distinct().size == payload.songProgress.size) {
+            "Backup contains duplicate song-progress records"
+        }
+        require(payload.learningPathAssignments.map { it.assignmentId }.distinct().size == payload.learningPathAssignments.size) {
+            "Backup contains duplicate learning-path assignments"
+        }
         require(payload.evaluationEvidence.map { it.evaluationId }.distinct().size == payload.evaluationEvidence.size) {
             "Backup contains duplicate evaluation identifiers"
         }
@@ -154,12 +171,31 @@ object FamilyBackupCodec {
         require(payload.settings.defaultOctave in 0..8 && payload.settings.instrument.isNotBlank()) {
             "Backup piano settings are invalid"
         }
-        val activeLearner = payload.preferences.learnerSession["s:last_active_learner_id"]
+        val activeLearner = payload.preferences.learnerSession["last_active_learner_id"]
         require(activeLearner == null || activeLearner.removePrefix("s:") in learnerIds) {
             "Backup active-learner preference refers to a missing learner"
         }
         require(payload.preferences.lessonMastery.keys.all { it in learnerIds }) {
             "Backup mastery data refers to an unknown learner"
+        }
+        val allowedSessionKey = { key: String ->
+            key in sessionKeysForValidation || listOf("audience.", "destination.", "volume.", "label_mode.", "first_midi.")
+                .any(key::startsWith)
+        }
+        require(payload.preferences.learnerSession.keys.all(allowedSessionKey)) {
+            "Backup contains an unsupported learner preference"
+        }
+        require(payload.preferences.family.keys.all { it == "onboarding_complete" }) {
+            "Backup contains an unsupported family preference"
+        }
+        require(payload.preferences.legacy.keys.all { it == "lesson_audience" }) {
+            "Backup contains an unsupported legacy preference"
+        }
+        require(payload.preferences.learnerSession.keys
+            .filter { it.startsWith("audience.") || it.startsWith("destination.") || it.startsWith("volume.") ||
+                it.startsWith("label_mode.") || it.startsWith("first_midi.") }
+            .all { key -> learnerIds.any { key.endsWith(".$it") } }) {
+            "Backup contains a preference for an unknown learner"
         }
     }
 
@@ -234,7 +270,7 @@ object FamilyBackupManager {
         )
     }
 
-    private suspend fun replaceDatabase(database: PianovaDatabase, payload: FamilyBackupPayload) {
+    internal suspend fun replaceDatabase(database: PianovaDatabase, payload: FamilyBackupPayload) {
         database.withTransaction {
             val sql = database.openHelper.writableDatabase
             listOf(
