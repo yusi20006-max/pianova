@@ -8,10 +8,13 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.flow.map
 
 private val Context.pianovaSettingsDataStore by preferencesDataStore(name = "pianova_settings")
 
+@Serializable
 data class PianoSettings(
     val volume: Float = 0.8f,
     val instrument: String = "acoustic_grand_piano",
@@ -32,6 +35,24 @@ class SettingsDataStore(context: Context) {
             defaultOctave = preferences[Keys.DEFAULT_OCTAVE] ?: 4,
             hapticEnabled = preferences[Keys.HAPTIC_ENABLED] ?: false
         )
+    }
+
+    suspend fun currentSettings(): PianoSettings = settings.first()
+
+    /** Replaces the complete settings snapshot during an explicitly confirmed restore. */
+    suspend fun replace(settings: PianoSettings) {
+        require(settings.volume in 0f..1f)
+        require(settings.noteLabelMode in setOf("latin", "persian", "both"))
+        require(settings.defaultOctave in 0..8)
+        require(settings.instrument.isNotBlank())
+        store.edit { preferences ->
+            preferences.clear()
+            preferences[Keys.VOLUME] = settings.volume
+            preferences[Keys.INSTRUMENT] = settings.instrument
+            preferences[Keys.NOTE_LABEL_MODE] = settings.noteLabelMode
+            preferences[Keys.DEFAULT_OCTAVE] = settings.defaultOctave
+            preferences[Keys.HAPTIC_ENABLED] = settings.hapticEnabled
+        }
     }
 
     suspend fun updateVolume(value: Float) {

@@ -3,6 +3,7 @@ package ir.pianova.app.core.database
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /** Durable, learner-owned evidence for one evaluator outcome. */
 @Entity(
@@ -13,6 +14,7 @@ import androidx.room.PrimaryKey
         Index(value = ["lessonId", "stepId"])
     ]
 )
+@Serializable
 data class EvaluationEvidenceEntity(
     @PrimaryKey val evaluationId: String,
     val learnerId: String,

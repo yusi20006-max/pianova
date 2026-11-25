@@ -58,7 +58,8 @@ fun FamilyManagementScreen(
     repository: FamilyRepository,
     familyId: String,
     initialSetup: Boolean,
-    onComplete: () -> Unit
+    onComplete: () -> Unit,
+    onBackup: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val sessionStore = remember(context) { LearnerSessionStore(context) }
@@ -108,6 +109,12 @@ fun FamilyManagementScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = PianovaMuted
             )
+
+            if (!initialSetup && onBackup != null) {
+                OutlinedButton(onClick = onBackup, modifier = Modifier.fillMaxWidth()) {
+                    Text("پشتیبان‌گیری و بازیابی خانواده")
+                }
+            }
 
             if (!initialSetup) {
                 Card(

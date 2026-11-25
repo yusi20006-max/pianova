@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FamilyDao {
+    @Query("SELECT * FROM families")
+    suspend fun getAll(): List<FamilyEntity>
+
     @Upsert suspend fun upsert(family: FamilyEntity)
 
     @Query("SELECT * FROM families WHERE familyId = :familyId LIMIT 1")
@@ -19,6 +22,9 @@ interface FamilyDao {
 
 @Dao
 interface LearnerProfileDao {
+    @Query("SELECT * FROM learner_profiles")
+    suspend fun getAll(): List<LearnerProfileEntity>
+
     @Upsert suspend fun upsert(profile: LearnerProfileEntity)
 
     @Query("SELECT * FROM learner_profiles WHERE familyId = :familyId ORDER BY createdAtEpochMillis")
@@ -39,6 +45,9 @@ interface LearnerProfileDao {
 
 @Dao
 interface LessonProgressDao {
+    @Query("SELECT * FROM lesson_progress")
+    suspend fun getAll(): List<LessonProgressEntity>
+
     @Upsert suspend fun upsert(progress: LessonProgressEntity)
     @Query("SELECT * FROM lesson_progress WHERE userId = :learnerId ORDER BY lastAccessedAtEpochMillis DESC")
     fun observeForLearner(learnerId: String): Flow<List<LessonProgressEntity>>
@@ -52,6 +61,9 @@ interface LessonProgressDao {
 
 @Dao
 interface PracticeSessionDao {
+    @Query("SELECT * FROM practice_sessions")
+    suspend fun getAll(): List<PracticeSessionEntity>
+
     @Upsert suspend fun upsert(session: PracticeSessionEntity)
     @Query("SELECT * FROM practice_sessions WHERE userId = :learnerId ORDER BY startedAtEpochMillis DESC")
     fun observeForLearner(learnerId: String): Flow<List<PracticeSessionEntity>>
@@ -63,6 +75,9 @@ interface PracticeSessionDao {
 
 @Dao
 interface UserAchievementDao {
+    @Query("SELECT * FROM user_achievements")
+    suspend fun getAll(): List<UserAchievementEntity>
+
     @Upsert suspend fun upsert(achievement: UserAchievementEntity)
     @Query("SELECT * FROM user_achievements WHERE userId = :learnerId ORDER BY unlockedAtEpochMillis DESC")
     fun observeForLearner(learnerId: String): Flow<List<UserAchievementEntity>>
@@ -72,6 +87,9 @@ interface UserAchievementDao {
 
 @Dao
 interface DailyMissionDao {
+    @Query("SELECT * FROM daily_missions")
+    suspend fun getAll(): List<DailyMissionEntity>
+
     @Upsert suspend fun upsert(mission: DailyMissionEntity)
     @Query("SELECT * FROM daily_missions WHERE userId = :learnerId AND dateEpochDay = :dateEpochDay")
     fun observeForDay(learnerId: String, dateEpochDay: Long): Flow<List<DailyMissionEntity>>
@@ -81,6 +99,9 @@ interface DailyMissionDao {
 
 @Dao
 interface SongProgressDao {
+    @Query("SELECT * FROM song_progress")
+    suspend fun getAll(): List<SongProgressEntity>
+
     @Upsert suspend fun upsert(progress: SongProgressEntity)
     @Query("SELECT * FROM song_progress WHERE userId = :learnerId ORDER BY lastPlayedAtEpochMillis DESC")
     fun observeForLearner(learnerId: String): Flow<List<SongProgressEntity>>
@@ -90,6 +111,9 @@ interface SongProgressDao {
 
 @Dao
 interface LearnerGoalDao {
+    @Query("SELECT * FROM learner_goals")
+    suspend fun getAll(): List<LearnerGoalEntity>
+
     @Upsert suspend fun upsert(goal: LearnerGoalEntity)
     @Query("SELECT * FROM learner_goals WHERE learnerId = :learnerId LIMIT 1")
     fun observeForLearner(learnerId: String): Flow<LearnerGoalEntity?>
@@ -100,6 +124,9 @@ interface LearnerGoalDao {
 
 @Dao
 interface LearningPathAssignmentDao {
+    @Query("SELECT * FROM learning_path_assignments")
+    suspend fun getAll(): List<LearningPathAssignmentEntity>
+
     @Insert suspend fun insert(assignment: LearningPathAssignmentEntity)
     @Query("SELECT * FROM learning_path_assignments WHERE learnerId = :learnerId AND isActive = 1 ORDER BY startedAtEpochMillis DESC LIMIT 1")
     fun observeActive(learnerId: String): Flow<LearningPathAssignmentEntity?>

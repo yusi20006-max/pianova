@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EvaluationEvidenceDao {
+    @Query("SELECT * FROM evaluation_evidence")
+    suspend fun getAll(): List<EvaluationEvidenceEntity>
+
     @Upsert suspend fun upsert(evidence: EvaluationEvidenceEntity)
 
     @Upsert suspend fun upsertAll(evidence: List<EvaluationEvidenceEntity>)

@@ -112,6 +112,7 @@ fun PianovaApp(
     var activeLearnerId by remember { mutableStateOf<String?>(null) }
     var managerOpen by remember { mutableStateOf(false) }
     var familyReportsOpen by remember { mutableStateOf(false) }
+    var familyBackupOpen by remember { mutableStateOf(false) }
     val learners by familyRepository.observeLearners(familyId).collectAsState(initial = emptyList())
     val validActiveLearnerId = activeLearnerOrNull(activeLearnerId, learners.map { it.learnerId }.toSet())
     val activeLearner = learners.firstOrNull { it.learnerId == validActiveLearnerId }
@@ -131,8 +132,8 @@ fun PianovaApp(
         familyReady = true
     }
 
-    LaunchedEffect(familyReady, managerOpen, familyReportsOpen, activeLearner?.learnerId) {
-        if (!familyReady || managerOpen || familyReportsOpen || activeLearner == null) {
+    LaunchedEffect(familyReady, managerOpen, familyReportsOpen, familyBackupOpen, activeLearner?.learnerId) {
+        if (!familyReady || managerOpen || familyReportsOpen || familyBackupOpen || activeLearner == null) {
             onPianoVisibilityChanged(false)
             onPianoStop()
         }
@@ -169,7 +170,8 @@ fun PianovaApp(
                 repository = familyRepository,
                 familyId = familyId,
                 initialSetup = false,
-                onComplete = { managerOpen = false }
+                onComplete = { managerOpen = false },
+                onBackup = { managerOpen = false; familyBackupOpen = true }
             )
         }
         familyReportsOpen -> {
@@ -178,6 +180,12 @@ fun PianovaApp(
                 familyRepository = familyRepository,
                 database = database,
                 onBack = { familyReportsOpen = false }
+            )
+        }
+        familyBackupOpen -> {
+            FamilyBackupScreen(
+                database = database,
+                onBack = { familyBackupOpen = false }
             )
         }
         activeLearner == null -> {
@@ -269,7 +277,7 @@ private fun LearnerWorkspace(
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     mainTabs.forEach { tab ->
                         NavigationBarItem(
-                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family", "paths", "family-reports") else route == tab.route,
+                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family", "paths", "family-reports", "family-backup") else route == tab.route,
                             onClick = {
                                 navController.navigate(tab.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -385,7 +393,18 @@ private fun LearnerWorkspace(
                 composable("library") { LibraryScreen(learner.learnerId) }
                 composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
                 composable("progress") { ProgressScreen(learner.learnerId) }
-                composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
+                composable("settings") {
+                    SettingsScreen(
+                        onAboutClick = { showAboutDialog = true },
+                        onBackupClick = { navController.navigate("family-backup") }
+                    )
+                }
+                composable("family-backup") {
+                    FamilyBackupScreen(
+                        database = PianovaDatabase.getInstance(context),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
                 composable("family-reports") {
                     FamilyProgressReportsScreen(
                         familyId = familyId,
@@ -399,7 +418,8 @@ private fun LearnerWorkspace(
                         repository = familyRepository,
                         familyId = familyId,
                         initialSetup = false,
-                        onComplete = { navController.popBackStack() }
+                        onComplete = { navController.popBackStack() },
+                        onBackup = { navController.navigate("family-backup") }
                     )
                 }
             }
@@ -430,6 +450,7 @@ private fun destinationLabel(route: String): String = when (route) {
     "library" -> "کتابخانه"
     "progress" -> "پیشرفت"
     "family-reports" -> "گزارش خانواده"
+    "family-backup" -> "پشتیبان‌گیری و بازیابی"
     "more" -> "بیشتر"
     "settings" -> "تنظیمات"
     else -> "مسیر یادگیری"
@@ -650,14 +671,14 @@ private fun ProgressScreen(learnerId: String) {
 }
 
 @Composable
-private fun SettingsScreen(onAboutClick: () -> Unit) {
+private fun SettingsScreen(onAboutClick: () -> Unit, onBackupClick: () -> Unit) {
     PageColumn {
         PageTitle("تنظیمات", "تنظیم تجربه یادگیری و صدای پیانو")
         StatusCard("صدای پیانو و خروجی صوتی", "آماده")
         StatusCard("زبان و شیوه نمایش نت‌ها", "آماده")
         StatusCard("تم و نمایش", "آماده")
         TextButton(onClick = onAboutClick) { Text("درباره Pianova و نسخه نصب‌شده") }
-        StatusCard("پشتیبان‌گیری از پیشرفت", "برنامه‌ریزی‌شده", planned = true)
+        StatusCard("پشتیبان‌گیری و بازیابی خانواده", "آماده", onClick = onBackupClick)
     }
 }
 
@@ -677,7 +698,8 @@ private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Uni
         "کتابخانه و پیشرفت" to listOf(
             MenuEntry("کتابخانه آهنگ‌ها", "در حال توسعه", "library"),
             MenuEntry("پیشرفت و دستاوردها", "در حال توسعه", "progress"),
-            MenuEntry("گزارش خانواده", "آماده", "family-reports")
+            MenuEntry("گزارش خانواده", "آماده", "family-reports"),
+            MenuEntry("پشتیبان‌گیری و بازیابی خانواده", "آماده", "family-backup")
         ),
         "ابزارهای آموزشی" to listOf(
             MenuEntry("مترونوم و ریتم", "برنامه‌ریزی‌شده", future = true),
