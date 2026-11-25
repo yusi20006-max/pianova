@@ -234,11 +234,11 @@ object FamilyBackupCodec {
         require(payload.preferences.learnerSession["last_active_learner_id"]?.startsWith("s:") != false) {
             "Backup active-learner preference has an invalid type"
         }
-        require(payload.preferences.learnerSession["legacy_audience_assigned"]?.startsWith("b:") != false) {
-            "Backup legacy-audience preference has an invalid type"
+        require(payload.preferences.learnerSession["legacy_audience_assigned"]?.let { it == "b:true" || it == "b:false" } != false) {
+            "Backup legacy-audience preference has an invalid value"
         }
-        require(payload.preferences.family["onboarding_complete"]?.startsWith("b:") != false) {
-            "Backup onboarding preference has an invalid type"
+        require(payload.preferences.family["onboarding_complete"]?.let { it == "b:true" || it == "b:false" } != false) {
+            "Backup onboarding preference has an invalid value"
         }
         require(payload.preferences.legacy["lesson_audience"]?.startsWith("s:") != false) {
             "Backup legacy audience preference has an invalid type"
@@ -279,7 +279,9 @@ object FamilyBackupCodec {
             "Backup contains an unsupported legacy mastery preference"
         }
         require(payload.preferences.legacyMastery["skill_attempts"]?.startsWith("s:") != false &&
-            payload.preferences.legacyMastery["learner_scope_migration_decided"]?.startsWith("b:") != false) {
+            payload.preferences.legacyMastery["learner_scope_migration_decided"]?.let {
+                it == "b:true" || it == "b:false"
+            } != false) {
             "Backup contains an invalid legacy mastery preference type"
         }
         payload.preferences.legacyMastery["skill_attempts"]?.removePrefix("s:")?.let { raw ->
