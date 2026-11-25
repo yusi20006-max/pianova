@@ -25,7 +25,8 @@ data class FamilyBackupPreferences(
     val learnerSession: Map<String, String> = emptyMap(),
     val family: Map<String, String> = emptyMap(),
     val legacy: Map<String, String> = emptyMap(),
-    val lessonMastery: Map<String, String> = emptyMap()
+    val lessonMastery: Map<String, String> = emptyMap(),
+    val legacyMastery: Map<String, String> = emptyMap()
 )
 
 @Serializable
@@ -273,6 +274,20 @@ object FamilyBackupCodec {
         }) {
             "Backup contains invalid learner mastery data"
         }
+        require(payload.preferences.legacyMastery.keys.all {
+            it == "skill_attempts" || it == "learner_scope_migration_decided"
+        }) {
+            "Backup contains an unsupported legacy mastery preference"
+        }
+        require(payload.preferences.legacyMastery["skill_attempts"]?.startsWith("s:") != false &&
+            payload.preferences.legacyMastery["learner_scope_migration_decided"]?.startsWith("b:") != false) {
+            "Backup contains an invalid legacy mastery preference type"
+        }
+        payload.preferences.legacyMastery["skill_attempts"]?.removePrefix("s:")?.let { raw ->
+            require(runCatching { json.decodeFromString(ListSerializer(SkillAttempt.serializer()), raw) }.isSuccess) {
+                "Backup contains invalid unassigned mastery data"
+            }
+        }
     }
 
     private fun sha256(value: String): String =
@@ -395,7 +410,11 @@ object FamilyBackupManager {
             ).getString("skill_attempts", null)
             value?.let { learnerId to it }
         }
-        return FamilyBackupPreferences(sessionValues, familyValues, legacyValues, mastery)
+        val unassignedMastery = app.getSharedPreferences(
+            "pianova_lesson_mastery", Context.MODE_PRIVATE
+        ).all.filterKeys { it == "skill_attempts" || it == "learner_scope_migration_decided" }
+            .mapValues { (_, value) -> encodePreference(value) }
+        return FamilyBackupPreferences(sessionValues, familyValues, legacyValues, mastery, unassignedMastery)
     }
 
     private fun replacePreferences(
@@ -407,12 +426,15 @@ object FamilyBackupManager {
         val session = app.getSharedPreferences("pianova_learner_sessions", Context.MODE_PRIVATE)
         val family = app.getSharedPreferences("pianova_family", Context.MODE_PRIVATE)
         val legacy = app.getSharedPreferences("pianova_preferences", Context.MODE_PRIVATE)
+        val unassignedMastery = app.getSharedPreferences("pianova_lesson_mastery", Context.MODE_PRIVATE)
         check(session.edit().clear().commit()) { "Could not restore learner preferences" }
         check(family.edit().clear().commit()) { "Could not restore family preferences" }
         check(legacy.edit().clear().commit()) { "Could not restore legacy preferences" }
+        check(unassignedMastery.edit().clear().commit()) { "Could not clear unassigned mastery data" }
         snapshot.learnerSession.forEach { (key, value) -> putPreference(session, key, value) }
         snapshot.family.forEach { (key, value) -> putPreference(family, key, value) }
         snapshot.legacy.forEach { (key, value) -> putPreference(legacy, key, value) }
+        snapshot.legacyMastery.forEach { (key, value) -> putPreference(unassignedMastery, key, value) }
         affectedLearnerIds.forEach { learnerId ->
             val preferences = app.getSharedPreferences(
                 "pianova_lesson_mastery.$learnerId", Context.MODE_PRIVATE
