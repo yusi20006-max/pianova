@@ -88,11 +88,11 @@ object GamificationEngine {
             }
             ActivityType.LESSON_COMPLETED -> {
                 val lessonId = requireNotNull(activity.lessonId) { "lessonId is required for lesson completion" }
-                val countToday = updated.lessonCompletionCountByEpochDay[day to lessonId] ?: 0
+                val countToday = updated.lessonCompletionCountByEpochDay[lessonKey(day, lessonId)] ?: 0
                 if (countToday < REPEATED_LESSON_COMPLETION_CAP_PER_DAY) {
                     award(50)
                     updated = updated.copy(
-                        lessonCompletionCountByEpochDay = updated.lessonCompletionCountByEpochDay + ((day to lessonId) to countToday + 1)
+                        lessonCompletionCountByEpochDay = updated.lessonCompletionCountByEpochDay + (lessonKey(day, lessonId) to countToday + 1)
                     )
                 }
                 val completedBefore = updated.completedMissionIdsByEpochDay[day].orEmpty()
@@ -129,7 +129,7 @@ object GamificationEngine {
         )
     }
 
-    private fun addCompletedMissions(state: GamificationState, epochDay: Long, newIds: Set<String>): GamificationState {
+    private fun lessonDayPrefix(epochDay: Long) = "$epochDay|\n".trimEnd()\n\n    private fun lessonKey(epochDay: Long, lessonId: String) = "$epochDay|$lessonId"\n\n    private fun addCompletedMissions(state: GamificationState, epochDay: Long, newIds: Set<String>): GamificationState {
         val prior = state.completedMissionIdsByEpochDay[epochDay].orEmpty()
         return state.copy(completedMissionIdsByEpochDay = state.completedMissionIdsByEpochDay + (epochDay to (prior + newIds)))
     }
@@ -137,7 +137,7 @@ object GamificationEngine {
     fun missionProgress(state: GamificationState, date: LocalDate): List<DailyMissionProgress> {
         val day = date.toEpochDay()
         val practice = state.practiceMinutesByEpochDay[day] ?: 0
-        val lessonCount = state.lessonCompletionCountByEpochDay.keys.count { it.first == day }
+        val lessonCount = state.lessonCompletionCountByEpochDay.keys.count { it.startsWith(lessonDayPrefix(day)) }
         val completed = state.completedMissionIdsByEpochDay[day].orEmpty()
         return missions.map { mission ->
             val progress = when (mission.metric) {
@@ -182,7 +182,7 @@ data class GamificationState(
     val lastPracticeEpochDay: Long? = null,
     val practiceMinutesByEpochDay: Map<Long, Int> = emptyMap(),
     val completedMissionIdsByEpochDay: Map<Long, Set<String>> = emptyMap(),
-    val lessonCompletionCountByEpochDay: Map<Pair<Long, String>, Int> = emptyMap(),
+    val lessonCompletionCountByEpochDay: Map<String, Int> = emptyMap(),
     val unlockedAchievementIds: Set<String> = emptySet(),
     val hasPlayedFirstNote: Boolean = false,
     val hasCompletedFirstLesson: Boolean = false,
