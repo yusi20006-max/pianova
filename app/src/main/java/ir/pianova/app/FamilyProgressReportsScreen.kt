@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,12 +105,16 @@ fun FamilyProgressReportsScreen(
     }.collectAsState(initial = emptyList())
 
     var selectedLearnerId by remember { mutableStateOf<String?>(null) }
+    val scrollState = rememberScrollState()
+    LaunchedEffect(selectedLearnerId) {
+        scrollState.scrollTo(0)
+    }
     val selectedReport = reports.firstOrNull { it.learner.learnerId == selectedLearnerId }
     val overview = remember(reports) { FamilyProgressOverviewFactory.aggregate(reports) }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            modifier = Modifier.fillMaxSize().verticalScroll(scrollState)
                 .padding(horizontal = 20.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
