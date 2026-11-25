@@ -129,7 +129,7 @@ object GamificationEngine {
         )
     }
 
-    private fun lessonDayPrefix(epochDay: Long) = "$epochDay|\n".trimEnd()\n\n    private fun lessonKey(epochDay: Long, lessonId: String) = "$epochDay|$lessonId"\n\n    private fun addCompletedMissions(state: GamificationState, epochDay: Long, newIds: Set<String>): GamificationState {
+    private fun lessonDayPrefix(epochDay: Long) = "$epochDay|"\n\n    private fun lessonKey(epochDay: Long, lessonId: String) = "$epochDay|$lessonId"\n\n    private fun addCompletedMissions(state: GamificationState, epochDay: Long, newIds: Set<String>): GamificationState {
         val prior = state.completedMissionIdsByEpochDay[epochDay].orEmpty()
         return state.copy(completedMissionIdsByEpochDay = state.completedMissionIdsByEpochDay + (epochDay to (prior + newIds)))
     }
