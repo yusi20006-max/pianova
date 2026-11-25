@@ -16,6 +16,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.security.MessageDigest
+import kotlinx.coroutines.CancellationException
 
 @Serializable
 data class FamilyBackupPreferences(
@@ -85,7 +86,9 @@ object FamilyBackupCodec {
             payload = payload,
             checksumSha256 = sha256(payloadJson)
         )
-        return json.encodeToString(envelope)
+        val encoded = json.encodeToString(envelope)
+        require(encoded.toByteArray(Charsets.UTF_8).size <= MAX_BACKUP_BYTES) { "Backup file exceeds the supported size limit" }
+        return encoded
     }
 
     fun decode(raw: String): FamilyBackupEnvelope {
@@ -267,6 +270,7 @@ object FamilyBackupManager {
                     failure
                 ).also { it.addSuppressed(rollbackFailure) }
             }
+            if (failure is CancellationException) throw failure
             throw IllegalStateException("Restore failed. Existing family data was restored.", failure)
         }
     }
