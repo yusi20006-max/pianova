@@ -20,7 +20,7 @@ class GamificationEngineTest {
         val date = LocalDate.of(2026, 1, 1)
         assertEquals(20, GamificationEngine.apply(GamificationState(), Activity(ActivityType.EXERCISE_COMPLETED), date).xpEarned)
         assertEquals(50, GamificationEngine.apply(GamificationState(), Activity(ActivityType.PERFECT_COMPLETION), date).xpEarned)
-        assertEquals(50, GamificationEngine.apply(GamificationState(), Activity(ActivityType.LESSON_COMPLETED, lessonId="lesson-a"), date).xpEarned + 15)
+        assertEquals(65, GamificationEngine.apply(GamificationState(), Activity(ActivityType.LESSON_COMPLETED, lessonId="lesson-a"), date).xpEarned)
     }
 
     @Test fun lessonCompletionRewardHasDailyAntiFarmingCapAndMissionRewardOnce() {
