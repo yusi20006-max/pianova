@@ -74,7 +74,6 @@ import ir.pianova.app.domain.model.LessonAudience
 import ir.pianova.app.data.persistence.LearnerSessionStore
 import ir.pianova.app.data.persistence.activeLearnerOrNull
 import ir.pianova.app.data.persistence.ProgressRepository
-import ir.pianova.app.data.backup.FamilyBackupManager
 import ir.pianova.app.domain.progress.LearnerProgressSnapshot
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
