@@ -84,14 +84,26 @@ class FamilyProgressReportsScreenTest {
         }
 
         composeRule.onNodeWithText("گزارش خانواده").assertIsDisplayed()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("مشاهده گزارش آراد").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("مشاهده گزارش آراد").performScrollTo().performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("گزارش آراد").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("گزارش آراد").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText("تمرین روزانه آراد").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("10 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
 
         composeRule.onNodeWithText("بازگشت به گزارش خانواده").performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("مشاهده گزارش نورا").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("مشاهده گزارش نورا").performScrollTo().performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("گزارش نورا").fetchSemanticsNodes().isNotEmpty()
+        }
         assertTrue(composeRule.onAllNodesWithText("تمرین روزانه نورا").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("3 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
@@ -110,8 +122,17 @@ class FamilyProgressReportsScreenTest {
             }
         }
 
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("مشاهده گزارش سارا").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("مشاهده گزارش سارا").performScrollTo().performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("گزارش سارا").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("گزارش سارا").assertIsDisplayed()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("آخرین فعالیت در درس").fetchSemanticsNodes().isNotEmpty()
+        }
         assertTrue(composeRule.onAllNodesWithText("آخرین فعالیت در درس").fetchSemanticsNodes().isNotEmpty())
     }
 
