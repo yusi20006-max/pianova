@@ -210,7 +210,7 @@ object FamilyBackupCodec {
         }
         val allowedSessionKey = { key: String ->
             key in sessionKeysForValidation || listOf("audience.", "destination.", "volume.", "label_mode.", "first_midi.")
-                .any(key::startsWith)
+                .any { prefix -> key.startsWith(prefix) }
         }
         require(payload.preferences.learnerSession.keys.all(allowedSessionKey)) {
             "Backup contains an unsupported learner preference"
