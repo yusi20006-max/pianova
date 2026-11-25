@@ -111,6 +111,7 @@ fun PianovaApp(
     var onboardingComplete by remember { mutableStateOf(familyPreferences.getBoolean("onboarding_complete", false)) }
     var activeLearnerId by remember { mutableStateOf<String?>(null) }
     var managerOpen by remember { mutableStateOf(false) }
+    var familyReportsOpen by remember { mutableStateOf(false) }
     val learners by familyRepository.observeLearners(familyId).collectAsState(initial = emptyList())
     val validActiveLearnerId = activeLearnerOrNull(activeLearnerId, learners.map { it.learnerId }.toSet())
     val activeLearner = learners.firstOrNull { it.learnerId == validActiveLearnerId }
@@ -130,8 +131,8 @@ fun PianovaApp(
         familyReady = true
     }
 
-    LaunchedEffect(familyReady, managerOpen, activeLearner?.learnerId) {
-        if (!familyReady || managerOpen || activeLearner == null) {
+    LaunchedEffect(familyReady, managerOpen, familyReportsOpen, activeLearner?.learnerId) {
+        if (!familyReady || managerOpen || familyReportsOpen || activeLearner == null) {
             onPianoVisibilityChanged(false)
             onPianoStop()
         }
@@ -171,6 +172,14 @@ fun PianovaApp(
                 onComplete = { managerOpen = false }
             )
         }
+        familyReportsOpen -> {
+            FamilyProgressReportsScreen(
+                familyId = familyId,
+                familyRepository = familyRepository,
+                database = database,
+                onBack = { familyReportsOpen = false }
+            )
+        }
         activeLearner == null -> {
             LearnerSelectionScreen(
                 learners = learners,
@@ -182,7 +191,8 @@ fun PianovaApp(
                     sessionStore.rememberActiveLearner(learner.learnerId)
                     activeLearnerId = learner.learnerId
                 },
-                onManageFamily = { managerOpen = true }
+                onManageFamily = { managerOpen = true },
+                onFamilyReports = { familyReportsOpen = true }
             )
         }
         else -> {
@@ -259,7 +269,7 @@ private fun LearnerWorkspace(
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     mainTabs.forEach { tab ->
                         NavigationBarItem(
-                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family", "paths") else route == tab.route,
+                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family", "paths", "family-reports") else route == tab.route,
                             onClick = {
                                 navController.navigate(tab.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -376,6 +386,14 @@ private fun LearnerWorkspace(
                 composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
                 composable("progress") { ProgressScreen(learner.learnerId) }
                 composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
+                composable("family-reports") {
+                    FamilyProgressReportsScreen(
+                        familyId = familyId,
+                        familyRepository = familyRepository,
+                        database = PianovaDatabase.getInstance(context),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
                 composable("family") {
                     FamilyManagementScreen(
                         repository = familyRepository,
@@ -411,6 +429,7 @@ private fun destinationLabel(route: String): String = when (route) {
     "practice" -> "تمرین"
     "library" -> "کتابخانه"
     "progress" -> "پیشرفت"
+    "family-reports" -> "گزارش خانواده"
     "more" -> "بیشتر"
     "settings" -> "تنظیمات"
     else -> "مسیر یادگیری"
@@ -657,7 +676,8 @@ private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Uni
         ),
         "کتابخانه و پیشرفت" to listOf(
             MenuEntry("کتابخانه آهنگ‌ها", "در حال توسعه", "library"),
-            MenuEntry("پیشرفت و دستاوردها", "در حال توسعه", "progress")
+            MenuEntry("پیشرفت و دستاوردها", "در حال توسعه", "progress"),
+            MenuEntry("گزارش خانواده", "آماده", "family-reports")
         ),
         "ابزارهای آموزشی" to listOf(
             MenuEntry("مترونوم و ریتم", "برنامه‌ریزی‌شده", future = true),
