@@ -74,6 +74,7 @@ import ir.pianova.app.domain.model.LessonAudience
 import ir.pianova.app.data.persistence.LearnerSessionStore
 import ir.pianova.app.data.persistence.activeLearnerOrNull
 import ir.pianova.app.data.persistence.ProgressRepository
+import ir.pianova.app.data.backup.FamilyBackupManager
 import ir.pianova.app.domain.progress.LearnerProgressSnapshot
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
@@ -269,7 +270,7 @@ private fun LearnerWorkspace(
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     mainTabs.forEach { tab ->
                         NavigationBarItem(
-                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family", "paths", "family-reports") else route == tab.route,
+                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family", "paths", "family-reports", "family-backup") else route == tab.route,
                             onClick = {
                                 navController.navigate(tab.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -386,6 +387,12 @@ private fun LearnerWorkspace(
                 composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
                 composable("progress") { ProgressScreen(learner.learnerId) }
                 composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
+                composable("family-backup") {
+                    FamilyBackupScreen(
+                        database = PianovaDatabase.getInstance(context),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
                 composable("family-reports") {
                     FamilyProgressReportsScreen(
                         familyId = familyId,
@@ -430,6 +437,7 @@ private fun destinationLabel(route: String): String = when (route) {
     "library" -> "کتابخانه"
     "progress" -> "پیشرفت"
     "family-reports" -> "گزارش خانواده"
+    "family-backup" -> "پشتیبان‌گیری و بازیابی"
     "more" -> "بیشتر"
     "settings" -> "تنظیمات"
     else -> "مسیر یادگیری"
@@ -677,7 +685,8 @@ private fun MoreScreen(navController: NavHostController, onAboutClick: () -> Uni
         "کتابخانه و پیشرفت" to listOf(
             MenuEntry("کتابخانه آهنگ‌ها", "در حال توسعه", "library"),
             MenuEntry("پیشرفت و دستاوردها", "در حال توسعه", "progress"),
-            MenuEntry("گزارش خانواده", "آماده", "family-reports")
+            MenuEntry("گزارش خانواده", "آماده", "family-reports"),
+            MenuEntry("پشتیبان‌گیری و بازیابی خانواده", "آماده", "family-backup")
         ),
         "ابزارهای آموزشی" to listOf(
             MenuEntry("مترونوم و ریتم", "برنامه‌ریزی‌شده", future = true),
