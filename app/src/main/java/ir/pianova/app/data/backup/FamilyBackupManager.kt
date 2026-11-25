@@ -269,7 +269,7 @@ object FamilyBackupCodec {
             "Backup contains an invalid legacy audience"
         }
         require(payload.preferences.lessonMastery.values.all { raw ->
-            runCatching { Json.decodeFromString(ListSerializer(SkillAttempt.serializer()), raw) }.isSuccess
+            runCatching { json.decodeFromString(ListSerializer(SkillAttempt.serializer()), raw) }.isSuccess
         }) {
             "Backup contains invalid learner mastery data"
         }
