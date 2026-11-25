@@ -257,10 +257,10 @@ object FamilyBackupCodec {
                     raw.toFloatOrNull()?.let { it.isFinite() && it in 0.05f..1f } == true) {
                     "Backup contains an invalid learner volume"
                 }
-                key.startsWith("label_mode.") -> require(value.startsWith("i:") && raw.toIntOrNull() in 0..2) {
+                key.startsWith("label_mode.") -> require(value.startsWith("i:") && raw.toIntOrNull()?.let { it in 0..2 } == true) {
                     "Backup contains an invalid note-label preference"
                 }
-                key.startsWith("first_midi.") -> require(value.startsWith("i:") && raw.toIntOrNull() in 21..84) {
+                key.startsWith("first_midi.") -> require(value.startsWith("i:") && raw.toIntOrNull()?.let { it in 21..84 } == true) {
                     "Backup contains an invalid keyboard range preference"
                 }
             }
