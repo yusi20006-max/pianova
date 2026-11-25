@@ -5,8 +5,10 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.ColumnInfo
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "families")
+@Serializable
 data class FamilyEntity(
     @PrimaryKey val familyId: String,
     val createdAtEpochMillis: Long,
@@ -29,6 +31,7 @@ data class FamilyEntity(
     ],
     indices = [Index("familyId")]
 )
+@Serializable
 data class LearnerProfileEntity(
     @PrimaryKey val learnerId: String,
     val familyId: String,
@@ -47,6 +50,7 @@ data class LearnerProfileEntity(
     primaryKeys = ["userId", "lessonId"],
     indices = [Index(value = ["progressId"], unique = true)]
 )
+@Serializable
 data class LessonProgressEntity(
     val progressId: String,
     @ColumnInfo(name = "userId") val learnerId: String,
@@ -62,6 +66,7 @@ data class LessonProgressEntity(
     tableName = "practice_sessions",
     indices = [Index("userId"), Index("startedAtEpochMillis")]
 )
+@Serializable
 data class PracticeSessionEntity(
     @PrimaryKey val sessionId: String,
     @ColumnInfo(name = "userId") val learnerId: String,
@@ -80,6 +85,7 @@ data class PracticeSessionEntity(
     primaryKeys = ["userId", "achievementId"],
     indices = [Index("userId")]
 )
+@Serializable
 data class UserAchievementEntity(
     @ColumnInfo(name = "userId") val learnerId: String,
     val achievementId: String,
@@ -92,6 +98,7 @@ data class UserAchievementEntity(
     primaryKeys = ["userId", "missionId", "dateEpochDay"],
     indices = [Index("userId")]
 )
+@Serializable
 data class DailyMissionEntity(
     @ColumnInfo(name = "userId") val learnerId: String,
     val missionId: String,
@@ -106,6 +113,7 @@ data class DailyMissionEntity(
     primaryKeys = ["userId", "songId"],
     indices = [Index("userId")]
 )
+@Serializable
 data class SongProgressEntity(
     @ColumnInfo(name = "userId") val learnerId: String,
     val songId: String,
@@ -116,6 +124,7 @@ data class SongProgressEntity(
 )
 
 @Entity(tableName = "learner_goals", foreignKeys = [ForeignKey(entity = LearnerProfileEntity::class, parentColumns = ["learnerId"], childColumns = ["learnerId"], onDelete = ForeignKey.CASCADE)])
+@Serializable
 data class LearnerGoalEntity(
     @PrimaryKey val learnerId: String,
     val goalText: String,
@@ -128,6 +137,7 @@ data class LearnerGoalEntity(
     foreignKeys = [ForeignKey(entity = LearnerProfileEntity::class, parentColumns = ["learnerId"], childColumns = ["learnerId"], onDelete = ForeignKey.CASCADE)],
     indices = [Index("learnerId"), Index(value = ["learnerId", "isActive"])]
 )
+@Serializable
 data class LearningPathAssignmentEntity(
     @PrimaryKey val assignmentId: String,
     val learnerId: String,
