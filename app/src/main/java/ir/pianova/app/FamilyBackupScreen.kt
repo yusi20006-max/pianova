@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.designsystem.PianovaInk
 import ir.pianova.app.core.designsystem.PianovaMuted
@@ -90,7 +91,7 @@ fun FamilyBackupScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        PageTitle(
+        BackupPageTitle(
             "پشتیبان‌گیری و بازیابی خانواده",
             "یک نسخه آفلاین از اطلاعات خانواده بسازید یا اطلاعات را از یک فایل معتبر بازیابی کنید."
         )
@@ -182,5 +183,13 @@ fun FamilyBackupScreen(
                 }) { Text("انصراف") }
             }
         )
+    }
+}
+
+@Composable
+private fun BackupPageTitle(title: String, subtitle: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Text(title, style = MaterialTheme.typography.headlineSmall, color = PianovaInk, fontWeight = FontWeight.Bold)
+        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = PianovaMuted)
     }
 }
