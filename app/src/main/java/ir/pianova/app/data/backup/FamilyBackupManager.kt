@@ -8,6 +8,10 @@ import ir.pianova.app.core.datastore.PianoSettings
 import ir.pianova.app.core.datastore.SettingsDataStore
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.security.MessageDigest
@@ -32,8 +36,8 @@ data class FamilyBackupPayload(
     val learnerGoals: List<LearnerGoalEntity>,
     val learningPathAssignments: List<LearningPathAssignmentEntity>,
     val evaluationEvidence: List<EvaluationEvidenceEntity>,
-    val settings: PianoSettings,
-    val preferences: FamilyBackupPreferences
+    val settings: PianoSettings = PianoSettings(),
+    val preferences: FamilyBackupPreferences = FamilyBackupPreferences()
 )
 
 @Serializable
@@ -57,7 +61,7 @@ data class FamilyBackupPreview(
 /** Strict, versioned JSON format. Only explicitly modeled local data is exported. */
 object FamilyBackupCodec {
     const val FORMAT = "pianova-family-backup"
-    const val CURRENT_SCHEMA_VERSION = 1
+    const val CURRENT_SCHEMA_VERSION = 2
     const val MAX_BACKUP_BYTES = 25 * 1024 * 1024
 
     private val sessionKeysForValidation = setOf("last_active_learner_id", "legacy_audience_assigned")
@@ -85,19 +89,38 @@ object FamilyBackupCodec {
 
     fun decode(raw: String): FamilyBackupEnvelope {
         require(raw.toByteArray(Charsets.UTF_8).size <= MAX_BACKUP_BYTES) { "Backup file is too large" }
-        val envelope = runCatching { json.decodeFromString<FamilyBackupEnvelope>(raw) }
+        val rootElement = runCatching { json.parseToJsonElement(raw) }
             .getOrElse { throw IllegalArgumentException("Backup JSON is invalid or incomplete", it) }
-        require(envelope.format == FORMAT) { "This file is not a Pianova family backup" }
-        require(envelope.schemaVersion == CURRENT_SCHEMA_VERSION) {
-            "Unsupported backup schema version: ${envelope.schemaVersion}"
+        val root = runCatching { rootElement.jsonObject }
+            .getOrElse { throw IllegalArgumentException("Backup envelope must be a JSON object") }
+        val format = root["format"]?.jsonPrimitive?.content
+            ?: throw IllegalArgumentException("Backup format marker is missing")
+        require(format == FORMAT) { "This file is not a Pianova family backup" }
+        val schemaVersion = root["schemaVersion"]?.jsonPrimitive?.intOrNull
+            ?: throw IllegalArgumentException("Backup schema version is missing")
+        require(schemaVersion in 1..CURRENT_SCHEMA_VERSION) {
+            "Unsupported backup schema version: $schemaVersion"
         }
-        require(envelope.createdAtEpochMillis >= 0) { "Backup timestamp is invalid" }
-        val actualChecksum = sha256(json.encodeToString(envelope.payload))
-        require(actualChecksum.equals(envelope.checksumSha256, ignoreCase = true)) {
+        val payloadElement = root["payload"]
+            ?: throw IllegalArgumentException("Backup payload is missing")
+        val storedChecksum = root["checksumSha256"]?.jsonPrimitive?.content
+            ?: throw IllegalArgumentException("Backup integrity checksum is missing")
+        val actualChecksum = sha256(json.encodeToString(JsonElement.serializer(), payloadElement))
+        require(actualChecksum.equals(storedChecksum, ignoreCase = true)) {
             "Backup integrity check failed"
         }
-        validate(envelope.payload)
-        return envelope
+        val parsed = runCatching { json.decodeFromString<FamilyBackupEnvelope>(raw) }
+            .getOrElse { throw IllegalArgumentException("Backup payload is invalid or incomplete", it) }
+        require(parsed.createdAtEpochMillis >= 0) { "Backup timestamp is invalid" }
+        // Version 1 did not persist DataStore or learner preference snapshots.
+        // Missing fields use safe defaults; all record IDs and relationships remain unchanged.
+        val migrated = when (schemaVersion) {
+            1 -> parsed.copy(schemaVersion = CURRENT_SCHEMA_VERSION)
+            CURRENT_SCHEMA_VERSION -> parsed
+            else -> throw IllegalArgumentException("Unsupported backup schema version: $schemaVersion")
+        }
+        validate(migrated.payload)
+        return migrated
     }
 
     private fun validate(payload: FamilyBackupPayload) {
