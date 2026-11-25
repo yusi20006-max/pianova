@@ -119,7 +119,13 @@ class FamilyBackupCodecTest {
                 LessonProgressEntity("duplicate-progress", "learner-b", "lesson-b", lastAccessedAtEpochMillis = 5)
             )
         )
-        assertFalse(runCatching { runBlocking { FamilyBackupManager.replaceDatabase(database, invalid) } }.isSuccess)
+        val restoreFailed = try {
+            FamilyBackupManager.replaceDatabase(database, invalid)
+            false
+        } catch (_: Exception) {
+            true
+        }
+        assertTrue(restoreFailed)
 
         assertEquals("old-family", database.familyDao().getAll().single().familyId)
         assertEquals("old-learner", database.learnerProfileDao().getAll().single().learnerId)
