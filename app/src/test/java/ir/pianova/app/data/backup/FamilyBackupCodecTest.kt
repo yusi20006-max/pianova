@@ -68,7 +68,7 @@ class FamilyBackupCodecTest {
     @Test
     fun unsupportedSchemaVersionIsRejected() {
         val raw = FamilyBackupCodec.encode(samplePayload(), 1234)
-            .replace("\"schemaVersion\":1", "\"schemaVersion\":99")
+            .replace("\"schemaVersion\":2", "\"schemaVersion\":99")
 
         assertFalse(runCatching { FamilyBackupCodec.decode(raw) }.isSuccess)
     }
