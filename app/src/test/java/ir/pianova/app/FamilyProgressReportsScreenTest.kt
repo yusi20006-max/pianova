@@ -104,6 +104,7 @@ class FamilyProgressReportsScreenTest {
         composeRule.waitUntil(5_000) {
             composeRule.onAllNodesWithText("گزارش نورا").fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.onNodeWithText("گزارش نورا").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText("تمرین روزانه نورا").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("3 دقیقه").fetchSemanticsNodes().isNotEmpty())
         composeRule.runOnIdle { assertEquals("learner-a", activeLearnerId) }
@@ -133,6 +134,7 @@ class FamilyProgressReportsScreenTest {
         composeRule.waitUntil(5_000) {
             composeRule.onAllNodesWithText("آخرین فعالیت در درس").fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.onNodeWithText("آخرین فعالیت در درس").performScrollTo().assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithText("آخرین فعالیت در درس").fetchSemanticsNodes().isNotEmpty())
     }
 
