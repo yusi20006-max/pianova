@@ -112,6 +112,7 @@ fun PianovaApp(
     var activeLearnerId by remember { mutableStateOf<String?>(null) }
     var managerOpen by remember { mutableStateOf(false) }
     var familyReportsOpen by remember { mutableStateOf(false) }
+    var familyBackupOpen by remember { mutableStateOf(false) }
     val learners by familyRepository.observeLearners(familyId).collectAsState(initial = emptyList())
     val validActiveLearnerId = activeLearnerOrNull(activeLearnerId, learners.map { it.learnerId }.toSet())
     val activeLearner = learners.firstOrNull { it.learnerId == validActiveLearnerId }
@@ -131,8 +132,8 @@ fun PianovaApp(
         familyReady = true
     }
 
-    LaunchedEffect(familyReady, managerOpen, familyReportsOpen, activeLearner?.learnerId) {
-        if (!familyReady || managerOpen || familyReportsOpen || activeLearner == null) {
+    LaunchedEffect(familyReady, managerOpen, familyReportsOpen, familyBackupOpen, activeLearner?.learnerId) {
+        if (!familyReady || managerOpen || familyReportsOpen || familyBackupOpen || activeLearner == null) {
             onPianoVisibilityChanged(false)
             onPianoStop()
         }
@@ -169,7 +170,8 @@ fun PianovaApp(
                 repository = familyRepository,
                 familyId = familyId,
                 initialSetup = false,
-                onComplete = { managerOpen = false }
+                onComplete = { managerOpen = false },
+                onBackup = { managerOpen = false; familyBackupOpen = true }
             )
         }
         familyReportsOpen -> {
@@ -178,6 +180,12 @@ fun PianovaApp(
                 familyRepository = familyRepository,
                 database = database,
                 onBack = { familyReportsOpen = false }
+            )
+        }
+        familyBackupOpen -> {
+            FamilyBackupScreen(
+                database = database,
+                onBack = { familyBackupOpen = false }
             )
         }
         activeLearner == null -> {
@@ -405,7 +413,8 @@ private fun LearnerWorkspace(
                         repository = familyRepository,
                         familyId = familyId,
                         initialSetup = false,
-                        onComplete = { navController.popBackStack() }
+                        onComplete = { navController.popBackStack() },
+                        onBackup = { navController.navigate("family-backup") }
                     )
                 }
             }
