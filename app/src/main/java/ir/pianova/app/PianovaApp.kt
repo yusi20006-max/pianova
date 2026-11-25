@@ -393,7 +393,12 @@ private fun LearnerWorkspace(
                 composable("library") { LibraryScreen(learner.learnerId) }
                 composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
                 composable("progress") { ProgressScreen(learner.learnerId) }
-                composable("settings") { SettingsScreen(onAboutClick = { showAboutDialog = true }) }
+                composable("settings") {
+                    SettingsScreen(
+                        onAboutClick = { showAboutDialog = true },
+                        onBackupClick = { navController.navigate("family-backup") }
+                    )
+                }
                 composable("family-backup") {
                     FamilyBackupScreen(
                         database = PianovaDatabase.getInstance(context),
@@ -666,14 +671,14 @@ private fun ProgressScreen(learnerId: String) {
 }
 
 @Composable
-private fun SettingsScreen(onAboutClick: () -> Unit) {
+private fun SettingsScreen(onAboutClick: () -> Unit, onBackupClick: () -> Unit) {
     PageColumn {
         PageTitle("تنظیمات", "تنظیم تجربه یادگیری و صدای پیانو")
         StatusCard("صدای پیانو و خروجی صوتی", "آماده")
         StatusCard("زبان و شیوه نمایش نت‌ها", "آماده")
         StatusCard("تم و نمایش", "آماده")
         TextButton(onClick = onAboutClick) { Text("درباره Pianova و نسخه نصب‌شده") }
-        StatusCard("پشتیبان‌گیری از پیشرفت", "برنامه‌ریزی‌شده", planned = true)
+        StatusCard("پشتیبان‌گیری و بازیابی خانواده", "آماده", onClick = onBackupClick)
     }
 }
 
