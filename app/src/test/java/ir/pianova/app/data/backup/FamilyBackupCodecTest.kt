@@ -11,7 +11,6 @@ import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.core.datastore.PianoSettings
 import ir.pianova.app.data.persistence.ProgressRepository
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -20,6 +19,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
@@ -66,6 +71,35 @@ class FamilyBackupCodecTest {
             .replace("\"schemaVersion\":1", "\"schemaVersion\":99")
 
         assertFalse(runCatching { FamilyBackupCodec.decode(raw) }.isSuccess)
+    }
+
+    @Test
+    fun schemaVersionOneMigratesWithSafePreferenceDefaults() {
+        val current = FamilyBackupCodec.encode(samplePayload(), 1234)
+        val root = Json.parseToJsonElement(current).jsonObject
+        val legacyPayload = buildJsonObject {
+            root.getValue("payload").jsonObject.forEach { (key, value) ->
+                if (key != "settings" && key != "preferences") put(key, value)
+            }
+        }
+        val payloadJson = Json.encodeToString(JsonElement.serializer(), legacyPayload)
+        val checksum = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(payloadJson.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        val legacyEnvelope = buildJsonObject {
+            put("format", JsonPrimitive(FamilyBackupCodec.FORMAT))
+            put("schemaVersion", JsonPrimitive(1))
+            put("createdAtEpochMillis", root.getValue("createdAtEpochMillis"))
+            put("payload", legacyPayload)
+            put("checksumSha256", JsonPrimitive(checksum))
+        }
+
+        val migrated = FamilyBackupCodec.decode(Json.encodeToString(JsonElement.serializer(), legacyEnvelope))
+
+        assertEquals(FamilyBackupCodec.CURRENT_SCHEMA_VERSION, migrated.schemaVersion)
+        assertEquals(PianoSettings(), migrated.payload.settings)
+        assertEquals(FamilyBackupPreferences(), migrated.payload.preferences)
+        assertEquals("learner-a", migrated.payload.learners.first().learnerId)
     }
 
     @Test
