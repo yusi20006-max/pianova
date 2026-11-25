@@ -110,6 +110,23 @@ class FamilyBackupCodecTest {
     }
 
     @Test
+    fun unassignedLegacyMasteryIsPreservedWithoutAssigningItToALearner() {
+        val payload = samplePayload().copy(
+            preferences = FamilyBackupPreferences(
+                legacyMastery = mapOf(
+                    "skill_attempts" to "s:[]",
+                    "learner_scope_migration_decided" to "b:false"
+                )
+            )
+        )
+
+        val restored = FamilyBackupCodec.decode(FamilyBackupCodec.encode(payload, 1234)).payload
+
+        assertEquals("s:[]", restored.preferences.legacyMastery["skill_attempts"])
+        assertEquals("b:false", restored.preferences.legacyMastery["learner_scope_migration_decided"])
+    }
+
+    @Test
     fun backupRejectsPreferencesOutsideExplicitAllowList() {
         val invalid = samplePayload().copy(
             preferences = FamilyBackupPreferences(
