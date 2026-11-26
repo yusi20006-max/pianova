@@ -147,7 +147,7 @@ object GamificationEngine {
             val progress = when (mission.metric) {
                 MissionMetric.PRACTICE_MINUTES -> practice
                 MissionMetric.COMPLETED_LESSONS -> lessonCount
-            }.coerceAtMost(mission.target)
+            }
             DailyMissionProgress(mission, progress, mission.target, mission.id in completed)
         }
     }
