@@ -8,17 +8,25 @@ import android.media.midi.MidiOutputPort
 import android.media.midi.MidiReceiver
 import android.os.Handler
 import android.os.Looper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 
 /**
  * Android USB MIDI adapter. Automatically discovers USB MIDI devices and listens
  * to their output ports (the ports that transmit keyboard performance data).
+ * MIDI is optional: devices without the MIDI service keep the virtual keyboard usable.
  */
 class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInput, AutoCloseable {
     private val eventsFlow = MutableSharedFlow<PianoEvent>(replay = 0, extraBufferCapacity = extraBufferCapacity)
     override val events = eventsFlow.asSharedFlow()
-    private val manager = context.applicationContext.getSystemService(Context.MIDI_SERVICE) as MidiManager
+    private val eventQueue = Channel<PianoEvent>(Channel.UNLIMITED)
+    private val eventScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val manager = context.applicationContext.getSystemService(Context.MIDI_SERVICE) as? MidiManager
     private val mainHandler = Handler(Looper.getMainLooper())
     private val lock = Any()
     private val connections = mutableMapOf<Int, Connection>()
@@ -44,13 +52,21 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
 
     init {
         require(extraBufferCapacity > 0) { "extraBufferCapacity must be positive" }
-        manager.registerDeviceCallback(callback, mainHandler)
-        manager.devices.forEach(::connectIfSupported)
+        eventScope.launch {
+            for (event in eventQueue) eventsFlow.emit(event)
+        }
+        manager?.registerDeviceCallback(callback, mainHandler)
+        manager?.devices?.forEach(::connectIfSupported)
+    }
+
+    private fun enqueue(event: PianoEvent) {
+        eventQueue.trySend(event)
     }
 
     private fun connectIfSupported(info: MidiDeviceInfo) {
+        val midiManager = manager ?: return
         if (info.type != MidiDeviceInfo.TYPE_USB || synchronized(lock) { closed || info.id in connections || !pendingDeviceIds.add(info.id) }) return
-        runCatching { manager.openDevice(info, { device ->
+        runCatching { midiManager.openDevice(info, { device ->
             val stillPending = synchronized(lock) { pendingDeviceIds.remove(info.id) }
             if (device == null) return@openDevice
             if (!stillPending) {
@@ -91,10 +107,10 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                     if (connection.heldNotes.add(event.midiNote)) {
                         val count = aggregateHeldNotes[event.midiNote] ?: 0
                         aggregateHeldNotes[event.midiNote] = count + 1
-                        if (count == 0) eventsFlow.tryEmit(event)
+                        if (count == 0) enqueue(event)
                     } else {
                         // Repeated NoteOn on the same source refreshes velocity.
-                        eventsFlow.tryEmit(event)
+                        enqueue(event)
                     }
                 }
                 is PianoEvent.NoteOff -> {
@@ -102,15 +118,14 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                         val count = (aggregateHeldNotes[event.midiNote] ?: 1) - 1
                         if (count <= 0) {
                             aggregateHeldNotes.remove(event.midiNote)
-                            eventsFlow.tryEmit(event)
+                            enqueue(event)
                         } else aggregateHeldNotes[event.midiNote] = count
                     }
                 }
                 is PianoEvent.Sustain -> {
                     connection.sustain = event.enabled
                     if (event.enabled) sustainDevices += deviceId else sustainDevices -= deviceId
-                    val enabled = sustainDevices.isNotEmpty()
-                    eventsFlow.tryEmit(PianoEvent.Sustain(enabled, event.timestampMs))
+                    enqueue(PianoEvent.Sustain(sustainDevices.isNotEmpty(), event.timestampMs))
                 }
             }
         }
@@ -123,12 +138,12 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                 val count = (aggregateHeldNotes[note] ?: 1) - 1
                 if (count <= 0) {
                     aggregateHeldNotes.remove(note)
-                    eventsFlow.tryEmit(PianoEvent.NoteOff(note, nowMs()))
+                    enqueue(PianoEvent.NoteOff(note, nowMs()))
                 } else aggregateHeldNotes[note] = count
             }
             connection.heldNotes.clear()
             sustainDevices -= deviceId
-            if (connection.sustain && sustainDevices.isEmpty()) eventsFlow.tryEmit(PianoEvent.Sustain(false, nowMs()))
+            if (connection.sustain && sustainDevices.isEmpty()) enqueue(PianoEvent.Sustain(false, nowMs()))
             connection.ports.forEach { runCatching { it.close() } }
             runCatching { connection.device.close() }
         }
@@ -139,9 +154,10 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
             if (closed) return
             closed = true
             pendingDeviceIds.clear()
-            manager.unregisterDeviceCallback(callback)
+            manager?.unregisterDeviceCallback(callback)
             connections.keys.toList().forEach(::disconnect)
         }
+        eventQueue.close()
     }
 
     private fun nowMs() = System.nanoTime() / 1_000_000L
