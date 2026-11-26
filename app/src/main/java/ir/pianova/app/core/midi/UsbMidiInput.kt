@@ -36,7 +36,10 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
 
     private val callback = object : MidiManager.DeviceCallback() {
         override fun onDeviceAdded(info: MidiDeviceInfo) { connectIfSupported(info) }
-        override fun onDeviceRemoved(info: MidiDeviceInfo) { disconnect(info.id) }
+        override fun onDeviceRemoved(info: MidiDeviceInfo) {
+            synchronized(lock) { pendingDeviceIds -= info.id }
+            disconnect(info.id)
+        }
     }
 
     init {
@@ -48,8 +51,12 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
     private fun connectIfSupported(info: MidiDeviceInfo) {
         if (info.type != MidiDeviceInfo.TYPE_USB || synchronized(lock) { closed || info.id in connections || !pendingDeviceIds.add(info.id) }) return
         runCatching { manager.openDevice(info, { device ->
-            synchronized(lock) { pendingDeviceIds -= info.id }
+            val stillPending = synchronized(lock) { pendingDeviceIds.remove(info.id) }
             if (device == null) return@openDevice
+            if (!stillPending) {
+                device.close()
+                return@openDevice
+            }
             synchronized(lock) {
                 if (closed || info.id in connections) {
                     device.close()
@@ -131,6 +138,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
         synchronized(lock) {
             if (closed) return
             closed = true
+            pendingDeviceIds.clear()
             manager.unregisterDeviceCallback(callback)
             connections.keys.toList().forEach(::disconnect)
         }
