@@ -47,7 +47,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
 
     private fun connectIfSupported(info: MidiDeviceInfo) {
         if (info.type != MidiDeviceInfo.TYPE_USB || synchronized(lock) { closed || info.id in connections || !pendingDeviceIds.add(info.id) }) return
-        manager.openDevice(info, { device ->
+        runCatching { manager.openDevice(info, { device ->
             synchronized(lock) { pendingDeviceIds -= info.id }
             if (device == null) return@openDevice
             synchronized(lock) {
@@ -58,7 +58,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                 val connection = Connection(device)
                 connections[info.id] = connection
                 info.ports.filter { it.type == MidiDeviceInfo.PortInfo.TYPE_OUTPUT }.forEach { portInfo ->
-                    val port = runCatching { device.openOutputPort(portInfo.portNumber }.getOrNull() ?: return@forEach
+                    val port = runCatching { device.openOutputPort(portInfo.portNumber) }.getOrNull() ?: return@forEach
                     val parser = MidiByteParser(emit = { event -> handleEvent(info.id, event) })
                     val receiver = object : MidiReceiver() {
                         override fun onSend(msg: ByteArray, offset: Int, count: Int, timestamp: Long) {
@@ -73,7 +73,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                     device.close()
                 }
             }
-        }, mainHandler)
+        }, mainHandler) }.onFailure { synchronized(lock) { pendingDeviceIds -= info.id } }
     }
 
     private fun handleEvent(deviceId: Int, event: PianoEvent) {
