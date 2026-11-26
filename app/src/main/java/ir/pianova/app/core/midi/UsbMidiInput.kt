@@ -67,14 +67,15 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
         val midiManager = manager ?: return
         if (info.type != MidiDeviceInfo.TYPE_USB || synchronized(lock) { closed || info.id in connections || !pendingDeviceIds.add(info.id) }) return
         runCatching { midiManager.openDevice(info, { device ->
-            val stillPending = synchronized(lock) { pendingDeviceIds.remove(info.id) }
-            if (device == null) return@openDevice
-            if (!stillPending) {
-                device.close()
+            if (device == null) {
+                synchronized(lock) { pendingDeviceIds -= info.id }
                 return@openDevice
             }
             synchronized(lock) {
-                if (closed || info.id in connections) {
+                // Consume the pending marker and publish the connection atomically.
+                // A concurrent onDeviceRemoved callback either wins first (so this
+                // device is closed) or runs after publication and disconnects it.
+                if (!pendingDeviceIds.remove(info.id) || closed || info.id in connections) {
                     device.close()
                     return@synchronized
                 }
