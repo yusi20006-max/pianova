@@ -50,6 +50,9 @@ jobs:
       - name: Run Gamification Engine tests
         run: timeout 7m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --tests 'ir.pianova.app.domain.gamification.GamificationEngineTest' --info --stacktrace
 
+      - name: Run USB MIDI parser tests
+        run: timeout 7m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --tests 'ir.pianova.app.core.midi.MidiByteParserTest' --info --stacktrace
+
       # Run the new evaluator tests separately with a hard bound. This reveals
       # the last test started if a coroutine-based test ever stalls.
       - name: Run EvaluationEngine tests

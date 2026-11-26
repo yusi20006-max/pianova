@@ -11,6 +11,8 @@ import androidx.lifecycle.lifecycleScope
 import ir.pianova.app.core.audio.OboePianoAudioEngine
 import ir.pianova.app.core.designsystem.PianovaTheme
 import ir.pianova.app.core.midi.PianoEvent
+import ir.pianova.app.core.midi.MergedPianoInput
+import ir.pianova.app.core.midi.UsbMidiInput
 import ir.pianova.app.core.midi.VirtualKeyboardInput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -24,6 +26,8 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     private var audioEngine: OboePianoAudioEngine? = null
     private val virtualKeyboardInput = VirtualKeyboardInput()
+    private lateinit var usbMidiInput: UsbMidiInput
+    private lateinit var mergedPianoInput: MergedPianoInput
     private var engineLoading = false
     private var engineStatus by mutableStateOf("در حال آماده‌سازی بانک صدای پیانو…")
     private var engineReady by mutableStateOf(false)
@@ -39,11 +43,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         previousOrientation = requestedOrientation
+        usbMidiInput = UsbMidiInput(applicationContext)
+        mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput), lifecycleScope)
 
         // The UI emits source-independent events. Only this collector knows
         // about the concrete audio engine, keeping input and playback decoupled.
         lifecycleScope.launch {
-            virtualKeyboardInput.events.collect { event ->
+            mergedPianoInput.events.collect { event ->
                 val engine = audioEngine ?: return@collect
                 when (event) {
                     is PianoEvent.NoteOn -> engine.noteOn(event.midiNote, event.velocity)
@@ -65,7 +71,7 @@ class MainActivity : ComponentActivity() {
                     onNoteOff = { note -> virtualKeyboardInput.noteOff(note) },
                     onSustain = { enabled -> virtualKeyboardInput.sustain(enabled) },
                     onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) },
-                    pianoInput = virtualKeyboardInput,
+                    pianoInput = mergedPianoInput,
                     onPlayReferenceNotes = ::playReferenceNotes,
                     onPianoVisibilityChanged = { visible ->
                         requestedOrientation = if (visible) {
@@ -235,6 +241,7 @@ class MainActivity : ComponentActivity() {
         val engine = audioEngine
         audioEngine = null
         if (engine != null) engine.close()
+        if (::usbMidiInput.isInitialized) usbMidiInput.close()
         requestedOrientation = previousOrientation
         super.onDestroy()
     }
