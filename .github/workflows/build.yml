@@ -47,6 +47,9 @@ jobs:
           }
           EOF
 
+      - name: Run Gamification Engine tests
+        run: timeout 7m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --tests 'ir.pianova.app.domain.gamification.GamificationEngineTest' --info --stacktrace
+
       # Run the new evaluator tests separately with a hard bound. This reveals
       # the last test started if a coroutine-based test ever stalls.
       - name: Run EvaluationEngine tests
