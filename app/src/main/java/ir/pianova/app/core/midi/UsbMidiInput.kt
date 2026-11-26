@@ -22,6 +22,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
     private val mainHandler = Handler(Looper.getMainLooper())
     private val lock = Any()
     private val connections = mutableMapOf<Int, Connection>()
+    private val pendingDeviceIds = mutableSetOf<Int>()
     private val aggregateHeldNotes = mutableMapOf<Int, Int>()
     private val sustainDevices = mutableSetOf<Int>()
     private var closed = false
@@ -45,8 +46,9 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
     }
 
     private fun connectIfSupported(info: MidiDeviceInfo) {
-        if (info.type != MidiDeviceInfo.TYPE_USB || synchronized(lock) { closed || info.id in connections }) return
+        if (info.type != MidiDeviceInfo.TYPE_USB || synchronized(lock) { closed || info.id in connections || !pendingDeviceIds.add(info.id) }) return
         manager.openDevice(info, { device ->
+            synchronized(lock) { pendingDeviceIds -= info.id }
             if (device == null) return@openDevice
             synchronized(lock) {
                 if (closed || info.id in connections) {
@@ -56,14 +58,15 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                 val connection = Connection(device)
                 connections[info.id] = connection
                 info.ports.filter { it.type == MidiDeviceInfo.PortInfo.TYPE_OUTPUT }.forEach { portInfo ->
-                    val port = device.openOutputPort(portInfo.portNumber) ?: return@forEach
+                    val port = runCatching { device.openOutputPort(portInfo.portNumber }.getOrNull() ?: return@forEach
                     val parser = MidiByteParser(emit = { event -> handleEvent(info.id, event) })
-                    port.connect(object : MidiReceiver() {
+                    val receiver = object : MidiReceiver() {
                         override fun onSend(msg: ByteArray, offset: Int, count: Int, timestamp: Long) {
                             parser.feed(msg, offset, count)
                         }
-                    })
-                    connection.ports += port
+                    }
+                    if (runCatching { port.connect(receiver) }.isSuccess) connection.ports += port
+                    else runCatching { port.close() }
                 }
                 if (connection.ports.isEmpty()) {
                     connections.remove(info.id)

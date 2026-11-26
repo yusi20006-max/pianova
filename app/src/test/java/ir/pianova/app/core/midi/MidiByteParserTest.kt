@@ -36,6 +36,18 @@ class MidiByteParserTest {
         )
     }
 
+    @Test fun realTimeBytesDoNotBreakRunningStatus() {
+        val actual = mutableListOf<PianoEvent>()
+        MidiByteParser(clock = { 56L }, emit = actual::add).feed(byteArrayOf(0x90.toByte(), 60, 0xF8.toByte(), 90, 61, 80))
+        assertEquals(listOf(PianoEvent.NoteOn(60, 90 / 127f, 56), PianoEvent.NoteOn(61, 80 / 127f, 56)), actual)
+    }
+
+    @Test fun oneByteChannelMessagesDoNotShiftFollowingNotes() {
+        val actual = mutableListOf<PianoEvent>()
+        MidiByteParser(clock = { 57L }, emit = actual::add).feed(byteArrayOf(0xC0.toByte(), 5, 0x90.toByte(), 62, 100))
+        assertEquals(listOf(PianoEvent.NoteOn(62, 100 / 127f, 57)), actual)
+    }
+
     @Test fun unrelatedControlChangesAreIgnored() {
         val actual = mutableListOf<PianoEvent>()
         MidiByteParser(clock = { 55L }, emit = actual::add).feed(byteArrayOf(0xB0.toByte(), 7, 127))
