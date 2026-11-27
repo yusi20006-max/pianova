@@ -77,7 +77,12 @@ bool AudioEngine::loadSoundFont(AAssetManager* assets, const char* assetPath) {
     return true;
 }
 
-int32_t AudioEngine::outputDeviceId() const noexcept {\n    std::lock_guard<std::mutex> lock(streamMutex_);\n    return stream_ ? stream_->getDeviceId() : -1;\n}\n\nbool AudioEngine::start() {
+int32_t AudioEngine::outputDeviceId() const noexcept {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    return stream_ ? stream_->getDeviceId() : -1;
+}
+
+bool AudioEngine::start() {
     std::lock_guard<std::mutex> lock(streamMutex_);
     return startLocked();
 }
