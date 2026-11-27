@@ -66,6 +66,7 @@ import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
 import ir.pianova.app.core.midi.UsbMidiDeviceStatus
+import ir.pianova.app.core.midi.MidiTransport
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.data.persistence.RoomFamilyRepository
 import ir.pianova.app.domain.family.Family
@@ -97,6 +98,8 @@ fun PianovaApp(
     pianoStatus: String,
     pianoReady: Boolean,
     pianoRunning: Boolean,
+    audioOutputRouteStatus: String,
+    onBluetoothAudioSettings: () -> Unit,
     onPianoStart: () -> Unit,
     onPianoStop: () -> Unit,
     onNoteOn: (Int, Float) -> Boolean,
@@ -107,7 +110,7 @@ fun PianovaApp(
     pianoInput: PianoInput,
     midiDevices: List<UsbMidiDeviceStatus>,
     onMidiRefresh: () -> Unit,
-    onMidiDeviceSelected: (Int?) -> Unit,
+    onMidiDeviceSelected: (UsbMidiDeviceStatus?) -> Unit,
     onPlayReferenceNotes: (List<Int>, Long) -> Unit
 ) {
     val context = LocalContext.current
@@ -262,7 +265,9 @@ private fun LearnerWorkspace(
     onVolume: (Float) -> Unit,
     midiDevices: List<UsbMidiDeviceStatus>,
     onMidiRefresh: () -> Unit,
-    onMidiDeviceSelected: (Int?) -> Unit,
+    onMidiDeviceSelected: (UsbMidiDeviceStatus?) -> Unit,
+    audioOutputRouteStatus: String,
+    onBluetoothAudioSettings: () -> Unit,
     onPianoVisibilityChanged: (Boolean) -> Unit,
     pianoInput: PianoInput,
     onPlayReferenceNotes: (List<Int>, Long) -> Unit,
@@ -439,6 +444,8 @@ private fun LearnerWorkspace(
                         midiDevices = midiDevices,
                         onMidiRefresh = onMidiRefresh,
                         onMidiDeviceSelected = onMidiDeviceSelected,
+                        audioOutputRouteStatus = audioOutputRouteStatus,
+                        onBluetoothAudioSettings = onBluetoothAudioSettings,
                         initialVolume = sessionStore.volumeFor(learner.learnerId),
                         initialLabelMode = sessionStore.labelModeFor(learner.learnerId),
                         initialFirstMidi = sessionStore.firstMidiFor(learner.learnerId),
@@ -723,7 +730,7 @@ private fun SettingsScreen(
     onBackupClick: () -> Unit,
     midiDevices: List<UsbMidiDeviceStatus>,
     onMidiRefresh: () -> Unit,
-    onMidiDeviceSelected: (Int?) -> Unit,
+    onMidiDeviceSelected: (UsbMidiDeviceStatus?) -> Unit,
     initialVolume: Float,
     initialLabelMode: Int,
     initialFirstMidi: Int,
@@ -765,24 +772,27 @@ private fun SettingsScreen(
                 preferences.edit().putBoolean("haptic_enabled", it).apply()
             })
         }
+        Text("خروجی صوتی", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
+        Text("مسیر فعلی: $audioOutputRouteStatus", color = PianovaMuted)
+        TextButton(onClick = onBluetoothAudioSettings) { Text("تنظیم Bluetooth Audio در Android") }
         Text("MIDI و اتصال پیانو", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
         Text(if (midiDevices.any { it.connected }) "وضعیت: متصل" else "وضعیت: قطع", color = if (midiDevices.any { it.connected }) PianovaGreen else PianovaMuted)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = { onMidiDeviceSelected(null) }) { Text("اتصال خودکار") }
+            TextButton(onClick = { onMidiDeviceSelected(null) }) { Text("انتخاب خودکار") }
             TextButton(onClick = onMidiRefresh) { Text("جستجوی دوباره") }
         }
         if (midiDevices.isEmpty()) {
-            EmptyState("دستگاه MIDI پیدا نشد", "پیانو یا کیبورد دیجیتال را با USB OTG وصل کنید و جستجوی دوباره را بزنید.")
+            EmptyState("دستگاه MIDI پیدا نشد", "پیانو را از طریق USB یا Bluetooth MIDI متصل کنید و جستجوی دوباره را بزنید.")
         } else {
             midiDevices.forEach { device ->
                 StatusCard(
-                    device.name,
+                    "${device.name} · ${if (device.transport == MidiTransport.BLUETOOTH) "Bluetooth MIDI" else "USB MIDI"},
                     when {
                         device.connected -> "متصل"
                         device.selected -> "انتخاب‌شده · در انتظار اتصال"
                         else -> "قطع"
                     },
-                    onClick = { onMidiDeviceSelected(device.id) }
+                    onClick = { onMidiDeviceSelected(device) }
                 )
             }
         }
