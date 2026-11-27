@@ -188,11 +188,31 @@ android {
         }
     }
 
+    signingConfigs {
+        val keystorePath = System.getenv("RELEASE_KEYSTORE_FILE")
+        val keystorePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+        val keyAliasValue = System.getenv("RELEASE_KEY_ALIAS")
+        val keyPasswordValue = System.getenv("RELEASE_KEY_PASSWORD")
+        if (!keystorePath.isNullOrBlank() && !keystorePassword.isNullOrBlank() &&
+            !keyAliasValue.isNullOrBlank() && !keyPasswordValue.isNullOrBlank()
+        ) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Exercise R8 on every release build; keep JNI entry points in proguard-rules.pro.
+            // R8 is always enabled; tag releases provide signing secrets.
             isMinifyEnabled = true
             isShrinkResources = true
+            if (signingConfigs.findByName("release") != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
