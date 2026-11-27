@@ -51,6 +51,13 @@ Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeGetState(
         : static_cast<jint>(engine->state());
 }
 
+extern "C" JNIEXPORT jint JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeGetOutputDeviceId(
+    JNIEnv*, jobject, jlong handle) {
+    auto* engine = fromHandle(handle);
+    return engine == nullptr ? -1 : static_cast<jint>(engine->outputDeviceId());
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeStop(
     JNIEnv*, jobject, jlong handle) {
