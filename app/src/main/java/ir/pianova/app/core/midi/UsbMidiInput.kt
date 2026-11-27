@@ -14,7 +14,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
+data class UsbMidiDeviceStatus(val id: Int, val name: String, val connected: Boolean, val selected: Boolean)
 
 /** Android USB MIDI adapter. MIDI remains optional for touchscreen-only devices. */
 class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInput, AutoCloseable {
@@ -26,10 +30,39 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
     private val mainHandler = Handler(Looper.getMainLooper())
     private val lock = Any()
     private val connections = mutableMapOf<Int, Connection>()
-    private val pendingDeviceIds = mutableSetOf<Int>()
+    private val pendingDeviceIds = mutableMapOf<Int, Long>()
+    private var nextOpenToken = 0L
     private val aggregateHeldNotes = mutableMapOf<Int, Int>()
     private val activeSustainChannels = mutableSetOf<Pair<Int, Int>>()
     private var closed = false
+    private var selectedDeviceId: Int? = null
+    private var selectedDeviceIdentity: String? = null
+
+    fun selectDeviceIdentity(identity: String?) {
+        synchronized(lock) {
+            selectedDeviceIdentity = identity
+            selectedDeviceId = manager?.devices
+                ?.firstOrNull { it.type == MidiDeviceInfo.TYPE_USB && stableIdentity(it) == identity }
+                ?.id
+            pendingDeviceIds.clear()
+            connections.keys.toList().filter { it != selectedDeviceId }.forEach(::disconnect)
+        }
+        refreshDevices()
+    }
+
+    fun selectedDeviceIdentity(deviceId: Int?): String? = synchronized(lock) {
+        deviceId?.let { id -> manager?.devices?.firstOrNull { it.id == id }?.let(::stableIdentity) }
+    }
+
+    private fun stableIdentity(info: MidiDeviceInfo): String {
+        val properties = info.properties
+        val manufacturer = properties.getString(MidiDeviceInfo.PROPERTY_MANUFACTURER).orEmpty()
+        val product = properties.getString(MidiDeviceInfo.PROPERTY_PRODUCT).orEmpty()
+        val name = properties.getString(MidiDeviceInfo.PROPERTY_NAME).orEmpty()
+        return listOf(manufacturer, product, name).joinToString("|").lowercase()
+    }
+    private val deviceStatusFlow = MutableStateFlow<List<UsbMidiDeviceStatus>>(emptyList())
+    val deviceStatuses: StateFlow<List<UsbMidiDeviceStatus>> = deviceStatusFlow
     private data class Connection(
         val device: MidiDevice,
         val ports: MutableList<MidiOutputPort> = mutableListOf(),
@@ -37,38 +70,124 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
         val sustainChannels: MutableSet<Int> = mutableSetOf()
     )
     private val callback = object : MidiManager.DeviceCallback() {
-        override fun onDeviceAdded(info: MidiDeviceInfo) { connectIfSupported(info) }
+        override fun onDeviceAdded(info: MidiDeviceInfo) {
+            synchronized(lock) {
+                if (selectedDeviceIdentity != null &&
+                    (selectedDeviceId == null || manager?.devices?.none { it.id == selectedDeviceId } == true) &&
+                    stableIdentity(info) == selectedDeviceIdentity
+                ) {
+                    selectedDeviceId = info.id
+                }
+            }
+            connectIfSupported(info)
+            refreshDevices()
+        }
         override fun onDeviceRemoved(info: MidiDeviceInfo) {
-            synchronized(lock) { pendingDeviceIds -= info.id }
+            synchronized(lock) {
+                pendingDeviceIds.remove(info.id)
+                if (selectedDeviceId == info.id) selectedDeviceId = null
+            }
             disconnect(info.id)
+            // Removal can happen before an open completes, when disconnect has no
+            // active Connection to remove. Always refresh the visible device list.
+            refreshDevices()
         }
     }
     init {
         require(extraBufferCapacity > 0) { "extraBufferCapacity must be positive" }
         eventScope.launch { for (event in eventQueue) eventsFlow.emit(event) }
         manager?.registerDeviceCallback(callback, mainHandler)
-        manager?.devices?.forEach(::connectIfSupported)
+        refreshDevices()
     }
     private fun enqueue(event: PianoEvent) { eventQueue.trySend(event) }
+
+    fun refreshDevices() {
+        val infos = manager?.devices?.filter { it.type == MidiDeviceInfo.TYPE_USB }.orEmpty()
+        synchronized(lock) {
+            selectedDeviceIdentity?.let { identity ->
+                val currentSelectionIsAttached = selectedDeviceId?.let { id ->
+                    infos.any { it.id == id && stableIdentity(it) == identity }
+                } == true
+                if (!currentSelectionIsAttached) {
+                    selectedDeviceId = infos.firstOrNull { stableIdentity(it) == identity }?.id
+                }
+            }
+            deviceStatusFlow.value = infos.map { info ->
+                UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections, selectedDeviceId == info.id)
+            }
+        }
+        val selectedIdentity = synchronized(lock) { selectedDeviceIdentity }
+        infos.filter { selectedIdentity == null || stableIdentity(it) == selectedIdentity }.forEach(::connectIfSupported)
+    }
+    fun selectDevice(deviceId: Int?) {
+        synchronized(lock) {
+            selectedDeviceId = deviceId
+            selectedDeviceIdentity = deviceId?.let { id ->
+                manager?.devices?.firstOrNull { it.id == id }?.let(::stableIdentity)
+            }
+            // Invalidate callbacks from opens requested under the previous selection.
+            pendingDeviceIds.clear()
+            connections.keys.toList().filter { deviceId != null && it != deviceId }.forEach(::disconnect)
+        }
+        refreshDevices()
+    }
+
     private fun connectIfSupported(info: MidiDeviceInfo) {
         val midiManager = manager ?: return
-        if (info.type != MidiDeviceInfo.TYPE_USB || synchronized(lock) { closed || info.id in connections || !pendingDeviceIds.add(info.id) }) return
-        runCatching { midiManager.openDevice(info, { device ->
-            if (device == null) { synchronized(lock) { pendingDeviceIds -= info.id }; return@openDevice }
-            synchronized(lock) {
-                if (!pendingDeviceIds.remove(info.id) || closed || info.id in connections) { device.close(); return@synchronized }
-                val connection = Connection(device); connections[info.id] = connection
-                info.ports.filter { it.type == MidiDeviceInfo.PortInfo.TYPE_OUTPUT }.forEach { portInfo ->
-                    val port = runCatching { device.openOutputPort(portInfo.portNumber) }.getOrNull() ?: return@forEach
-                    val parser = MidiByteParser(emit = { ch, ev -> handleEvent(info.id, ch, ev) })
-                    val receiver = object : MidiReceiver() {
-                        override fun onSend(msg: ByteArray, offset: Int, count: Int, timestamp: Long) { parser.feed(msg, offset, count) }
-                    }
-                    if (runCatching { port.connect(receiver) }.isSuccess) connection.ports += port else runCatching { port.close() }
-                }
-                if (connection.ports.isEmpty()) { connections.remove(info.id); device.close() }
+        if (info.type != MidiDeviceInfo.TYPE_USB) return
+        val requestToken = synchronized(lock) {
+            if (closed || info.id in connections || info.id in pendingDeviceIds ||
+                (selectedDeviceIdentity != null && selectedDeviceIdentity != stableIdentity(info)) ||
+                (selectedDeviceIdentity == null && selectedDeviceId != null && selectedDeviceId != info.id)
+            ) {
+                null
+            } else {
+                (++nextOpenToken).also { pendingDeviceIds[info.id] = it }
             }
-        }, mainHandler) }.onFailure { synchronized(lock) { pendingDeviceIds -= info.id } }
+        } ?: return
+
+        runCatching {
+            midiManager.openDevice(info, { device ->
+                if (device == null) {
+                    synchronized(lock) {
+                        if (pendingDeviceIds[info.id] == requestToken) pendingDeviceIds.remove(info.id)
+                    }
+                    return@openDevice
+                }
+                synchronized(lock) {
+                    val requestIsCurrent = pendingDeviceIds[info.id] == requestToken
+                    val selectionMatches = selectedDeviceId == null || selectedDeviceId == info.id
+                    if (!requestIsCurrent || !selectionMatches || closed || info.id in connections) {
+                        if (requestIsCurrent) pendingDeviceIds.remove(info.id)
+                        device.close()
+                        return@synchronized
+                    }
+                    pendingDeviceIds.remove(info.id)
+                    val connection = Connection(device)
+                    connections[info.id] = connection
+                    info.ports.filter { it.type == MidiDeviceInfo.PortInfo.TYPE_OUTPUT }.forEach { portInfo ->
+                        val port = runCatching { device.openOutputPort(portInfo.portNumber) }.getOrNull() ?: return@forEach
+                        val parser = MidiByteParser(emit = { ch, ev -> handleEvent(info.id, ch, ev) })
+                        val receiver = object : MidiReceiver() {
+                            override fun onSend(msg: ByteArray, offset: Int, count: Int, timestamp: Long) {
+                                parser.feed(msg, offset, count)
+                            }
+                        }
+                        if (runCatching { port.connect(receiver) }.isSuccess) connection.ports += port
+                        else runCatching { port.close() }
+                    }
+                    if (connection.ports.isEmpty()) {
+                        connections.remove(info.id)
+                        device.close()
+                    }
+                    refreshDeviceStatusLocked()
+                }
+            }, mainHandler)
+        }.onFailure {
+            synchronized(lock) {
+                if (pendingDeviceIds[info.id] == requestToken) pendingDeviceIds.remove(info.id)
+            }
+        }
     }
     private fun handleEvent(deviceId: Int, channel: Int, event: PianoEvent) {
         synchronized(lock) {
@@ -116,6 +235,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
             c.sustainChannels.clear()
             if (before && activeSustainChannels.isEmpty()) enqueue(PianoEvent.Sustain(false, nowMs()))
             c.ports.forEach { runCatching { it.close() } }; runCatching { c.device.close() }
+            refreshDeviceStatusLocked()
         }
     }
     override fun close() {
@@ -126,6 +246,12 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
             connections.keys.toList().forEach(::disconnect)
         }
         eventQueue.close()
+    }
+    private fun refreshDeviceStatusLocked() {
+        val infos = manager?.devices?.filter { it.type == MidiDeviceInfo.TYPE_USB }.orEmpty()
+        deviceStatusFlow.value = infos.map { info ->
+            UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections, selectedDeviceId == info.id)
+        }
     }
     private fun nowMs() = System.nanoTime() / 1_000_000L
 }

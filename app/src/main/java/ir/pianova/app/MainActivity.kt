@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.lifecycleScope
 import ir.pianova.app.core.audio.OboePianoAudioEngine
 import ir.pianova.app.core.designsystem.PianovaTheme
@@ -44,6 +45,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         previousOrientation = requestedOrientation
         usbMidiInput = UsbMidiInput(applicationContext)
+        val settingsPreferences = getSharedPreferences("pianova_settings", MODE_PRIVATE)
+        val preferredMidiIdentity = settingsPreferences.getString("midi_selected_identity", null)
+        if (!preferredMidiIdentity.isNullOrBlank()) usbMidiInput.selectDeviceIdentity(preferredMidiIdentity)
         mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput), lifecycleScope)
 
         // The UI emits source-independent events. Only this collector knows
@@ -60,6 +64,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val midiDevices by usbMidiInput.deviceStatuses.collectAsState()
             PianovaTheme {
                 PianovaApp(
                     pianoStatus = engineStatus,
@@ -71,6 +76,13 @@ class MainActivity : ComponentActivity() {
                     onNoteOff = { note -> virtualKeyboardInput.noteOff(note) },
                     onSustain = { enabled -> virtualKeyboardInput.sustain(enabled) },
                     onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) },
+                    midiDevices = midiDevices,
+                    onMidiRefresh = usbMidiInput::refreshDevices,
+                    onMidiDeviceSelected = { deviceId ->
+                        val identity = usbMidiInput.selectedDeviceIdentity(deviceId)
+                        settingsPreferences.edit().putString("midi_selected_identity", identity).apply()
+                        usbMidiInput.selectDevice(deviceId)
+                    },
                     pianoInput = mergedPianoInput,
                     onPlayReferenceNotes = ::playReferenceNotes,
                     onPianoVisibilityChanged = { visible ->
