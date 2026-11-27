@@ -46,8 +46,8 @@ class MainActivity : ComponentActivity() {
         previousOrientation = requestedOrientation
         usbMidiInput = UsbMidiInput(applicationContext)
         val settingsPreferences = getSharedPreferences("pianova_settings", MODE_PRIVATE)
-        val preferredMidiDevice = settingsPreferences.getInt("midi_selected_device", -1).takeIf { it >= 0 }
-        if (preferredMidiDevice != null) usbMidiInput.selectDevice(preferredMidiDevice)
+        val preferredMidiIdentity = settingsPreferences.getString("midi_selected_identity", null)
+        if (!preferredMidiIdentity.isNullOrBlank()) usbMidiInput.selectDeviceIdentity(preferredMidiIdentity)
         mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput), lifecycleScope)
 
         // The UI emits source-independent events. Only this collector knows
@@ -79,7 +79,8 @@ class MainActivity : ComponentActivity() {
                     midiDevices = midiDevices,
                     onMidiRefresh = usbMidiInput::refreshDevices,
                     onMidiDeviceSelected = { deviceId ->
-                        settingsPreferences.edit().putInt("midi_selected_device", deviceId ?: -1).apply()
+                        val identity = usbMidiInput.selectedDeviceIdentity(deviceId)
+                        settingsPreferences.edit().putString("midi_selected_identity", identity).apply()
                         usbMidiInput.selectDevice(deviceId)
                     },
                     pianoInput = mergedPianoInput,
