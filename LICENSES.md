@@ -59,4 +59,4 @@ This file records third-party components and bundled media currently present in 
 
 ## Release gate
 
-Do not describe the application as fully license-audited until the exact release dependency graph, all packaged assets, and the upstream license texts at pinned revisions have been reviewed. The Dastkhat font revision and Oboe/Dastkhat license texts are now pinned and bundled; the resolved transitive dependency inventory and independent verification of the Chaos Bank CC0 declaration remain open.
+Do not describe the application as fully license-audited until the exact release dependency graph, all packaged assets, and the upstream license texts at pinned revisions have been reviewed. The Dastkhat font revision and Oboe/Dastkhat license texts are now pinned and bundled; the resolved transitive dependency inventory remains open.
