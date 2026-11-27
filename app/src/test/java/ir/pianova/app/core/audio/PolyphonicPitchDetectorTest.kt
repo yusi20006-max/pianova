@@ -38,7 +38,7 @@ class PolyphonicPitchDetectorTest {
     private fun toneFrame(notes: List<Int>, amplitude: Float): ShortArray {
         return ShortArray(4096) { index ->
             val t = index.toDouble() / sampleRate
-            val sample = notes.sumOf { note -> sin(2.0 * PI * PolyphonicPitchDetector.midiToFrequency(note) * t) } * amplitude
+            val sample = notes.sumOf { note -> sin(2.0 * PI * PolyphonicPitchDetector.midiToFrequency(note) * t) } * amplitude.toDouble()
             (sample.coerceIn(-0.95, 0.95) * 32767).toInt().toShort()
         }
     }
