@@ -1,10 +1,15 @@
 package ir.pianova.app.feature.songs
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class SongCatalogParserTest {
     private val validSong = """
         {
@@ -63,5 +68,19 @@ class SongCatalogParserTest {
     fun acceptsAllSupportedCategoryLabels() {
         assertEquals(4, SONG_CATEGORIES.size)
         assertTrue(SONG_CATEGORIES.map { it.first }.containsAll(listOf("iranian", "classical", "international", "practice")))
+    }
+
+    @Test
+    fun loadsEveryBundledSongAssetAndChecksUniqueIds() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val songs = SongCatalogRepository.load(context)
+
+        assertEquals(10, songs.size)
+        assertEquals(10, songs.map { it.id }.distinct().size)
+        assertTrue(songs.any { it.category == "iranian" })
+        assertTrue(songs.any { it.category == "classical" })
+        assertTrue(songs.any { it.category == "international" })
+        assertTrue(songs.any { it.category == "practice" })
+        assertTrue(songs.all { it.notes.isNotEmpty() && it.practiceSections.isNotEmpty() })
     }
 }
