@@ -30,7 +30,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import android.Manifest
+import android.Manifest\nimport android.media.AudioDeviceInfo\nimport android.media.AudioManager\nimport android.content.Intent\nimport android.provider.Settings
 import android.content.pm.PackageManager
 import android.os.Build
 
@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
     private var bluetoothPermissionLauncher: ActivityResultLauncher<Array<String>>? = null
     private lateinit var mergedPianoInput: MergedPianoInput
     private var engineLoading = false
-    private var engineStatus by mutableStateOf("در حال آماده‌سازی بانک صدای پیانو…")
+    private var audioOutputRouteStatus by mutableStateOf("مسیر خروجی پیش‌فرض سیستم")\n    private var engineStatus by mutableStateOf("در حال آماده‌سازی بانک صدای پیانو…")
     private var engineReady by mutableStateOf(false)
     private var engineRunning by mutableStateOf(false)
     private var outputVolume = 0.8f
@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
                 PianovaApp(
                     pianoStatus = engineStatus,
                     pianoReady = engineReady,
-                    pianoRunning = engineRunning,
+                    pianoRunning = engineRunning,\n                    audioOutputRouteStatus = audioOutputRouteStatus,\n                    onBluetoothAudioSettings = ::openBluetoothAudioSettings,
                     onPianoStart = ::startAudioEngine,
                     onPianoStop = ::stopAudioEngine,
                     onNoteOn = { note, velocity -> virtualKeyboardInput.noteOn(note, velocity) },
@@ -244,7 +244,7 @@ class MainActivity : ComponentActivity() {
         audioStateMonitorJob?.cancel()
         audioStateMonitorJob = lifecycleScope.launch {
             while (isActive && audioEngine === engine && isInForeground) {
-                val state = withContext(Dispatchers.IO) { engine.state() }
+                val state = withContext(Dispatchers.IO) { engine.state() }\n                withContext(Dispatchers.IO) { refreshAudioOutputRoute() }
                 if (audioEngine !== engine || !isInForeground) break
                 when (state) {
                     ir.pianova.app.core.audio.AudioEngineState.RUNNING -> {
@@ -278,7 +278,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun stopAudioEngine() {
+    private fun refreshAudioOutputRoute() {\n        val engine = audioEngine\n        val deviceId = engine?.outputDeviceId() ?: -1\n        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager\n        val device = audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)?.firstOrNull { it.id == deviceId }\n        audioOutputRouteStatus = when (device?.type) {\n            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "Bluetooth Audio · ${device.productName}"\n            AudioDeviceInfo.TYPE_BLE_HEADSET -> "Bluetooth LE Audio · ${device.productName}"\n            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "بلندگوی گوشی"\n            AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> "هدفون سیمی"\n            AudioDeviceInfo.TYPE_USB_HEADSET -> "خروجی USB"\n            else -> if (deviceId >= 0) "خروجی صوتی · ${device?.productName ?: deviceId}" else "مسیر خروجی پیش‌فرض سیستم"\n        }\n    }\n\n    private fun openBluetoothAudioSettings() {\n        val panelIntent = if (Build.VERSION.SDK_INT >= 29) Intent(Settings.Panel.ACTION_BLUETOOTH) else Intent(Settings.ACTION_BLUETOOTH_SETTINGS)\n        runCatching { startActivity(panelIntent) }.onFailure { startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) }\n    }\n\n    private fun stopAudioEngine() {
         stopAudioEngine("موتور متوقف است")
     }
 
