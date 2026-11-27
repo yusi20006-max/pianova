@@ -39,6 +39,9 @@ jobs:
       - name: Generate release runtime dependency license inventory
         run: timeout 8m gradle --no-daemon --console=plain :app:generateLicenseReport --stacktrace
 
+      - name: Capture resolved release runtime dependency graph
+        run: timeout 8m gradle --no-daemon --console=plain :app:dependencies --configuration releaseRuntimeClasspath > app/build/reports/dependency-license/releaseRuntimeClasspath.txt
+
       - name: Print dependency license inventory summary
         shell: bash
         run: |
@@ -68,6 +71,14 @@ jobs:
                   + "; ".join(labels)
               )
           print(f"UNKNOWN_LICENSE_COUNT={len(unknown)}")
+          if unknown:
+              for item in unknown:
+                  print(
+                      "UNKNOWN_LICENSE="
+                      f"{item.get('moduleName', 'UNKNOWN')}:"
+                      f"{item.get('moduleVersion', 'UNKNOWN')}"
+                  )
+              raise SystemExit("Release dependency license metadata contains UNKNOWN entries")
           PY
 
       - name: Upload release runtime license inventory
