@@ -103,8 +103,8 @@ fun PianoScreen(
     var sustain by remember(learnerId) { mutableStateOf(false) }
     var volume by remember(learnerId) { mutableStateOf(initialVolume) }
     var labelMode by remember(learnerId) { mutableStateOf(initialLabelMode) }
-    val hapticEnabled = remember(context) { context.getSharedPreferences("pianova_settings", 0).getBoolean("haptic_enabled", true) }
     val context = LocalContext.current
+    val hapticEnabled = remember(context) { context.getSharedPreferences("pianova_settings", 0).getBoolean("haptic_enabled", true) }
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val progressRepository = remember(database) { ProgressRepository(database) }
     val lifecycleOwner = LocalLifecycleOwner.current
