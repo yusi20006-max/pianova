@@ -3,6 +3,8 @@ package ir.pianova.app
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,21 +16,30 @@ import ir.pianova.app.core.designsystem.PianovaTheme
 import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.core.midi.MergedPianoInput
 import ir.pianova.app.core.midi.UsbMidiInput
+import ir.pianova.app.core.midi.BluetoothMidiInput
+import ir.pianova.app.core.midi.UsbMidiDeviceStatus
+import ir.pianova.app.core.midi.MidiTransport
 import ir.pianova.app.core.midi.VirtualKeyboardInput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 
 class MainActivity : ComponentActivity() {
     private var audioEngine: OboePianoAudioEngine? = null
     private val virtualKeyboardInput = VirtualKeyboardInput()
     private lateinit var usbMidiInput: UsbMidiInput
+    private lateinit var bluetoothMidiInput: BluetoothMidiInput
+    private var bluetoothPermissionLauncher: ActivityResultLauncher<Array<String>>? = null
     private lateinit var mergedPianoInput: MergedPianoInput
     private var engineLoading = false
     private var engineStatus by mutableStateOf("در حال آماده‌سازی بانک صدای پیانو…")
@@ -52,7 +63,7 @@ class MainActivity : ComponentActivity() {
         val settingsPreferences = getSharedPreferences("pianova_settings", MODE_PRIVATE)
         val preferredMidiIdentity = settingsPreferences.getString("midi_selected_identity", null)
         if (!preferredMidiIdentity.isNullOrBlank()) usbMidiInput.selectDeviceIdentity(preferredMidiIdentity)
-        mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput), lifecycleScope)
+        val preferredBluetoothIdentity = settingsPreferences.getString("bluetooth_midi_selected_identity", null)\n        if (!preferredBluetoothIdentity.isNullOrBlank()) bluetoothMidiInput.selectDeviceIdentity(preferredBluetoothIdentity)\n        mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput, bluetoothMidiInput), lifecycleScope)
 
         // The UI emits source-independent events. Only this collector knows
         // about the concrete audio engine, keeping input and playback decoupled.
@@ -69,7 +80,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val midiDevices by usbMidiInput.deviceStatuses.collectAsState()
+            val midiDevices by combine(usbMidiInput.deviceStatuses, bluetoothMidiInput.deviceStatuses) { usb, bluetooth -> usb + bluetooth }.collectAsState(initial = emptyList())
             PianovaTheme {
                 PianovaApp(
                     pianoStatus = engineStatus,
@@ -103,7 +114,7 @@ class MainActivity : ComponentActivity() {
         loadAudioEngine()
     }
 
-    private fun loadAudioEngine() {
+    private fun requestBluetoothMidiScan() {\n        val required = if (Build.VERSION.SDK_INT >= 31) {\n            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)\n        } else {\n            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)\n        }\n        val missing = required.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }\n        if (missing.isEmpty()) bluetoothMidiInput.refreshDevices()\n        else bluetoothPermissionLauncher?.launch(missing.toTypedArray())\n    }\n\n    private fun loadAudioEngine() {
         if (engineLoading || audioEngine != null) return
         engineLoading = true
         lifecycleScope.launch {
@@ -316,7 +327,7 @@ class MainActivity : ComponentActivity() {
         val engine = audioEngine
         audioEngine = null
         if (engine != null) engine.close()
-        if (::usbMidiInput.isInitialized) usbMidiInput.close()
+        if (::usbMidiInput.isInitialized) usbMidiInput.close()\n        if (::bluetoothMidiInput.isInitialized) bluetoothMidiInput.close()
         requestedOrientation = previousOrientation
         super.onDestroy()
     }
