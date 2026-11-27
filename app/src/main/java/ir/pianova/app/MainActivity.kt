@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.lifecycleScope
 import ir.pianova.app.core.audio.OboePianoAudioEngine
 import ir.pianova.app.core.designsystem.PianovaTheme
@@ -60,6 +61,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val midiDevices by usbMidiInput.deviceStatuses.collectAsState()
             PianovaTheme {
                 PianovaApp(
                     pianoStatus = engineStatus,
@@ -71,6 +73,9 @@ class MainActivity : ComponentActivity() {
                     onNoteOff = { note -> virtualKeyboardInput.noteOff(note) },
                     onSustain = { enabled -> virtualKeyboardInput.sustain(enabled) },
                     onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) },
+                    midiDevices = midiDevices,
+                    onMidiRefresh = usbMidiInput::refreshDevices,
+                    onMidiDeviceSelected = usbMidiInput::selectDevice,
                     pianoInput = mergedPianoInput,
                     onPlayReferenceNotes = ::playReferenceNotes,
                     onPianoVisibilityChanged = { visible ->
