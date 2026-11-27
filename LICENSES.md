@@ -53,6 +53,12 @@ The beginner catalog has 10 entries. Each JSON includes creator/source, rights c
 - They are not represented as folk-song transcriptions.
 - Their redistribution license is **not yet specified**. The project owner must choose and document the license before commercial/public distribution.
 
+## Resolved release runtime dependency inventory
+
+At the audit baseline, `releaseRuntimeClasspath` resolved **117 modules**: 16 first-level entries (14 declared runtime libraries, Compose BOM, and Kotlin stdlib) plus 101 transitive modules. The published metadata classified all 117 as Apache-2.0; Oboe's license was independently checked against its exact 1.9.0 upstream tag. No missing license names were reported. `com.google.guava:listenablefuture:1.0` has no project URL in its POM; its upstream project is identified at https://github.com/google/guava/tree/released-all-futures/listenablefuture1.
+
+The release-validation workflow regenerates a report for the current resolved graph and fails if dependency license names are missing. Keep the report artifact with each CI run; do not assume the baseline inventory remains current after dependency updates.
+
 ## Release licensing gate
 
 - Third-party component licenses are identified and corresponding license/notice files are present.
