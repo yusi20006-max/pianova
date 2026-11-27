@@ -99,7 +99,7 @@ object SongCatalogParser {
         require(song.schemaVersion == 1) { "Unsupported song schema version: ${song.schemaVersion}" }
         require(song.id.isNotBlank()) { "Song id must not be blank" }
         require(song.title.isNotBlank() && song.composer.isNotBlank()) { "Song title and composer are required" }
-        require(song.category in SONG_CATEGORIES) { "Unsupported song category: ${song.category}" }
+        require(SONG_CATEGORIES.any { it.first == song.category }) { "Unsupported song category: ${song.category}" }
         require(song.tempo in 30..240) { "Tempo must be between 30 and 240 BPM" }
         require(song.beatsPerBar in 1..12) { "beatsPerBar must be between 1 and 12" }
         require(song.notes.isNotEmpty()) { "A song must contain at least one note" }
