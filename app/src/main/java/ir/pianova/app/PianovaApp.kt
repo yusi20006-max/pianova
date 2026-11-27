@@ -731,6 +731,8 @@ private fun SettingsScreen(
     midiDevices: List<UsbMidiDeviceStatus>,
     onMidiRefresh: () -> Unit,
     onMidiDeviceSelected: (UsbMidiDeviceStatus?) -> Unit,
+    audioOutputRouteStatus: String,
+    onBluetoothAudioSettings: () -> Unit,
     initialVolume: Float,
     initialLabelMode: Int,
     initialFirstMidi: Int,
