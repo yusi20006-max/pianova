@@ -10,33 +10,35 @@ class MidiConnectionEventTracker {
     private val noteCounts = mutableMapOf<Int, Int>()
     private val sustainChannels = mutableSetOf<Int>()
 
-    fun accept(channel: Int, event: PianoEvent): List<PianoEvent> {\n        return when (event) {
-        is PianoEvent.NoteOn -> {
-            val notes = heldByChannel.getOrPut(channel) { mutableSetOf() }
-            if (notes.add(event.midiNote)) {
-                val count = noteCounts[event.midiNote] ?: 0
-                noteCounts[event.midiNote] = count + 1
-                if (count == 0) listOf(event) else emptyList()
-            } else listOf(event)
-        }
-        is PianoEvent.NoteOff -> {
-            val notes = heldByChannel[channel] ?: return emptyList()
-            if (!notes.remove(event.midiNote)) return emptyList()
-            if (notes.isEmpty()) heldByChannel.remove(channel)
-            val count = (noteCounts[event.midiNote] ?: 1) - 1
-            if (count <= 0) {
-                noteCounts.remove(event.midiNote)
-                listOf(event)
-            } else {
-                noteCounts[event.midiNote] = count
-                emptyList()
+    fun accept(channel: Int, event: PianoEvent): List<PianoEvent> {
+        return when (event) {
+            is PianoEvent.NoteOn -> {
+                val notes = heldByChannel.getOrPut(channel) { mutableSetOf() }
+                if (notes.add(event.midiNote)) {
+                    val count = noteCounts[event.midiNote] ?: 0
+                    noteCounts[event.midiNote] = count + 1
+                    if (count == 0) listOf(event) else emptyList()
+                } else listOf(event)
             }
-        }
-        is PianoEvent.Sustain -> {
-            val before = sustainChannels.isNotEmpty()
-            if (event.enabled) sustainChannels += channel else sustainChannels -= channel
-            val after = sustainChannels.isNotEmpty()
-            if (before != after) listOf(PianoEvent.Sustain(after, event.timestampMs)) else emptyList()
+            is PianoEvent.NoteOff -> {
+                val notes = heldByChannel[channel] ?: return emptyList()
+                if (!notes.remove(event.midiNote)) return emptyList()
+                if (notes.isEmpty()) heldByChannel.remove(channel)
+                val count = (noteCounts[event.midiNote] ?: 1) - 1
+                if (count <= 0) {
+                    noteCounts.remove(event.midiNote)
+                    listOf(event)
+                } else {
+                    noteCounts[event.midiNote] = count
+                    emptyList()
+                }
+            }
+            is PianoEvent.Sustain -> {
+                val before = sustainChannels.isNotEmpty()
+                if (event.enabled) sustainChannels += channel else sustainChannels -= channel
+                val after = sustainChannels.isNotEmpty()
+                if (before != after) listOf(PianoEvent.Sustain(after, event.timestampMs)) else emptyList()
+            }
         }
     }
 
