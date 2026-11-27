@@ -1,0 +1,163 @@
+name: Android Release Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle.properties'
+      - 'LICENSES.md'
+      - '.github/workflows/release-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-validation:
+    name: Unit tests, minified APK and AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # The repository intentionally ships without gradle-wrapper.jar.
+      - name: Set up Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Generate release runtime dependency license inventory
+        run: timeout 8m gradle --no-daemon --console=plain :app:generateLicenseReport --stacktrace
+
+      - name: Capture resolved release runtime dependency graph
+        run: timeout 8m gradle --no-daemon --console=plain :app:dependencies --configuration releaseRuntimeClasspath > app/build/reports/dependency-license/releaseRuntimeClasspath.txt
+
+      - name: Print dependency license inventory summary
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("app/build/reports/dependency-license/licenses.json")
+          data = json.loads(report.read_text(encoding="utf-8"))
+          dependencies = data.get("dependencies", [])
+          unknown = []
+          print(f"RELEASE_RUNTIME_DEPENDENCY_COUNT={len(dependencies)}")
+          for item in dependencies:
+              licenses = item.get("moduleLicenses") or []
+              valid_names = []
+              invalid_license_entries = []
+              for license_entry in licenses:
+                  license_name = (
+                      license_entry.get("moduleLicense")
+                      if isinstance(license_entry, dict)
+                      else None
+                  )
+                  if isinstance(license_name, str) and license_name.strip():
+                      valid_names.append(license_name.strip())
+                  else:
+                      invalid_license_entries.append(license_entry)
+
+              if not licenses or invalid_license_entries:
+                  unknown.append((item, invalid_license_entries, not licenses))
+              labels = [
+                  f"{license_name} ({license_entry.get('moduleLicenseUrl') or 'no license URL'})"
+                  for license_entry, license_name in zip(
+                      [entry for entry in licenses if isinstance(entry, dict)
+                       and isinstance(entry.get("moduleLicense"), str)
+                       and entry.get("moduleLicense").strip()],
+                      valid_names,
+                  )
+              ]
+              if not labels:
+                  labels = ["UNKNOWN/NEEDS REVIEW"]
+              print(
+                  "LICENSE_AUDIT_ITEM="
+                  f"{item.get('moduleName', 'UNKNOWN')}:"
+                  f"{item.get('moduleVersion', 'UNKNOWN')} | "
+                  + "; ".join(labels)
+              )
+              for invalid_entry in invalid_license_entries:
+                  print(
+                      "INVALID_LICENSE_NAME="
+                      f"{item.get('moduleName', 'UNKNOWN')}:"
+                      f"{item.get('moduleVersion', 'UNKNOWN')} | "
+                      f"{invalid_entry!r}"
+                  )
+          print(f"UNKNOWN_LICENSE_COUNT={len(unknown)}")
+          if unknown:
+              for item, invalid_entries, missing_list in unknown:
+                  reason = "missing moduleLicenses" if missing_list else (
+                      f"{len(invalid_entries)} license entry/entries with missing or blank moduleLicense"
+                  )
+                  print(
+                      "UNKNOWN_LICENSE="
+                      f"{item.get('moduleName', 'UNKNOWN')}:"
+                      f"{item.get('moduleVersion', 'UNKNOWN')} | {reason}"
+                  )
+              raise SystemExit(
+                  "Release dependency license metadata contains missing or invalid license names"
+              )
+          PY
+
+      - name: Upload release runtime license inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: pianova-release-license-inventory-${{ github.run_number }}
+          path: app/build/reports/dependency-license/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Configure full test failure diagnostics
+        shell: bash
+        run: |
+          cat > /tmp/pianova-test-logging.gradle <<'EOF'
+          allprojects {
+            tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+              testLogging {
+                events "started", "passed", "failed", "skipped"
+                exceptionFormat org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                showStackTraces = true
+                showCauses = true
+                showExceptions = true
+              }
+            }
+          }
+          EOF
+
+      - name: Run complete unit test suite
+        run: timeout 18m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --info --stacktrace
+
+      - name: Build minified release APK
+        run: timeout 8m gradle --no-daemon --console=plain assembleRelease --stacktrace
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Build minified release App Bundle
+        run: timeout 8m gradle --no-daemon --console=plain bundleRelease --stacktrace
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Upload unsigned release validation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pianova-release-validation-${{ github.run_number }}
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 14
