@@ -18,6 +18,14 @@ class PolyphonicPitchDetectorTest {
     }
 
     @Test
+    fun detectsLowC2WithoutSemitoneAmbiguity() {
+        val frame = toneFrame(listOf(36), 0.45f)
+        val result = detector.detect(frame, sampleRate)
+        assertTrue("C2 should be detected, got ${result.midiNotes}", 36 in result.midiNotes)
+        assertTrue("adjacent semitone should not be reported", 37 !in result.midiNotes)
+    }
+
+    @Test
     fun detectsMajorChordPitches() {
         val frame = toneFrame(listOf(60, 64, 67), 0.22f)
         val result = detector.detect(frame, sampleRate)
