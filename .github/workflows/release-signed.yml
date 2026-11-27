@@ -49,6 +49,31 @@ jobs:
       - name: Generate dependency license inventory
         run: timeout 8m gradle --no-daemon --console=plain :app:generateLicenseReport --stacktrace
 
+      - name: Fail if runtime dependency licenses are unknown
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = Path("app/build/reports/dependency-license/licenses.json")
+          data = json.loads(report.read_text(encoding="utf-8"))
+          unknown = []
+          dependencies = data.get("dependencies", [])
+          for item in dependencies:
+              licenses = item.get("moduleLicenses") or []
+              names = [
+                  entry.get("moduleLicense", "").strip()
+                  for entry in licenses if isinstance(entry, dict)
+              ]
+              if not names or any(not name for name in names):
+                  unknown.append(f"{item.get('moduleName')}:{item.get('moduleVersion')}")
+          print(f"Resolved runtime dependencies: {len(dependencies)}")
+          print(f"Unknown/missing license names: {len(unknown)}")
+          if unknown:
+              print("\\n".join(unknown))
+              raise SystemExit("Release blocked: dependency license metadata needs review.")
+          PY
+
       - name: Run complete unit test suite
         run: timeout 18m gradle --no-daemon --console=plain testDebugUnitTest --info --stacktrace
 
