@@ -102,8 +102,8 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                 UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections, selectedDeviceId == info.id)
             }
         }
-        val selected = synchronized(lock) { selectedDeviceId }
-        infos.filter { selected == null || it.id == selected }.forEach(::connectIfSupported)
+        val selectedIdentity = synchronized(lock) { selectedDeviceIdentity }
+        infos.filter { selectedIdentity == null || stableIdentity(it) == selectedIdentity }.forEach(::connectIfSupported)
     }
     fun selectDevice(deviceId: Int?) {
         synchronized(lock) {
@@ -123,7 +123,8 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
         if (info.type != MidiDeviceInfo.TYPE_USB) return
         val requestToken = synchronized(lock) {
             if (closed || info.id in connections || info.id in pendingDeviceIds ||
-                (selectedDeviceId != null && selectedDeviceId != info.id)
+                (selectedDeviceIdentity != null && selectedDeviceIdentity != stableIdentity(info)) ||
+                (selectedDeviceIdentity == null && selectedDeviceId != null && selectedDeviceId != info.id)
             ) {
                 null
             } else {
