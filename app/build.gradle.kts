@@ -12,7 +12,7 @@ plugins {
 }
 
 // ---------------------------------------------------------------------------
-// Download Dastkhat font files (SIL OFL) into res/font if missing.
+// Download pinned Dastkhat font files (SIL OFL) and verify their Git blob hashes.
 // Source: https://github.com/dastyar-io/dastkhat-font (FaNum, square dots).
 // ---------------------------------------------------------------------------
 val dastkhatRevision = "19f4a12b56a89567b07e02500f0e4aed670e3644"
