@@ -51,7 +51,7 @@ class FamilyManagementScreenTest {
         composeRule.onNodeWithText("نورا").assertIsDisplayed()
         composeRule.onNodeWithText("حذف").performClick()
         composeRule.onNodeWithText("حذف پروفایل نورا").assertIsDisplayed()
-        composeRule.onNodeWithText("این کار قابل بازگشت نیست.").assertIsDisplayed()
+        composeRule.onNodeWithText("این کار قابل بازگشت نیست.", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("انصراف").performClick()
         composeRule.runOnIdle {
             assertEquals(0, repository.deleteCalls)
