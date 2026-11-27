@@ -199,7 +199,10 @@ class BluetoothMidiInput(
         }
     }
 
-    fun disconnect() = synchronized(lock) { disconnectLocked() }
+    fun disconnect() {
+        synchronized(lock) { disconnectLocked() }
+        publishStatuses()
+    }
 
     private fun disconnectLocked() {
         val c = activeConnection.value ?: return
@@ -213,7 +216,7 @@ class BluetoothMidiInput(
 
     private fun publishStatuses() {
         val rows = synchronized(lock) {
-            discovered.map { (address, device) ->
+            val published = discovered.map { (address, device) ->
                 val isConnected = activeConnection.value?.address == address
                 UsbMidiDeviceStatus(
                     id = address.hashCode(),
@@ -223,7 +226,21 @@ class BluetoothMidiInput(
                     transport = MidiTransport.BLUETOOTH,
                     identity = address
                 )
+            }.toMutableList()
+            activeConnection.value?.let { connection ->
+                if (published.none { it.identity == connection.address }) {
+                    val name = connection.device.info.properties.getString(MidiDeviceInfo.PROPERTY_NAME)
+                    published += UsbMidiDeviceStatus(
+                        id = connection.address.hashCode(),
+                        name = name?.takeIf { it.isNotBlank() } ?: "Bluetooth MIDI",
+                        connected = true,
+                        selected = selectedAddress == connection.address,
+                        transport = MidiTransport.BLUETOOTH,
+                        identity = connection.address
+                    )
+                }
             }
+            published
         }
         statusesFlow.value = rows
     }
