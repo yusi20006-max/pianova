@@ -65,6 +65,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         previousOrientation = requestedOrientation
         usbMidiInput = UsbMidiInput(applicationContext)
+        bluetoothMidiInput = BluetoothMidiInput(applicationContext)
+        bluetoothPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            if (result.values.all { it }) bluetoothMidiInput.refreshDevices()
+        }
         val settingsPreferences = getSharedPreferences("pianova_settings", MODE_PRIVATE)
         val preferredMidiIdentity = settingsPreferences.getString("midi_selected_identity", null)
         if (!preferredMidiIdentity.isNullOrBlank()) usbMidiInput.selectDeviceIdentity(preferredMidiIdentity)
@@ -102,11 +106,27 @@ class MainActivity : ComponentActivity() {
                     onSustain = { enabled -> virtualKeyboardInput.sustain(enabled) },
                     onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) },
                     midiDevices = midiDevices,
-                    onMidiRefresh = usbMidiInput::refreshDevices,
-                    onMidiDeviceSelected = { deviceId ->
-                        val identity = usbMidiInput.selectedDeviceIdentity(deviceId)
-                        settingsPreferences.edit().putString("midi_selected_identity", identity).apply()
-                        usbMidiInput.selectDevice(deviceId)
+                    onMidiRefresh = { usbMidiInput.refreshDevices(); requestBluetoothMidiScan() },
+                    onMidiDeviceSelected = { device ->
+                        when (device?.transport) {
+                            MidiTransport.BLUETOOTH -> {
+                                settingsPreferences.edit().putString("bluetooth_midi_selected_identity", device.identity).remove("midi_selected_identity").apply()
+                                usbMidiInput.selectDevice(null)
+                                bluetoothMidiInput.selectDeviceIdentity(device.identity)
+                                requestBluetoothMidiScan()
+                            }
+                            MidiTransport.USB -> {
+                                val identity = usbMidiInput.selectedDeviceIdentity(device.id)
+                                settingsPreferences.edit().putString("midi_selected_identity", identity).remove("bluetooth_midi_selected_identity").apply()
+                                bluetoothMidiInput.selectDeviceIdentity(null)
+                                usbMidiInput.selectDevice(device.id)
+                            }
+                            null -> {
+                                settingsPreferences.edit().remove("midi_selected_identity").remove("bluetooth_midi_selected_identity").apply()
+                                usbMidiInput.selectDevice(null)
+                                bluetoothMidiInput.selectDeviceIdentity(null)
+                            }
+                        }
                     },
                     pianoInput = mergedPianoInput,
                     onPlayReferenceNotes = ::playReferenceNotes,
