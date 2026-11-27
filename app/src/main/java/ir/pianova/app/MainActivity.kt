@@ -225,7 +225,9 @@ class MainActivity : ComponentActivity() {
                 when (state) {
                     ir.pianova.app.core.audio.AudioEngineState.RUNNING -> {
                         engineRunning = true
-                        engineStatus = "موتور فعال است؛ کلاویه‌ها را لمس کنید"
+                        if (referencePlaybackJob?.isActive != true) {
+                            engineStatus = "موتور فعال است؛ کلاویه‌ها را لمس کنید"
+                        }
                     }
                     ir.pianova.app.core.audio.AudioEngineState.RECOVERING -> {
                         engineRunning = false
