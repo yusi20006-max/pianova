@@ -25,6 +25,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,6 +59,9 @@ import ir.pianova.app.core.designsystem.PianovaMuted
 import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.core.midi.PracticeInputRouter
+import ir.pianova.app.core.midi.PracticeInputMode
+import ir.pianova.app.core.audio.AcousticPianoInput
 import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.data.lesson.LessonRepository
 import ir.pianova.app.core.database.EvaluationEvidenceEntity
@@ -208,6 +216,9 @@ fun LessonPlayerScreen(
     onExit: () -> Unit
 ) {
     val context = LocalContext.current
+    val practiceScope = rememberCoroutineScope()
+    val acousticInput = remember(context) { AcousticPianoInput(context) }
+    val practiceRouter = remember(pianoInput, acousticInput) { PracticeInputRouter(pianoInput, acousticInput, practiceScope) }
     val attemptStore = remember(context, learnerId) { SkillAttemptStore(context.applicationContext, learnerId) }
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val progressRepository = remember(database) { ProgressRepository(database) }
@@ -279,11 +290,37 @@ fun LessonPlayerScreen(
 
     val step = entry.step
     val playable = step is LessonStep.PlayNote || step is LessonStep.PlaySequence || step is LessonStep.PlayChord
-    val evaluationEngine = remember(pianoInput) { EvaluationEngine(pianoInput) }
-    val coroutineScope = rememberCoroutineScope()
+    val evaluationEngine = remember(practiceRouter) { EvaluationEngine(practiceRouter) }
+    val coroutineScope = practiceScope
+    var microphoneMode by remember(lesson.id) { mutableStateOf(false) }
+    val microphoneStatus by acousticInput.status.collectAsState()
+    val microphonePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && acousticInput.start()) {
+            practiceRouter.setMode(PracticeInputMode.MICROPHONE)
+            microphoneMode = true
+        } else if (!granted) {
+            microphoneMode = false
+        }
+    }
     var session by remember(lesson.id, step.id) { mutableStateOf<EvaluationSession?>(null) }
 
-    DisposableEffect(step.id, retryAttempt) {
+    DisposableEffect(acousticInput, practiceRouter) {
+        onDispose {
+            acousticInput.stop()
+            practiceRouter.setMode(PracticeInputMode.MIDI)
+            acousticInput.close()
+            practiceRouter.close()
+        }
+    }
+
+    LaunchedEffect(microphoneStatus.listening) {
+        if (!microphoneStatus.listening && microphoneMode) {
+            practiceRouter.setMode(PracticeInputMode.MIDI)
+            microphoneMode = false
+        }
+    }
+
+    DisposableEffect(step.id, retryAttempt)
         val created = if (playable) evaluationEngine.start(step, coroutineScope) else null
         session = created
         onDispose { created?.cancel() }
@@ -591,6 +628,35 @@ fun LessonPlayerScreen(
             }
 
             if (playable) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = {
+                            if (microphoneMode || microphoneStatus.listening) {
+                                acousticInput.stop()
+                                practiceRouter.setMode(PracticeInputMode.MIDI)
+                                microphoneMode = false
+                            } else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                if (acousticInput.start()) {
+                                    practiceRouter.setMode(PracticeInputMode.MICROPHONE)
+                                    microphoneMode = true
+                                }
+                            } else {
+                                microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (microphoneMode || microphoneStatus.listening) "توقف شنود میکروفون" else "تمرین با شنیدن صدای پیانو")
+                    }
+                    if (microphoneStatus.listening) {
+                        Text("● در حال شنیدن پیانو", color = PianovaGreen, fontWeight = FontWeight.Bold)
+                        Text(microphoneStatus.messageFa, color = PianovaMuted)
+                        Text("اطمینان تشخیص: ${(microphoneStatus.confidence * 100).toInt()}٪", color = PianovaMuted, style = MaterialTheme.typography.labelSmall)
+                    } else if (microphoneStatus.messageFa != "شنود صوتی خاموش است.") {
+                        Text(microphoneStatus.messageFa, color = PianovaMuted)
+                    }
+                    Text("صدا فقط به‌صورت زنده و در حافظهٔ موقت پردازش می‌شود؛ ضبط یا ارسال نمی‌شود.", color = PianovaMuted, style = MaterialTheme.typography.labelSmall)
+                }
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
