@@ -20,6 +20,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
     private var isInForeground = false
     private var audioStartPending = false
     private var referencePlaybackJob: Job? = null
+    private var audioStateMonitorJob: Job? = null
     private var resumeAudioAfterPause = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +57,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             mergedPianoInput.events.collect { event ->
                 val engine = audioEngine ?: return@collect
+                if (!engineRunning) return@collect
                 when (event) {
                     is PianoEvent.NoteOn -> engine.noteOn(event.midiNote, event.velocity)
                     is PianoEvent.NoteOff -> engine.noteOff(event.midiNote)
@@ -150,8 +153,9 @@ class MainActivity : ComponentActivity() {
                 engineStatus = if (started) {
                     "موتور فعال است؛ کلاویه‌ها را لمس کنید"
                 } else {
-                    "شروع خروجی صوتی ناموفق بود"
+                    "شروع خروجی صوتی ناموفق بود؛ برای تلاش دوباره بزنید"
                 }
+                if (started) monitorAudioEngineState(engine)
             }
         }
     }
@@ -175,6 +179,7 @@ class MainActivity : ComponentActivity() {
             if (!started || !isInForeground || audioEngine !== engine) return@launch
             engineRunning = true
             engineStatus = "نمونه نت‌ها در حال پخش است"
+            monitorAudioEngineState(engine)
             var activeNote: Int? = null
             try {
                 notes.forEach { note ->
@@ -197,6 +202,38 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun monitorAudioEngineState(engine: OboePianoAudioEngine) {
+        audioStateMonitorJob?.cancel()
+        audioStateMonitorJob = lifecycleScope.launch {
+            while (isActive && audioEngine === engine && isInForeground) {
+                val state = withContext(Dispatchers.IO) { engine.state() }
+                if (audioEngine !== engine || !isInForeground) break
+                when (state) {
+                    ir.pianova.app.core.audio.AudioEngineState.RUNNING -> {
+                        engineRunning = true
+                        engineStatus = "موتور فعال است؛ کلاویه‌ها را لمس کنید"
+                    }
+                    ir.pianova.app.core.audio.AudioEngineState.RECOVERING -> {
+                        engineRunning = false
+                        engineStatus = "خروجی صوتی قطع شد؛ در حال بازیابی…"
+                    }
+                    ir.pianova.app.core.audio.AudioEngineState.RECOVERY_FAILED -> {
+                        engineRunning = false
+                        engineStatus = "بازیابی صدا ناموفق بود؛ برای تلاش دوباره بزنید"
+                        break
+                    }
+                    ir.pianova.app.core.audio.AudioEngineState.STOPPED -> {
+                        if (engineRunning) {
+                            engineRunning = false
+                            engineStatus = "موتور متوقف است"
+                        }
+                    }
+                }
+                delay(100)
+            }
+        }
+    }
+
     private fun stopAudioEngine() {
         stopAudioEngine("موتور متوقف است")
     }
@@ -204,6 +241,8 @@ class MainActivity : ComponentActivity() {
     private fun stopAudioEngine(statusMessage: String) {
         referencePlaybackJob?.cancel()
         referencePlaybackJob = null
+        audioStateMonitorJob?.cancel()
+        audioStateMonitorJob = null
         val engine = audioEngine ?: run {
             engineRunning = false
             return
@@ -249,6 +288,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         isInForeground = false
         referencePlaybackJob?.cancel()
+        audioStateMonitorJob?.cancel()
         resumeAudioAfterPause = false
         val engine = audioEngine
         audioEngine = null
