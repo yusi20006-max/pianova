@@ -52,6 +52,12 @@ class OboePianoAudioEngine(context: Context) : PianoAudioEngine {
     }
 
     @Synchronized
+    fun outputDeviceId(): Int {
+        val nativeHandle = handle.get()
+        return if (nativeHandle == 0L) -1 else NativeAudioBridge.nativeGetOutputDeviceId(nativeHandle)
+    }
+
+    @Synchronized
     override fun stop() {
         val nativeHandle = handle.get()
         if (nativeHandle != 0L) NativeAudioBridge.nativeStop(nativeHandle)
