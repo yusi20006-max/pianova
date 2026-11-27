@@ -65,7 +65,7 @@ import ir.pianova.app.core.designsystem.PianovaMuted
 import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
-import ir.pianova.app.core.midi.UsbMidiDeviceStatus
+import ir.pianova.app.core.midi.UsbMidiDeviceStatus\nimport ir.pianova.app.core.midi.MidiTransport
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.data.persistence.RoomFamilyRepository
 import ir.pianova.app.domain.family.Family
@@ -107,7 +107,7 @@ fun PianovaApp(
     pianoInput: PianoInput,
     midiDevices: List<UsbMidiDeviceStatus>,
     onMidiRefresh: () -> Unit,
-    onMidiDeviceSelected: (Int?) -> Unit,
+    onMidiDeviceSelected: (UsbMidiDeviceStatus?) -> Unit,
     onPlayReferenceNotes: (List<Int>, Long) -> Unit
 ) {
     val context = LocalContext.current
@@ -768,11 +768,11 @@ private fun SettingsScreen(
         Text("MIDI و اتصال پیانو", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
         Text(if (midiDevices.any { it.connected }) "وضعیت: متصل" else "وضعیت: قطع", color = if (midiDevices.any { it.connected }) PianovaGreen else PianovaMuted)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = { onMidiDeviceSelected(null) }) { Text("اتصال خودکار") }
+            TextButton(onClick = { onMidiDeviceSelected(null) }) { Text("انتخاب خودکار") }
             TextButton(onClick = onMidiRefresh) { Text("جستجوی دوباره") }
         }
         if (midiDevices.isEmpty()) {
-            EmptyState("دستگاه MIDI پیدا نشد", "پیانو یا کیبورد دیجیتال را با USB OTG وصل کنید و جستجوی دوباره را بزنید.")
+            EmptyState("دستگاه MIDI پیدا نشد", "پیانو را از طریق USB یا Bluetooth MIDI متصل کنید و جستجوی دوباره را بزنید.")
         } else {
             midiDevices.forEach { device ->
                 StatusCard(
@@ -782,7 +782,7 @@ private fun SettingsScreen(
                         device.selected -> "انتخاب‌شده · در انتظار اتصال"
                         else -> "قطع"
                     },
-                    onClick = { onMidiDeviceSelected(device.id) }
+                    onClick = { onMidiDeviceSelected(device) }
                 )
             }
         }
