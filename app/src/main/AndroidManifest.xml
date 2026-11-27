@@ -17,7 +17,10 @@
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- No microphone, network, or storage permissions are required. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Microphone use is explicit, local-only, and never retained by default. -->
+    <!-- No network or storage permissions are required. -->
 
     <application
         android:allowBackup="false"
