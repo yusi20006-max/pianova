@@ -8,25 +8,110 @@
   "tempo": 72,
   "beatsPerBar": 4,
   "notes": [
-    {"midiNote": 60, "startBeat": 0, "duration": 1, "hand": "right"},
-    {"midiNote": 64, "startBeat": 0, "duration": 1, "hand": "right"},
-    {"midiNote": 67, "startBeat": 0, "duration": 1, "hand": "right"},
-    {"midiNote": 72, "startBeat": 0, "duration": 1, "hand": "right"},
-    {"midiNote": 60, "startBeat": 1, "duration": 1, "hand": "right"},
-    {"midiNote": 64, "startBeat": 1, "duration": 1, "hand": "right"},
-    {"midiNote": 67, "startBeat": 1, "duration": 1, "hand": "right"},
-    {"midiNote": 72, "startBeat": 1, "duration": 1, "hand": "right"},
-    {"midiNote": 60, "startBeat": 2, "duration": 1, "hand": "right"},
-    {"midiNote": 64, "startBeat": 2, "duration": 1, "hand": "right"},
-    {"midiNote": 67, "startBeat": 2, "duration": 1, "hand": "right"},
-    {"midiNote": 72, "startBeat": 2, "duration": 1, "hand": "right"},
-    {"midiNote": 60, "startBeat": 3, "duration": 1, "hand": "right"},
-    {"midiNote": 64, "startBeat": 3, "duration": 1, "hand": "right"},
-    {"midiNote": 67, "startBeat": 3, "duration": 1, "hand": "right"},
-    {"midiNote": 72, "startBeat": 3, "duration": 1, "hand": "right"}
+    {
+      "midiNote": 60,
+      "startBeat": 0,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 0.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 1,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 1.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 76,
+      "startBeat": 2,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 2.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 3,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 3.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 60,
+      "startBeat": 4,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 4.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 5.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 76,
+      "startBeat": 6,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 6.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 7,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 7.5,
+      "duration": 0.5,
+      "hand": "right"
+    }
   ],
   "practiceSections": [
-    {"id": "pattern", "title": "الگوی آرپژ", "startBeat": 0, "endBeat": 4}
+    {
+      "id": "pattern",
+      "title": "الگوی آرپژ",
+      "startBeat": 0,
+      "endBeat": 8
+    }
   ],
   "license": {
     "type": "public-domain-composition",
