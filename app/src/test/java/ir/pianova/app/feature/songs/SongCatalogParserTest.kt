@@ -65,6 +65,15 @@ class SongCatalogParserTest {
     }
 
     @Test
+    fun originalContentDoesNotPretendToHaveAnOpenLicense() {
+        val source = validSong.replace(
+            "\"licenseUrl\": \"https://github.com/yusi20006-max/pianova\"",
+            "\"licenseUrl\": null"
+        )
+        assertEquals(null, SongCatalogParser.parse(source).license.licenseUrl)
+    }
+
+    @Test
     fun acceptsAllSupportedCategoryLabels() {
         assertEquals(4, SONG_CATEGORIES.size)
         assertTrue(SONG_CATEGORIES.map { it.first }.containsAll(listOf("iranian", "classical", "international", "practice")))
