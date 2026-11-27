@@ -63,7 +63,9 @@ class MainActivity : ComponentActivity() {
         val settingsPreferences = getSharedPreferences("pianova_settings", MODE_PRIVATE)
         val preferredMidiIdentity = settingsPreferences.getString("midi_selected_identity", null)
         if (!preferredMidiIdentity.isNullOrBlank()) usbMidiInput.selectDeviceIdentity(preferredMidiIdentity)
-        val preferredBluetoothIdentity = settingsPreferences.getString("bluetooth_midi_selected_identity", null)\n        if (!preferredBluetoothIdentity.isNullOrBlank()) bluetoothMidiInput.selectDeviceIdentity(preferredBluetoothIdentity)\n        mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput, bluetoothMidiInput), lifecycleScope)
+        val preferredBluetoothIdentity = settingsPreferences.getString("bluetooth_midi_selected_identity", null)
+        if (!preferredBluetoothIdentity.isNullOrBlank()) bluetoothMidiInput.selectDeviceIdentity(preferredBluetoothIdentity)
+        mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput, bluetoothMidiInput), lifecycleScope)
 
         // The UI emits source-independent events. Only this collector knows
         // about the concrete audio engine, keeping input and playback decoupled.
@@ -114,7 +116,18 @@ class MainActivity : ComponentActivity() {
         loadAudioEngine()
     }
 
-    private fun requestBluetoothMidiScan() {\n        val required = if (Build.VERSION.SDK_INT >= 31) {\n            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)\n        } else {\n            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)\n        }\n        val missing = required.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }\n        if (missing.isEmpty()) bluetoothMidiInput.refreshDevices()\n        else bluetoothPermissionLauncher?.launch(missing.toTypedArray())\n    }\n\n    private fun loadAudioEngine() {
+    private fun requestBluetoothMidiScan() {
+        val required = if (Build.VERSION.SDK_INT >= 31) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        val missing = required.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isEmpty()) bluetoothMidiInput.refreshDevices()
+        else bluetoothPermissionLauncher?.launch(missing.toTypedArray())
+    }
+
+    private fun loadAudioEngine() {
         if (engineLoading || audioEngine != null) return
         engineLoading = true
         lifecycleScope.launch {
@@ -327,7 +340,8 @@ class MainActivity : ComponentActivity() {
         val engine = audioEngine
         audioEngine = null
         if (engine != null) engine.close()
-        if (::usbMidiInput.isInitialized) usbMidiInput.close()\n        if (::bluetoothMidiInput.isInitialized) bluetoothMidiInput.close()
+        if (::usbMidiInput.isInitialized) usbMidiInput.close()
+        if (::bluetoothMidiInput.isInitialized) bluetoothMidiInput.close()
         requestedOrientation = previousOrientation
         super.onDestroy()
     }
