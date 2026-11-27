@@ -19,7 +19,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -390,11 +389,7 @@ private fun FallingNotesSession(
                         firstMidi = range.firstMidi,
                         labelMode = 0,
                         enabled = pianoRunning && !isFinished,
-                        onNoteOn = { note, velocity ->
-                            val accepted = onNoteOn(note, velocity)
-                            if (accepted) handlePlayedNote(note)
-                            accepted
-                        },
+                        onNoteOn = onNoteOn,
                         onNoteOff = onNoteOff,
                         highlightedNotes = highlightedNotes,
                         noteCount = range.noteCount,
