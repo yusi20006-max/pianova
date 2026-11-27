@@ -55,8 +55,8 @@ This file records third-party components and bundled media currently present in 
 | Dastkhat FaNum | Pinned upstream commit; three TTF files size/SHA-1 verified; OFL and third-party notices bundled | Identified and reproducibly pinned |
 | Chaos Bank v1.9 | Pinned upstream README lists the exact file under CC0; source commit and asset Git blob SHA-1 are pinned | CC0 evidence verified at pinned revision |
 | Songs | No song assets currently present | No third-party song license review applicable yet |
-| Other transitive dependencies | Not yet inventoried from the resolved release runtime graph | Pending automated dependency/license inventory |
+| Resolved Release runtime dependencies | Automated report for `releaseRuntimeClasspath` lists 117 resolved modules; 110 Apache Software License 2.0, 6 Apache License 2.0, 1 Oboe License metadata entry; 0 entries without license metadata | License metadata inventory generated; direct/transitive graph is being captured and reviewed |
 
 ## Release gate
 
-Do not describe the application as fully license-audited until the exact release dependency graph, all packaged assets, and the upstream license texts at pinned revisions have been reviewed. The Dastkhat font revision and Oboe/Dastkhat license texts are now pinned and bundled; the resolved transitive dependency inventory remains open.
+Do not describe the application as fully license-audited until the exact release dependency graph, all packaged assets, and the upstream license texts at pinned revisions have been reviewed. The Dastkhat font revision and Oboe/Dastkhat license texts are pinned and bundled. The release runtime inventory identifies 117 modules with no missing license metadata in the generated report; the dependency graph and source-level license confirmation for all modules remain under review.
