@@ -26,10 +26,18 @@ class MidiByteParser(
                 else -> {
                     if (currentStatus == 0) currentStatus = runningStatus
                     if (currentStatus == 0) continue
-                    if (dataCount == 0) { firstData = value; dataCount = 1 }
-                    else {
-                        handle(currentStatus, firstData, if (expectedDataCount == 1) 0 else value)
-                        dataCount = 0; currentStatus = runningStatus
+                    if (dataCount == 0) {
+                        firstData = value
+                        dataCount = 1
+                        if (expectedDataCount == 1) {
+                            handle(currentStatus, firstData, 0)
+                            dataCount = 0
+                            currentStatus = runningStatus
+                        }
+                    } else {
+                        handle(currentStatus, firstData, value)
+                        dataCount = 0
+                        currentStatus = runningStatus
                     }
                 }
             }
