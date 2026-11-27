@@ -80,7 +80,9 @@ class PolyphonicPitchDetector(
         val binWidth = sampleRate.toDouble() / fftSize
         for (harmonic in 1..5) {
             val selectedHarmonic = selected.frequency * harmonic
+            val candidateHarmonic = candidate.frequency * harmonic
             if (kotlin.math.abs(candidate.frequency - selectedHarmonic) <= binWidth * 1.6) return true
+            if (kotlin.math.abs(candidateHarmonic - selected.frequency) <= binWidth * 1.6) return true
         }
         return false
     }
