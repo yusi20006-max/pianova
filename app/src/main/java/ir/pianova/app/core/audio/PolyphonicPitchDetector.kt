@@ -2,8 +2,8 @@ package ir.pianova.app.core.audio
 
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.ln
 import kotlin.math.sqrt
-import kotlin.math.pow
 
 data class PitchDetectionResult(
     val midiNotes: List<Int>,
@@ -12,9 +12,8 @@ data class PitchDetectionResult(
 )
 
 /**
- * Local spectral pitch detector. It scores MIDI fundamentals by harmonic salience,
- * masks harmonics of already-selected notes, and rejects low-energy/low-confidence
- * frames. It intentionally reports confidence rather than forcing a pitch guess.
+ * Local FFT pitch detector using interpolated spectral peaks and harmonic rejection.
+ * Low-energy and weak/ambiguous peaks are rejected instead of forced into a note.
  */
 class PolyphonicPitchDetector(
     private val minMidiNote: Int = 36,
@@ -43,52 +42,66 @@ class PolyphonicPitchDetector(
         fft()
         val magnitudes = DoubleArray(fftSize / 2 + 1)
         var totalMagnitude = 0.0
+        var maxMagnitude = 0.0
         for (bin in 1 until magnitudes.size) {
             val mag = sqrt(real[bin] * real[bin] + imag[bin] * imag[bin])
             magnitudes[bin] = mag
             totalMagnitude += mag
+            if (mag > maxMagnitude) maxMagnitude = mag
         }
-        if (totalMagnitude <= 1e-9) return PitchDetectionResult(emptyList(), 0f, rms)
+        if (totalMagnitude <= 1e-9 || maxMagnitude <= 1e-9) return PitchDetectionResult(emptyList(), 0f, rms)
 
-        val candidates = (minMidiNote..maxMidiNote).map { midi ->
-            val frequency = midiToFrequency(midi)
-            val fundamentalBin = frequency * fftSize / sampleRate
-            var score = 0.0
-            var harmonics = 0
-            for (harmonic in 1..5) {
-                val bin = (fundamentalBin * harmonic).toInt()
-                if (bin >= magnitudes.size - 2) break
-                val localPeak = (bin - 1..bin + 1).maxOf { magnitudes[it] }
-                score += localPeak / sqrt(harmonic.toDouble())
-                harmonics++
-            }
-            val confidence = (score / totalMagnitude * 2.5).coerceIn(0.0, 1.0)
-            Candidate(midi, frequency, score, confidence, harmonics)
-        }.sortedByDescending { it.score }
+        val binWidth = sampleRate.toDouble() / fftSize
+        val minFrequency = midiToFrequency(minMidiNote) - 5.0
+        val maxFrequency = midiToFrequency(maxMidiNote) * 5.0
+        val peaks = mutableListOf<SpectralPeak>()
+        val minBin = maxOf(2, (minFrequency / binWidth).toInt())
+        val maxBin = minOf(magnitudes.size - 2, (maxFrequency / binWidth).toInt())
+        for (bin in minBin..maxBin) {
+            val magnitude = magnitudes[bin]
+            if (magnitude < maxMagnitudeThreshold(maxMagnitude)) continue
+            if (magnitude < magnitudes[bin - 1] || magnitude < magnitudes[bin + 1]) continue
+            val left = magnitudes[bin - 1]
+            val center = magnitude
+            val right = magnitudes[bin + 1]
+            val denominator = left - 2.0 * center + right
+            val offset = if (kotlin.math.abs(denominator) < 1e-12) 0.0 else (0.5 * (left - right) / denominator).coerceIn(-0.5, 0.5)
+            val frequency = (bin + offset) * binWidth
+            if (frequency <= 0.0) continue
+            val midi = (69.0 + 12.0 * ln(frequency / 440.0) / ln(2.0)).roundToInt()
+            if (midi !in minMidiNote..maxMidiNote) continue
+            val targetFrequency = midiToFrequency(midi)
+            val cents = 1200.0 * ln(frequency / targetFrequency) / ln(2.0)
+            val pitchQuality = (1.0 - kotlin.math.abs(cents) / 50.0).coerceIn(0.0, 1.0)
+            val share = magnitude / totalMagnitude
+            val confidence = (share * 4.0 * pitchQuality).coerceIn(0.0, 1.0)
+            if (confidence >= confidenceGate) peaks += SpectralPeak(midi, frequency, magnitude, confidence)
+        }
 
-        val selected = mutableListOf<Candidate>()
-        for (candidate in candidates) {
+        val selected = mutableListOf<SpectralPeak>()
+        for (peak in peaks.sortedBy { it.frequency }) {
             if (selected.size >= maxPolyphony) break
-            if (candidate.confidence < confidenceGate) continue
-            if (selected.any { selectedNoteMasksCandidate(it, candidate, sampleRate) }) continue
-            selected += candidate
+            if (selected.any { it.midi == peak.midi }) continue
+            if (selected.any { isHarmonicOf(peak.frequency, it.frequency, binWidth) }) continue
+            selected += peak
         }
-        val confidence = selected.maxOfOrNull { it.confidence }?.toFloat() ?: 0f
-        return PitchDetectionResult(selected.map { it.midi }.sorted(), confidence, rms)
+        return PitchDetectionResult(
+            selected.map { it.midi }.sorted(),
+            selected.maxOfOrNull { it.confidence }?.toFloat() ?: 0f,
+            rms
+        )
     }
 
-    private fun selectedNoteMasksCandidate(selected: Candidate, candidate: Candidate, sampleRate: Int): Boolean {
-        val binWidth = sampleRate.toDouble() / fftSize
-        for (harmonic in 1..5) {
-            val selectedHarmonic = selected.frequency * harmonic
-            val candidateHarmonic = candidate.frequency * harmonic
-            if (kotlin.math.abs(candidate.frequency - selectedHarmonic) <= binWidth * 1.6) return true
-            if (kotlin.math.abs(candidateHarmonic - selected.frequency) <= binWidth * 1.6) return true
+    private fun maxMagnitudeThreshold(maxMagnitude: Double) = maxMagnitude * 0.10
+
+    private fun isHarmonicOf(candidate: Double, selectedFundamental: Double, binWidth: Double): Boolean {
+        for (harmonic in 2..6) {
+            if (kotlin.math.abs(candidate - selectedFundamental * harmonic) <= binWidth * 2.0) return true
         }
         return false
     }
 
-    private data class Candidate(val midi: Int, val frequency: Double, val score: Double, val confidence: Double, val harmonics: Int)
+    private data class SpectralPeak(val midi: Int, val frequency: Double, val magnitude: Double, val confidence: Double)
 
     private fun fft() {
         var j = 0
