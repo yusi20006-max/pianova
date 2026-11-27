@@ -37,7 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberCoroutineScope\nimport androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -293,7 +293,7 @@ fun LessonPlayerScreen(
     val evaluationEngine = remember(practiceRouter) { EvaluationEngine(practiceRouter) }
     val coroutineScope = practiceScope
     var microphoneMode by remember(lesson.id) { mutableStateOf(false) }
-    var microphonePermissionMessage by remember(lesson.id) { mutableStateOf<String?>(null) }
+    var microphonePermissionMessage by remember(lesson.id) { mutableStateOf<String?>(null) }\n    val microphoneModeState by rememberUpdatedState(microphoneMode)
     val microphoneStatus by acousticInput.status.collectAsState()
     val microphonePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted && acousticInput.start()) {
@@ -309,7 +309,7 @@ fun LessonPlayerScreen(
 
     DisposableEffect(lifecycleOwner, acousticInput, practiceRouter) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP && microphoneMode) {
+            if (event == Lifecycle.Event.ON_STOP && microphoneModeState) {
                 acousticInput.stop()
                 practiceRouter.setMode(PracticeInputMode.MIDI)
                 microphoneMode = false
