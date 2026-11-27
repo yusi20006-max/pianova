@@ -1,0 +1,128 @@
+name: Signed Android Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  signed-release:
+    name: Tests, signed APK/AAB, draft release
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate signing secrets and decode keystore
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in RELEASE_KEYSTORE_BASE64 RELEASE_KEYSTORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing GitHub secret: $name"
+              exit 1
+            fi
+          done
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/pianova-release.keystore"
+          test -s "$RUNNER_TEMP/pianova-release.keystore"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Generate dependency license inventory
+        run: timeout 8m gradle --no-daemon --console=plain :app:generateLicenseReport --stacktrace
+
+      - name: Fail if runtime dependency licenses are unknown
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = Path("app/build/reports/dependency-license/licenses.json")
+          data = json.loads(report.read_text(encoding="utf-8"))
+          unknown = []
+          dependencies = data.get("dependencies", [])
+          for item in dependencies:
+              licenses = item.get("moduleLicenses") or []
+              names = [
+                  entry.get("moduleLicense", "").strip()
+                  for entry in licenses if isinstance(entry, dict)
+              ]
+              if not names or any(not name for name in names):
+                  unknown.append(f"{item.get('moduleName')}:{item.get('moduleVersion')}")
+          print(f"Resolved runtime dependencies: {len(dependencies)}")
+          print(f"Unknown/missing license names: {len(unknown)}")
+          if unknown:
+              print("\\n".join(unknown))
+              raise SystemExit("Release blocked: dependency license metadata needs review.")
+          PY
+
+      - name: Run complete unit test suite
+        run: timeout 18m gradle --no-daemon --console=plain testDebugUnitTest --info --stacktrace
+
+      - name: Build signed minified APK
+        run: timeout 8m gradle --no-daemon --console=plain assembleRelease --stacktrace
+        env:
+          RELEASE_KEYSTORE_FILE: ${{ runner.temp }}/pianova-release.keystore
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+      - name: Build signed minified AAB
+        run: timeout 8m gradle --no-daemon --console=plain bundleRelease --stacktrace
+        env:
+          RELEASE_KEYSTORE_FILE: ${{ runner.temp }}/pianova-release.keystore
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+      - name: Verify signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=$(find app/build/outputs/apk/release -name '*.apk' -print -quit)
+          aab=$(find app/build/outputs/bundle/release -name '*.aab' -print -quit)
+          test -n "$apk" && test -n "$aab"
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$sdk_root"
+          apksigner=$(find "$sdk_root/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          test -n "$apksigner"
+          "$apksigner" verify --verbose "$apk"
+          jarsigner -verify -verbose -certs "$aab"
+
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pianova-signed-release-${{ github.ref_name }}-${{ github.run_number }}
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create draft GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: Pianova ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab

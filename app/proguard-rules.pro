@@ -1,18 +1,18 @@
-# Preserve useful source locations in crash reports.
+# Preserve source locations for useful crash reports.
 -keepattributes SourceFile,LineNumberTable,*Annotation*,Signature,InnerClasses,EnclosingMethod
 -renamesourcefileattribute SourceFile
 
-# JNI methods are looked up by their exact native symbol names from C++.
+# JNI methods are referenced from C++ JNI registration/symbol lookup.
 -keepclasseswithmembernames,includedescriptorclasses class * {
     native <methods>;
 }
-
-# Kotlin serialization metadata is used by generated serializers.
--keepclassmembers class **$$serializer {
-    *** descriptor;
-    *** childSerializers(...);
-    *** typeParametersSerializers(...);
+-keepclasseswithmembers class * {
+    native <methods>;
 }
+
+# Kotlin Serialization: keep annotated models and generated serializers under R8.
+-keep class **$$serializer { *; }
+-keep @kotlinx.serialization.Serializable class ** { *; }
 -keepclassmembers @kotlinx.serialization.Serializable class ** {
     *** Companion;
 }
