@@ -12,7 +12,7 @@ All files in this directory are UTF-8 JSON documents using schema version 1.
 - `beatsPerBar`: meter numerator used by the practice renderer.
 - `notes`: ordered events with `midiNote` (21–108), `startBeat`, `duration`, and `hand` (`right`, `left`, or `both`).
 - `practiceSections`: named ranges in beats.
-- `license`: material type, license name, attribution, license URL, and optional source URL/notes.
+- `license`: material type, license name, attribution, optional license URL, optional source URL, and notes. Third-party/public-domain entries require a license reference; original Pianova exercises leave `licenseUrl` null until the project owner chooses a redistribution license.
 
 ## Content and rights policy
 
