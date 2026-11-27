@@ -10,7 +10,7 @@ class MidiConnectionEventTracker {
     private val noteCounts = mutableMapOf<Int, Int>()
     private val sustainChannels = mutableSetOf<Int>()
 
-    fun accept(channel: Int, event: PianoEvent): List<PianoEvent> = when (event) {
+    fun accept(channel: Int, event: PianoEvent): List<PianoEvent> {\n        return when (event) {
         is PianoEvent.NoteOn -> {
             val notes = heldByChannel.getOrPut(channel) { mutableSetOf() }
             if (notes.add(event.midiNote)) {
