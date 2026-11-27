@@ -334,7 +334,7 @@ fun LessonPlayerScreen(
         }
     }
 
-    DisposableEffect(step.id, retryAttempt)
+    DisposableEffect(step.id, retryAttempt) {
         val created = if (playable) evaluationEngine.start(step, coroutineScope) else null
         session = created
         onDispose { created?.cancel() }
