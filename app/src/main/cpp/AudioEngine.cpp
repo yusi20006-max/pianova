@@ -83,7 +83,10 @@ bool AudioEngine::start() {
 }
 
 bool AudioEngine::startLocked() {
-    if (!synth_) return false;
+    if (!synth_) {
+        state_.store(AudioEngineState::RecoveryFailed, std::memory_order_release);
+        return false;
+    }
     if (started_.load(std::memory_order_acquire)) return true;
 
     oboe::AudioStreamBuilder builder;
@@ -109,6 +112,7 @@ bool AudioEngine::startLocked() {
                             "Unable to open Oboe output stream: %s",
                             oboe::convertToText(result));
         stream_.reset();
+        state_.store(AudioEngineState::RecoveryFailed, std::memory_order_release);
         return false;
     }
 
@@ -124,10 +128,12 @@ bool AudioEngine::startLocked() {
                             oboe::convertToText(result));
         stream_->close();
         stream_.reset();
+        state_.store(AudioEngineState::RecoveryFailed, std::memory_order_release);
         return false;
     }
 
     started_.store(true, std::memory_order_release);
+    state_.store(AudioEngineState::Running, std::memory_order_release);
     recoveryEnabled_.store(true, std::memory_order_release);
     __android_log_print(ANDROID_LOG_INFO, kTag,
                         "Audio started: %d Hz, %d channels, %s",
@@ -146,6 +152,7 @@ void AudioEngine::stop() {
         stream_.reset();
     }
     started_.store(false, std::memory_order_release);
+    state_.store(AudioEngineState::Stopped, std::memory_order_release);
     if (synth_) {
         tsf_channel_set_sustain(synth_.get(), 0, 0);
         tsf_channel_sounds_off_all(synth_.get(), 0);
@@ -225,6 +232,7 @@ void AudioEngine::onErrorAfterClose(oboe::AudioStream* /* stream */,
                                     oboe::Result error) {
     std::lock_guard<std::mutex> lock(streamMutex_);
     started_.store(false, std::memory_order_release);
+    state_.store(AudioEngineState::Recovering, std::memory_order_release);
     __android_log_print(ANDROID_LOG_ERROR, kTag,
                         "Oboe stream error after close: %s",
                         oboe::convertToText(error));
@@ -243,9 +251,12 @@ void AudioEngine::onErrorAfterClose(oboe::AudioStream* /* stream */,
     if (recoveryEnabled_.load(std::memory_order_acquire)) {
         if (!startLocked()) {
             recoveryEnabled_.store(false, std::memory_order_release);
+            state_.store(AudioEngineState::RecoveryFailed, std::memory_order_release);
             __android_log_print(ANDROID_LOG_ERROR, kTag,
                                 "Unable to recover Oboe stream after device change");
         }
+    } else {
+        state_.store(AudioEngineState::Stopped, std::memory_order_release);
     }
 }
 
