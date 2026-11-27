@@ -247,7 +247,7 @@ private fun FallingNotesSession(
         }
     }
 
-    LaunchedEffect(isPlaying, waitForNote, selectedNotes, song.id) {
+    LaunchedEffect(isPlaying, waitForNote, selectedNotes, song.id, effectiveTempo) {
         var previousFrame = 0L
         while (isPlaying && !isFinished) {
             val frameTime = withFrameNanos { it }
@@ -312,9 +312,9 @@ private fun FallingNotesSession(
                     FilterChip(
                         selected = selectedHand == hand,
                         onClick = {
-                            if (!isPlaying && matchedIndices.isEmpty()) selectedHand = hand
+                            if (!isPlaying && matchedIndices.isEmpty() && playheadBeat.floatValue == 0f) selectedHand = hand
                         },
-                        enabled = !isPlaying && matchedIndices.isEmpty(),
+                        enabled = !isPlaying && matchedIndices.isEmpty() && playheadBeat.floatValue == 0f,
                         label = { Text(label) }
                     )
                 }
@@ -414,6 +414,7 @@ private fun FallingNotesSession(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("درست: $correctCount از ${selectedNotes.size}", color = Color.White, style = MaterialTheme.typography.labelMedium)
                     Text("اشتباه: $wrongCount", color = Color(0xFFFCA5A5), style = MaterialTheme.typography.labelSmall)
+                    if (isFinished) Text("جاافتاده: ${(selectedNotes.size - correctCount).coerceAtLeast(0)}", color = Color(0xFFFDE68A), style = MaterialTheme.typography.labelSmall)
                 }
                 Text(if (isFinished) "پایان تمرین" else if (waitingForNote) "در انتظار نت" else if (isPlaying) "در حال پخش" else "متوقف", color = Color(0xFF7DD3FC), style = MaterialTheme.typography.labelMedium)
             }
