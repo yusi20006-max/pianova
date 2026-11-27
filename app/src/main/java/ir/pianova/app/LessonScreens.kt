@@ -293,19 +293,31 @@ fun LessonPlayerScreen(
     val evaluationEngine = remember(practiceRouter) { EvaluationEngine(practiceRouter) }
     val coroutineScope = practiceScope
     var microphoneMode by remember(lesson.id) { mutableStateOf(false) }
+    var microphonePermissionMessage by remember(lesson.id) { mutableStateOf<String?>(null) }
     val microphoneStatus by acousticInput.status.collectAsState()
     val microphonePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted && acousticInput.start()) {
+            microphonePermissionMessage = null
             practiceRouter.setMode(PracticeInputMode.MICROPHONE)
             microphoneMode = true
         } else if (!granted) {
             microphoneMode = false
+            microphonePermissionMessage = "اجازهٔ میکروفون داده نشد؛ برای شنیدن پیانو، مجوز را فعال کن."
         }
     }
     var session by remember(lesson.id, step.id) { mutableStateOf<EvaluationSession?>(null) }
 
-    DisposableEffect(acousticInput, practiceRouter) {
+    DisposableEffect(lifecycleOwner, acousticInput, practiceRouter) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP && microphoneMode) {
+                acousticInput.stop()
+                practiceRouter.setMode(PracticeInputMode.MIDI)
+                microphoneMode = false
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
             acousticInput.stop()
             practiceRouter.setMode(PracticeInputMode.MIDI)
             acousticInput.close()
@@ -652,6 +664,8 @@ fun LessonPlayerScreen(
                         Text("● در حال شنیدن پیانو", color = PianovaGreen, fontWeight = FontWeight.Bold)
                         Text(microphoneStatus.messageFa, color = PianovaMuted)
                         Text("اطمینان تشخیص: ${(microphoneStatus.confidence * 100).toInt()}٪", color = PianovaMuted, style = MaterialTheme.typography.labelSmall)
+                    } else if (microphonePermissionMessage != null) {
+                        Text(microphonePermissionMessage!!, color = PianovaMuted)
                     } else if (microphoneStatus.messageFa != "شنود صوتی خاموش است.") {
                         Text(microphoneStatus.messageFa, color = PianovaMuted)
                     }
