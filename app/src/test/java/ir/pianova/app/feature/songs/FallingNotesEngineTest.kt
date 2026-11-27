@@ -46,11 +46,11 @@ class FallingNotesEngineTest {
 
     @Test
     fun whiteAndBlackKeyCentersFollowPianoKeyboardGeometry() {
-        val range = PianoMidiRange(firstMidi = 60, noteCount = 12)
+        val range = PianoMidiRange(firstMidi = 60, noteCount = 13)
         assertEquals(0.0625f, FallingNotesEngine.keyCenterFraction(60, range)!!, 0.0001f)
         assertEquals(0.125f, FallingNotesEngine.keyCenterFraction(61, range)!!, 0.0001f)
         assertEquals(0.1875f, FallingNotesEngine.keyCenterFraction(62, range)!!, 0.0001f)
-        assertNull(FallingNotesEngine.keyCenterFraction(72, range))
+        assertNull(FallingNotesEngine.keyCenterFraction(73, range))
     }
 
     @Test
