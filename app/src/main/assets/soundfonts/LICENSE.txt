@@ -9,7 +9,7 @@ Upstream path: SF2/GM/ChaosBank.sf2
 Size: 12,038,662 bytes
 
 License: Creative Commons CC0 1.0 Universal
-The upstream soundfont catalogue identifies ChaosBank.sf2 as CC0 1.0.
+The upstream README at the pinned commit lists `ChaosBank.sf2` in its CC0 section and identifies its licence as CC0 1.0: https://github.com/bratpeki/soundfonts/blob/e1dcd9da45cc7454b4e3bfae613f4020d6a0b4f7/README.md.
 This dedication permits copying, modification, redistribution, and commercial
 use without attribution. The original source and licence statement are retained
 here for provenance.
