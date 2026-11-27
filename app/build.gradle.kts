@@ -1,4 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.github.jk1.license.render.CsvReportRenderer
+import com.github.jk1.license.render.InventoryMarkdownReportRenderer
+import com.github.jk1.license.render.JsonReportRenderer
+import com.github.jk1.license.render.ReportRenderer
 import java.net.URI
 import java.security.MessageDigest
 
@@ -9,6 +13,19 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
+    id("com.github.jk1.dependency-license-report") version "3.1.5"
+}
+
+// Audit the exact Android release runtime graph, including transitive modules.
+// Missing license metadata remains visible as UNKNOWN in the generated reports.
+licenseReport {
+    configurations = arrayOf("releaseRuntimeClasspath")
+    outputDir = layout.buildDirectory.dir("reports/dependency-license").get().asFile
+    renderers = arrayOf<ReportRenderer>(
+        JsonReportRenderer("licenses.json", false),
+        CsvReportRenderer("licenses.csv"),
+        InventoryMarkdownReportRenderer("licenses.md", "Pianova Release Runtime")
+    )
 }
 
 // ---------------------------------------------------------------------------
