@@ -322,7 +322,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openBluetoothAudioSettings() {
-        val panelIntent = if (Build.VERSION.SDK_INT >= 29) Intent(Settings.Panel.ACTION_BLUETOOTH) else Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+        val panelIntent = if (Build.VERSION.SDK_INT >= 29) Intent(Settings.ACTION_BLUETOOTH_SETTINGS) else Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
         runCatching { startActivity(panelIntent) }.onFailure { startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) }
     }
 
