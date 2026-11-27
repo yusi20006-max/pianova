@@ -40,6 +40,7 @@ tasks.register("downloadDastkhatFonts") {
     group = "fonts"
     description = "Download Dastkhat Regular/Medium/Bold TTF into res/font"
     outputs.dir(fontDir)
+    outputs.upToDateWhen { false }
     doLast {
         fontDir.asFile.mkdirs()
         dastkhatFonts.forEach { (name, metadata) ->
