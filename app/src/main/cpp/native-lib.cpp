@@ -42,6 +42,15 @@ Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeStart(
     return engine != nullptr && engine->start() ? JNI_TRUE : JNI_FALSE;
 }
 
+extern "C" JNIEXPORT jint JNICALL
+Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeGetState(
+    JNIEnv*, jobject, jlong handle) {
+    auto* engine = fromHandle(handle);
+    return engine == nullptr
+        ? static_cast<jint>(pianova::AudioEngineState::RecoveryFailed)
+        : static_cast<jint>(engine->state());
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_ir_pianova_app_core_audio_NativeAudioBridge_nativeStop(
     JNIEnv*, jobject, jlong handle) {
