@@ -788,7 +788,7 @@ private fun SettingsScreen(
         } else {
             midiDevices.forEach { device ->
                 StatusCard(
-                    "${device.name} · ${if (device.transport == MidiTransport.BLUETOOTH) "Bluetooth MIDI" else "USB MIDI"},
+                    "${device.name} · ${if (device.transport == MidiTransport.BLUETOOTH) "Bluetooth MIDI" else "USB MIDI"}",
                     when {
                         device.connected -> "متصل"
                         device.selected -> "انتخاب‌شده · در انتظار اتصال"
