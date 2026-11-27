@@ -16,7 +16,7 @@ Pianova is an offline-first, interactive piano-learning companion designed to su
 
 Pianova is intended to work alongside the family's Bluetooth-capable digital piano as compatible hardware support is implemented. Bluetooth audio routing and Bluetooth MIDI are separate capabilities and must be supported based on the piano's actual profiles.
 
-**Bluetooth piano connectivity is not yet implemented.** Until supported connectivity is available, use Pianova with its on-device piano and supported input features.
+**Bluetooth MIDI and Bluetooth audio routing support are under implementation.** BLE MIDI input uses the shared lesson input contract, while Bluetooth audio output is selected through Android's system media route. Physical Kinix PJ-88D verification remains pending.
 
 ## Privacy and data
 
