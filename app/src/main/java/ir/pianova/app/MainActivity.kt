@@ -39,6 +39,7 @@ class MainActivity : ComponentActivity() {
     private val audioOperationMutex = Mutex()
     private var isInForeground = false
     private var audioStartPending = false
+    private var audioPlaybackRequested = false
     private var referencePlaybackJob: Job? = null
     private var audioStateMonitorJob: Job? = null
     private var resumeAudioAfterPause = false
@@ -149,6 +150,7 @@ class MainActivity : ComponentActivity() {
             }
             audioStartPending = false
             if (audioEngine === engine && isInForeground) {
+                audioPlaybackRequested = started
                 engineRunning = started
                 engineStatus = if (started) {
                     "موتور فعال است؛ کلاویه‌ها را لمس کنید"
@@ -177,6 +179,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             if (!started || !isInForeground || audioEngine !== engine) return@launch
+            audioPlaybackRequested = true
             engineRunning = true
             engineStatus = "نمونه نت‌ها در حال پخش است"
             monitorAudioEngineState(engine)
@@ -218,11 +221,13 @@ class MainActivity : ComponentActivity() {
                         engineStatus = "خروجی صوتی قطع شد؛ در حال بازیابی…"
                     }
                     ir.pianova.app.core.audio.AudioEngineState.RECOVERY_FAILED -> {
+                        audioPlaybackRequested = false
                         engineRunning = false
                         engineStatus = "بازیابی صدا ناموفق بود؛ برای تلاش دوباره بزنید"
                         break
                     }
                     ir.pianova.app.core.audio.AudioEngineState.STOPPED -> {
+                        audioPlaybackRequested = false
                         if (engineRunning) {
                             engineRunning = false
                             engineStatus = "موتور متوقف است"
@@ -243,6 +248,7 @@ class MainActivity : ComponentActivity() {
         referencePlaybackJob = null
         audioStateMonitorJob?.cancel()
         audioStateMonitorJob = null
+        audioPlaybackRequested = false
         val engine = audioEngine ?: run {
             engineRunning = false
             return
@@ -271,7 +277,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         isInForeground = false
         referencePlaybackJob?.cancel()
-        if (engineRunning || audioStartPending) {
+        if (audioPlaybackRequested || engineRunning || audioStartPending) {
             resumeAudioAfterPause = true
             stopAudioEngine("با خروج برنامه از پیش‌زمینه، صدا متوقف شد")
         }
