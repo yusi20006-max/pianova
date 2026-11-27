@@ -320,7 +320,7 @@ private fun LearnerWorkspace(
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (midiDevices.any { it.connected }) {
+                    if ((route == "practice" || route.startsWith("lesson/")) && midiDevices.any { it.connected }) {
                         Surface(shape = RoundedCornerShape(50), color = PianovaSage) {
                             Text("MIDI متصل", modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), color = PianovaGreen, style = MaterialTheme.typography.labelSmall)
                         }
