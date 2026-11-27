@@ -159,7 +159,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
     private fun refreshDeviceStatusLocked() {
         val infos = manager?.devices?.filter { it.type == MidiDeviceInfo.TYPE_USB }.orEmpty()
         deviceStatusFlow.value = infos.map { info ->
-            UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections)
+            UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections, selectedDeviceId == info.id)
         }
     }
     private fun nowMs() = System.nanoTime() / 1_000_000L
