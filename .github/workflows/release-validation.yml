@@ -36,8 +36,25 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Configure full test failure diagnostics
+        shell: bash
+        run: |
+          cat > /tmp/pianova-test-logging.gradle <<'EOF'
+          allprojects {
+            tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+              testLogging {
+                events "started", "passed", "failed", "skipped"
+                exceptionFormat org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                showStackTraces = true
+                showCauses = true
+                showExceptions = true
+              }
+            }
+          }
+          EOF
+
       - name: Run complete unit test suite
-        run: timeout 18m gradle --no-daemon --console=plain testDebugUnitTest --stacktrace
+        run: timeout 18m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --info --stacktrace
 
       - name: Build minified release APK
         run: timeout 8m gradle --no-daemon --console=plain assembleRelease --stacktrace
