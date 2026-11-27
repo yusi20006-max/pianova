@@ -79,6 +79,7 @@ import ir.pianova.app.data.persistence.LearnerSessionStore
 import ir.pianova.app.data.persistence.activeLearnerOrNull
 import ir.pianova.app.data.persistence.ProgressRepository
 import ir.pianova.app.domain.progress.LearnerProgressSnapshot
+import ir.pianova.app.feature.songs.SongListScreen
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -611,16 +612,11 @@ private fun LibraryScreen(learnerId: String) {
     val progressRepository = remember(database) { ProgressRepository(database) }
     val songProgress by progressRepository.observeSongProgress(learnerId).collectAsState(initial = emptyList())
 
-    PageColumn {
-        PageTitle("کتابخانه آهنگ‌ها", "قطعات آموزشی و آهنگ‌های شخصی")
-        if (songProgress.isEmpty()) {
-            EmptyState("کتابخانه در حال آماده‌سازی است", "هنوز پیشرفت آهنگی برای این هنرجو ثبت نشده است. قطعات مبتدی ایرانی و بین‌المللی در مراحل بعدی اضافه می‌شوند.")
-        } else {
-            StatusCard("آهنگ‌های دارای سابقه تمرین", songProgress.size.toString())
-            songProgress.forEach { song ->
-                StatusCard(song.songId, "${song.playCount} بار تمرین")
-            }
-        }
+    PageColumn(scrollable = true) {
+        PageTitle("کتابخانه آهنگ‌ها", "قطعات آموزشی ایرانی و بین‌المللی")
+        SongListScreen(
+            progressCounts = songProgress.associate { it.songId to it.playCount }
+        )
     }
 }
 

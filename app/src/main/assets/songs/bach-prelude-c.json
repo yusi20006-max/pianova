@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "id": "bach-prelude-c",
+  "title": "پیش‌درآمد دو ماژور (Prelude in C)",
+  "composer": "Johann Sebastian Bach",
+  "category": "classical",
+  "difficulty": "easy",
+  "tempo": 72,
+  "beatsPerBar": 4,
+  "notes": [
+    {
+      "midiNote": 60,
+      "startBeat": 0,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 0.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 1,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 1.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 76,
+      "startBeat": 2,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 2.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 3,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 3.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 60,
+      "startBeat": 4,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 4.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 5.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 76,
+      "startBeat": 6,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 6.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 7,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 7.5,
+      "duration": 0.5,
+      "hand": "right"
+    }
+  ],
+  "practiceSections": [
+    {
+      "id": "pattern",
+      "title": "الگوی آرپژ",
+      "startBeat": 0,
+      "endBeat": 8
+    }
+  ],
+  "license": {
+    "type": "public-domain-composition",
+    "name": "Public domain composition; original Pianova note transcription",
+    "attribution": "Johann Sebastian Bach (1685–1750), Prelude in C major, BWV 846. Pianova simplified exercise based on the opening arpeggio pattern.",
+    "sourceUrl": "https://imslp.org/wiki/Prelude_and_Fugue_in_C_major,_BWV_846_(Bach,_Johann_Sebastian)",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "notes": "The underlying composition is public domain. This short educational pattern is independently entered by Pianova; no modern edition engraving or recording is included."
+  }
+}

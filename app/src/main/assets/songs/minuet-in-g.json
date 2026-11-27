@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "minuet-in-g",
+  "title": "منوئت در سل ماژور (Minuet in G)",
+  "composer": "Christian Petzold",
+  "category": "classical",
+  "difficulty": "beginner",
+  "tempo": 88,
+  "beatsPerBar": 3,
+  "notes": [
+    {
+      "midiNote": 74,
+      "startBeat": 0,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 0.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 69,
+      "startBeat": 1,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 71,
+      "startBeat": 1.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 2,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 74,
+      "startBeat": 3,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 3.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 4,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 76,
+      "startBeat": 5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 72,
+      "startBeat": 5.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 74,
+      "startBeat": 6,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 76,
+      "startBeat": 6.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 78,
+      "startBeat": 7,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 79,
+      "startBeat": 8,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 8.5,
+      "duration": 0.5,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 9,
+      "duration": 1,
+      "hand": "right"
+    }
+  ],
+  "practiceSections": [
+    {
+      "id": "opening",
+      "title": "جملهٔ آغازین",
+      "startBeat": 0,
+      "endBeat": 5
+    },
+    {
+      "id": "continuation",
+      "title": "ادامهٔ ملودی",
+      "startBeat": 5,
+      "endBeat": 10
+    }
+  ],
+  "license": {
+    "type": "public-domain-composition",
+    "name": "Public domain composition; original Pianova note transcription",
+    "attribution": "Christian Petzold (1677–1733), Minuet in G major, BWV Anh. 114. Pianova beginner transcription.",
+    "sourceUrl": "https://imslp.org/wiki/Minuet_in_G_major,_BWV_Anh.114_(Pezold,_Christian)",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "notes": "The underlying baroque composition is public domain. Pianova's simplified note transcription follows the opening melody (D5–G4–A4–B4–C5–D5–G4–G4–E5). No modern edition engraving or recording is included."
+  }
+}

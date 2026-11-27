@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "ode-to-joy",
+  "title": "سرود شادی (Ode to Joy)",
+  "composer": "Ludwig van Beethoven",
+  "category": "classical",
+  "difficulty": "beginner",
+  "tempo": 92,
+  "beatsPerBar": 4,
+  "notes": [
+    {"midiNote": 64, "startBeat": 0, "duration": 1, "hand": "right"},
+    {"midiNote": 64, "startBeat": 1, "duration": 1, "hand": "right"},
+    {"midiNote": 65, "startBeat": 2, "duration": 1, "hand": "right"},
+    {"midiNote": 67, "startBeat": 3, "duration": 1, "hand": "right"},
+    {"midiNote": 67, "startBeat": 4, "duration": 1, "hand": "right"},
+    {"midiNote": 65, "startBeat": 5, "duration": 1, "hand": "right"},
+    {"midiNote": 64, "startBeat": 6, "duration": 1, "hand": "right"},
+    {"midiNote": 62, "startBeat": 7, "duration": 1, "hand": "right"},
+    {"midiNote": 60, "startBeat": 8, "duration": 1, "hand": "right"},
+    {"midiNote": 60, "startBeat": 9, "duration": 1, "hand": "right"},
+    {"midiNote": 62, "startBeat": 10, "duration": 1, "hand": "right"},
+    {"midiNote": 64, "startBeat": 11, "duration": 1, "hand": "right"},
+    {"midiNote": 64, "startBeat": 12, "duration": 1.5, "hand": "right"},
+    {"midiNote": 62, "startBeat": 13.5, "duration": 0.5, "hand": "right"},
+    {"midiNote": 62, "startBeat": 14, "duration": 2, "hand": "right"}
+  ],
+  "practiceSections": [
+    {"id": "phrase-one", "title": "جملهٔ اول", "startBeat": 0, "endBeat": 8},
+    {"id": "phrase-two", "title": "جملهٔ دوم", "startBeat": 8, "endBeat": 16}
+  ],
+  "license": {
+    "type": "public-domain-composition",
+    "name": "Public domain composition; original Pianova note transcription",
+    "attribution": "Composition by Ludwig van Beethoven (1770–1827). Pianova prepared this beginner note transcription.",
+    "sourceUrl": "https://imslp.org/wiki/Symphony_No.9,_Op.125_(Beethoven,_Ludwig_van)",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "notes": "The underlying composition is public domain. This is a newly prepared educational transcription; no third-party recording or modern edition engraving is included."
+  }
+}

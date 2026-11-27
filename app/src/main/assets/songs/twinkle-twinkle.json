@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "twinkle-twinkle",
+  "title": "چشمک بزن ستارهٔ کوچک (Twinkle, Twinkle)",
+  "composer": "Traditional French melody",
+  "category": "international",
+  "difficulty": "beginner",
+  "tempo": 84,
+  "beatsPerBar": 4,
+  "notes": [
+    {"midiNote": 60, "startBeat": 0, "duration": 1, "hand": "right"},
+    {"midiNote": 60, "startBeat": 1, "duration": 1, "hand": "right"},
+    {"midiNote": 67, "startBeat": 2, "duration": 1, "hand": "right"},
+    {"midiNote": 67, "startBeat": 3, "duration": 1, "hand": "right"},
+    {"midiNote": 69, "startBeat": 4, "duration": 1, "hand": "right"},
+    {"midiNote": 69, "startBeat": 5, "duration": 1, "hand": "right"},
+    {"midiNote": 67, "startBeat": 6, "duration": 2, "hand": "right"},
+    {"midiNote": 65, "startBeat": 8, "duration": 1, "hand": "right"},
+    {"midiNote": 65, "startBeat": 9, "duration": 1, "hand": "right"},
+    {"midiNote": 64, "startBeat": 10, "duration": 1, "hand": "right"},
+    {"midiNote": 64, "startBeat": 11, "duration": 1, "hand": "right"},
+    {"midiNote": 62, "startBeat": 12, "duration": 1, "hand": "right"},
+    {"midiNote": 62, "startBeat": 13, "duration": 1, "hand": "right"},
+    {"midiNote": 60, "startBeat": 14, "duration": 2, "hand": "right"}
+  ],
+  "practiceSections": [
+    {"id": "first-line", "title": "چشمک، چشمک", "startBeat": 0, "endBeat": 8},
+    {"id": "second-line", "title": "چگونه می‌درخشی", "startBeat": 8, "endBeat": 16}
+  ],
+  "license": {
+    "type": "public-domain-traditional",
+    "name": "Traditional melody; public-domain arrangement",
+    "attribution": "Traditional French melody, documented in the 18th century; Pianova beginner transcription.",
+    "sourceUrl": "https://en.wikipedia.org/wiki/Ah!_vous_dirai-je,_maman",
+    "licenseUrl": "https://creativecommons.org/publicdomain/mark/1.0/",
+    "notes": "The traditional melody is public domain. Pianova created this simplified educational transcription; no modern recording is included."
+  }
+}

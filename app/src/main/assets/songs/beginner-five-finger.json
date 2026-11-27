@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "beginner-five-finger",
+  "title": "تمرین پنج‌انگشتی",
+  "composer": "Pianova",
+  "category": "practice",
+  "difficulty": "beginner",
+  "tempo": 72,
+  "beatsPerBar": 4,
+  "notes": [
+    {
+      "midiNote": 60,
+      "startBeat": 0,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 62,
+      "startBeat": 1,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 2,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 65,
+      "startBeat": 3,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 4,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 65,
+      "startBeat": 5,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 6,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 62,
+      "startBeat": 7,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 60,
+      "startBeat": 8,
+      "duration": 2,
+      "hand": "right"
+    }
+  ],
+  "practiceSections": [
+    {
+      "id": "up",
+      "title": "حرکت رو به بالا",
+      "startBeat": 0,
+      "endBeat": 5
+    },
+    {
+      "id": "down",
+      "title": "حرکت رو به پایین",
+      "startBeat": 5,
+      "endBeat": 10
+    }
+  ],
+  "license": {
+    "type": "original",
+    "name": "Pianova original content",
+    "attribution": "Original exercise composed for Pianova; no third-party material used.",
+    "licenseUrl": null,
+    "notes": "No public redistribution license is granted by this metadata; external licensing remains subject to the Pianova project owner's decision."
+  }
+}

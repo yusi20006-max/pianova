@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "iranian-pentatonic-exercise",
+  "title": "تمرین پنج‌نتی ایرانی",
+  "composer": "Pianova",
+  "category": "iranian",
+  "difficulty": "beginner",
+  "tempo": 68,
+  "beatsPerBar": 4,
+  "notes": [
+    {
+      "midiNote": 60,
+      "startBeat": 0,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 62,
+      "startBeat": 1,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 65,
+      "startBeat": 2,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 3,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 69,
+      "startBeat": 4,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 5,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 65,
+      "startBeat": 6,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 62,
+      "startBeat": 7,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 60,
+      "startBeat": 8,
+      "duration": 2,
+      "hand": "right"
+    }
+  ],
+  "practiceSections": [
+    {
+      "id": "ascending",
+      "title": "پنج نت رو به بالا",
+      "startBeat": 0,
+      "endBeat": 5
+    },
+    {
+      "id": "descending",
+      "title": "بازگشت",
+      "startBeat": 5,
+      "endBeat": 10
+    }
+  ],
+  "license": {
+    "type": "original",
+    "name": "Pianova original content",
+    "attribution": "Melody composed for Pianova; no third-party melody or recording used.",
+    "licenseUrl": null,
+    "notes": "An original five-note exercise, not an arrangement of a named traditional work. No public redistribution license is granted by this metadata; external licensing remains subject to the Pianova project owner's decision."
+  }
+}
