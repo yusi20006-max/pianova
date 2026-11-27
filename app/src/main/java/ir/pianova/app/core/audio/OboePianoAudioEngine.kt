@@ -11,6 +11,7 @@ enum class AudioEngineState {
 
     companion object {
         fun fromNative(value: Int): AudioEngineState = when (value) {
+            0 -> STOPPED
             1 -> RUNNING
             2 -> RECOVERING
             3 -> RECOVERY_FAILED
