@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -101,6 +103,7 @@ fun PianoScreen(
     var sustain by remember(learnerId) { mutableStateOf(false) }
     var volume by remember(learnerId) { mutableStateOf(initialVolume) }
     var labelMode by remember(learnerId) { mutableStateOf(initialLabelMode) }
+    val hapticEnabled = remember(context) { context.getSharedPreferences("pianova_settings", 0).getBoolean("haptic_enabled", true) }
     val context = LocalContext.current
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val progressRepository = remember(database) { ProgressRepository(database) }
@@ -272,6 +275,7 @@ fun PianoScreen(
                         enabled = running,
                         onNoteOn = trackedNoteOn,
                         onNoteOff = onNoteOff,
+                        hapticEnabled = hapticEnabled,
                         modifier = Modifier.weight(1f).fillMaxSize()
                     )
                 }
@@ -306,6 +310,7 @@ fun PianoPlayableKeys(
     onNoteOff: (Int) -> Unit,
     highlightedNotes: Set<Int> = emptySet(),
     noteCount: Int = 24,
+    hapticEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val currentOn by rememberUpdatedState(onNoteOn)
@@ -314,13 +319,14 @@ fun PianoPlayableKeys(
     val currentStart by rememberUpdatedState(firstMidi)
     val currentLabelMode by rememberUpdatedState(labelMode)
     val currentCount by rememberUpdatedState(noteCount.coerceIn(1, 48))
+    val hapticFeedback = LocalHapticFeedback.current
     val pressedNotes = remember { mutableStateMapOf<Int, Int>() }
 
     Canvas(
         modifier = modifier
             .background(Color(0xFF172635), RoundedCornerShape(10.dp))
             .padding(3.dp)
-            .pointerInput(enabled, firstMidi, noteCount) {
+            .pointerInput(enabled, firstMidi, noteCount, hapticEnabled) {
                 val active = mutableMapOf<PointerId, Int>()
                 fun release(note: Int) {
                     val count = pressedNotes[note] ?: return
@@ -334,7 +340,10 @@ fun PianoPlayableKeys(
                 fun press(note: Int, velocity: Float) {
                     val count = pressedNotes[note] ?: 0
                     pressedNotes[note] = count + 1
-                    if (count == 0) currentOn(note, velocity)
+                    if (count == 0) {
+                        currentOn(note, velocity)
+                        if (hapticEnabled) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
                 }
                 fun noteAt(x: Float, y: Float, width: Float, height: Float): Int? {
                     val start = currentStart
