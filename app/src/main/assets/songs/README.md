@@ -2,6 +2,8 @@
 
 All files in this directory are UTF-8 JSON documents using schema version 1.
 
+The machine-readable JSON Schema is maintained at `docs/songs/song.schema.json`.
+
 ## Schema
 
 - `id`: stable, unique identifier.
