@@ -53,7 +53,7 @@ This file records third-party components and bundled media currently present in 
 | Oboe 1.9.0 | Upstream Apache-2.0 license text bundled in app assets | Identified; license text bundled |
 | TinySoundFont | MIT text retained in repository | Identified |
 | Dastkhat FaNum | Pinned upstream commit; three TTF files size/SHA-1 verified; OFL and third-party notices bundled | Identified and reproducibly pinned |
-| Chaos Bank v1.9 | Project provenance file declares CC0-1.0 and pins source commit | Identified; verify upstream license evidence at pinned revision |
+| Chaos Bank v1.9 | Pinned upstream README lists the exact file under CC0; source commit and asset Git blob SHA-1 are pinned | CC0 evidence verified at pinned revision |
 | Songs | No song assets currently present | No third-party song license review applicable yet |
 | Other transitive dependencies | Not yet inventoried from the resolved release runtime graph | Pending automated dependency/license inventory |
 
