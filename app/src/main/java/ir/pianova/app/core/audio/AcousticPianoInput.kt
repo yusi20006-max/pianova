@@ -44,7 +44,7 @@ class AcousticPianoInput(context: Context) : PianoInput, AutoCloseable {
     private val running = AtomicBoolean(false)
     private var captureJob: Job? = null
     @Volatile private var audioRecord: AudioRecord? = null
-    private val heldNotes = mutableSetOf<Int>()
+    private val noteLock = Any()\n    private val heldNotes = mutableSetOf<Int>()
     private val stableFrames = mutableMapOf<Int, Int>()
     private val missingFrames = mutableMapOf<Int, Int>()
     private val sampleRate = 22_050
@@ -138,37 +138,39 @@ class AcousticPianoInput(context: Context) : PianoInput, AutoCloseable {
     private fun processFrame(frame: ShortArray) {
         val result = detector.detect(frame, sampleRate)
         val confidence = result.confidence
-        if (confidence < 0.22f || result.midiNotes.isEmpty()) {
-            heldNotes.toList().forEach { note ->
+        synchronized(noteLock) {
+            if (confidence < 0.22f || result.midiNotes.isEmpty()) {
+                heldNotes.toList().forEach { note ->
+                    val missing = (missingFrames[note] ?: 0) + 1
+                    missingFrames[note] = missing
+                    if (missing >= 2) releaseNote(note)
+                }
+                statusFlow.value = AcousticInputStatus(
+                    true,
+                    confidence,
+                    if (result.rms < 0.012f) "صدای پیانو کم است؛ کمی نزدیک‌تر بنواز." else "صدا واضح نیست؛ یک نت را آرام و واضح دوباره بنواز."
+                )
+                return
+            }
+
+            val detected = result.midiNotes.toSet()
+            detected.forEach { note ->
+                missingFrames[note] = 0
+                val stable = (stableFrames[note] ?: 0) + 1
+                stableFrames[note] = stable
+                if (stable >= 2 && note !in heldNotes) {
+                    heldNotes += note
+                    val velocity = (result.rms * 5.0f).coerceIn(0.15f, 1f)
+                    eventQueue.trySend(PianoEvent.NoteOn(note, velocity, nowMs()))
+                }
+            }
+            heldNotes.toList().filter { it !in detected }.forEach { note ->
                 val missing = (missingFrames[note] ?: 0) + 1
                 missingFrames[note] = missing
                 if (missing >= 2) releaseNote(note)
             }
-            statusFlow.value = AcousticInputStatus(
-                true,
-                confidence,
-                if (result.rms < 0.012f) "صدای پیانو کم است؛ کمی نزدیک‌تر بنواز." else "صدا واضح نیست؛ یک نت را آرام و واضح دوباره بنواز."
-            )
-            return
+            statusFlow.value = AcousticInputStatus(true, confidence, "نت دریافت شد؛ ادامه بده.")
         }
-
-        val detected = result.midiNotes.toSet()
-        detected.forEach { note ->
-            missingFrames[note] = 0
-            val stable = (stableFrames[note] ?: 0) + 1
-            stableFrames[note] = stable
-            if (stable >= 2 && note !in heldNotes) {
-                heldNotes += note
-                val velocity = (result.rms * 5.0f).coerceIn(0.15f, 1f)
-                eventQueue.trySend(PianoEvent.NoteOn(note, velocity, nowMs()))
-            }
-        }
-        heldNotes.toList().filter { it !in detected }.forEach { note ->
-            val missing = (missingFrames[note] ?: 0) + 1
-            missingFrames[note] = missing
-            if (missing >= 2) releaseNote(note)
-        }
-        statusFlow.value = AcousticInputStatus(true, confidence, "نت دریافت شد؛ ادامه بده.")
     }
 
     private fun releaseNote(note: Int) {
@@ -177,7 +179,7 @@ class AcousticPianoInput(context: Context) : PianoInput, AutoCloseable {
         missingFrames.remove(note)
     }
 
-    private fun releaseHeldNotes() {
+    private fun releaseHeldNotes() = synchronized(noteLock) {
         heldNotes.toList().forEach { releaseNote(it) }
         stableFrames.clear()
         missingFrames.clear()
