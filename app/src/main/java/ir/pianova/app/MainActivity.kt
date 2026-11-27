@@ -252,7 +252,7 @@ class MainActivity : ComponentActivity() {
         audioStateMonitorJob = lifecycleScope.launch {
             while (isActive && audioEngine === engine && isInForeground) {
                 val state = withContext(Dispatchers.IO) { engine.state() }
-                withContext(Dispatchers.IO) { refreshAudioOutputRoute() }
+                refreshAudioOutputRoute()
                 if (audioEngine !== engine || !isInForeground) break
                 when (state) {
                     ir.pianova.app.core.audio.AudioEngineState.RUNNING -> {
