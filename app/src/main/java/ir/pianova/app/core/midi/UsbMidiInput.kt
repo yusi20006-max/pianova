@@ -34,6 +34,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
     private val aggregateHeldNotes = mutableMapOf<Int, Int>()
     private val activeSustainChannels = mutableSetOf<Pair<Int, Int>>()
     private var closed = false
+    private var selectedDeviceId: Int? = null
     private val deviceStatusFlow = MutableStateFlow<List<UsbMidiDeviceStatus>>(emptyList())
     val deviceStatuses: StateFlow<List<UsbMidiDeviceStatus>> = deviceStatusFlow
     private data class Connection(
@@ -64,10 +65,20 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                 UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections)
             }
         }
-        infos.forEach(::connectIfSupported)
+        val selected = synchronized(lock) { selectedDeviceId }
+        infos.filter { selected == null || it.id == selected }.forEach(::connectIfSupported)
     }
+    fun selectDevice(deviceId: Int?) {
+        synchronized(lock) {
+            selectedDeviceId = deviceId
+            connections.keys.toList().filter { deviceId != null && it != deviceId }.forEach(::disconnect)
+        }
+        refreshDevices()
+    }
+
     private fun connectIfSupported(info: MidiDeviceInfo) {
         val midiManager = manager ?: return
+        if (synchronized(lock) { selectedDeviceId != null && selectedDeviceId != info.id }) return
         if (info.type != MidiDeviceInfo.TYPE_USB || synchronized(lock) { closed || info.id in connections || !pendingDeviceIds.add(info.id) }) return
         runCatching { midiManager.openDevice(info, { device ->
             if (device == null) { synchronized(lock) { pendingDeviceIds -= info.id }; return@openDevice }
