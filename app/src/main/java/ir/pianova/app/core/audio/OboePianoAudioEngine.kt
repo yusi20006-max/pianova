@@ -14,7 +14,7 @@ enum class AudioEngineState {
             1 -> RUNNING
             2 -> RECOVERING
             3 -> RECOVERY_FAILED
-            else -> STOPPED
+            else -> RECOVERY_FAILED
         }
     }
 }
