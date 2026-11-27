@@ -46,7 +46,6 @@ class BluetoothMidiInput(
     private val handler = Handler(Looper.getMainLooper())
     private val lock = Any()
     private val discovered = linkedMapOf<String, BluetoothDevice>()
-    private val connection = mutableStateConnection()
     private var selectedAddress: String? = null
     private var scanActive = false
     private var closed = false
@@ -55,6 +54,7 @@ class BluetoothMidiInput(
     private data class Connection(
         val device: MidiDevice,
         val deviceId: Int,
+        val address: String,
         val ports: MutableList<MidiOutputPort> = mutableListOf(),
         val heldByChannel: MutableMap<Int, MutableSet<Int>> = mutableMapOf(),
         val sustainChannels: MutableSet<Int> = mutableSetOf()
@@ -66,7 +66,6 @@ class BluetoothMidiInput(
     private val statusesFlow = MutableStateFlow<List<UsbMidiDeviceStatus>>(emptyList())
     val deviceStatuses: StateFlow<List<UsbMidiDeviceStatus>> = statusesFlow
 
-    private fun mutableStateConnection() = MutableStateFlow(false)
 
     private val deviceCallback = object : MidiManager.DeviceCallback() {
         override fun onDeviceRemoved(info: MidiDeviceInfo) {
@@ -94,7 +93,7 @@ class BluetoothMidiInput(
     fun selectDeviceIdentity(address: String?) {
         synchronized(lock) {
             selectedAddress = address
-            if (activeConnection.value?.device?.info?.properties?.getString(MidiDeviceInfo.PROPERTY_BLUETOOTH_DEVICE) != address) {
+            if (activeConnection.value?.address != address) {
                 disconnectLocked()
             }
         }
@@ -148,7 +147,7 @@ class BluetoothMidiInput(
                         return@synchronized
                     }
                     val info = opened.info
-                    val newConnection = Connection(opened, info.id)
+                    val newConnection = Connection(opened, info.id, address)
                     info.ports.filter { it.type == MidiDeviceInfo.PortInfo.TYPE_OUTPUT }.forEach { portInfo ->
                         val port = runCatching { opened.openOutputPort(portInfo.portNumber) }.getOrNull() ?: return@forEach
                         val parser = MidiByteParser { channel, event -> handleEvent(info.id, channel, event) }
@@ -164,7 +163,6 @@ class BluetoothMidiInput(
                         opened.close()
                     } else {
                         activeConnection.value = newConnection
-                        connection.value = true
                     }
                 }
                 publishStatuses()
@@ -213,7 +211,6 @@ class BluetoothMidiInput(
     private fun disconnectLocked() {
         val c = activeConnection.value ?: return
         activeConnection.value = null
-        connection.value = false
         ++openToken
         c.heldByChannel.values.flatten().forEach { note ->
             val count = (heldNoteCounts[note] ?: 1) - 1
@@ -234,7 +231,7 @@ class BluetoothMidiInput(
     private fun publishStatuses() {
         val rows = synchronized(lock) {
             discovered.map { (address, device) ->
-                val isConnected = activeConnection.value?.let { it.device.info.properties.getString(MidiDeviceInfo.PROPERTY_BLUETOOTH_DEVICE) == address } == true
+                val isConnected = activeConnection.value?.address == address
                 UsbMidiDeviceStatus(
                     id = address.hashCode(),
                     name = runCatching { device.name }.getOrNull()?.takeIf { it.isNotBlank() } ?: "Bluetooth MIDI",
