@@ -42,9 +42,25 @@ This file records third-party components and bundled media currently present in 
 
 ## Songs and lesson content
 
-- No standalone song-library assets are present in the current repository tree at this audit point.
-- The five bundled interactive lesson JSON files are original Pianova lesson content, not third-party song recordings or score editions.
-- Before adding any third-party song, arrangement, MIDI, recording, or score, record its creator, exact source, license, attribution text, and any restrictions here. Public-domain status must be assessed for the specific arrangement/recording as well as the underlying composition.
+The offline beginner catalog is stored in `app/src/main/assets/songs/`. Each JSON file carries its own creator, source, rights classification, attribution, and license reference.
+
+### Public-domain compositions and traditional melodies
+
+- **Ode to Joy**: Ludwig van Beethoven, Symphony No. 9, Op. 125. The underlying composition is public domain; IMSLP lists the autograph manuscript and historical editions as public domain: https://imslp.org/wiki/Symphony_No.9,_Op.125_(Beethoven,_Ludwig_van). Pianova entered a simplified note transcription; no recording or modern arrangement is bundled.
+- **Twinkle, Twinkle Little Star**: traditional melody published as *Ah! vous dirai-je, maman* in 1761. Historical publication evidence is summarized in the Oxford Research Archive: https://ora.ox.ac.uk/objects/uuid:70a29850-0c0d-4abd-a501-e75224fa856a/files/ma267db096abdc84a6cc3acb344e95519. Pianova entered its own beginner transcription.
+- **Frère Jacques**, **Greensleeves**, and **London Bridge**: traditional melodies. The catalog contains only Pianova-entered note transcriptions, not third-party arrangements, lyrics, or recordings. Their traditional provenance is documented in each asset; public-domain status must still be assessed for the target distribution territory.
+- **Minuet in G major, BWV Anh. 114**: Christian Petzold. IMSLP identifies Petzold as composer and includes historical manuscript and editions marked public domain: https://imslp.org/wiki/Minuet_in_G_major,_BWV_Anh.114_(Pezold,_Christian). Pianova entered a simplified transcription.
+- **Prelude in C major, BWV 846**: Johann Sebastian Bach. The underlying composition is public domain; Pianova's asset is a short independently entered educational pattern, not a modern edition engraving or recording.
+
+### Original Pianova exercises
+
+- `iranian-dastgah-motif.json` and `iranian-pentatonic-exercise.json` are original educational exercises created for Pianova with a Persian musical character. They are explicitly **not** represented as traditional folk songs or transcriptions of named compositions.
+- `beginner-five-finger.json` is an original technical exercise created for Pianova.
+- These original works contain no third-party melody or recording. Their external redistribution license remains subject to the Pianova project owner's licensing decision; do not treat the repository URL as a public license grant.
+
+### Continuing policy
+
+A public-domain composition does not make a modern recording, edition, arrangement, or engraving public domain. Pianova stores its own note transcriptions and does not bundle third-party recordings. Before adding a new song, verify melody provenance, transcription/arrangement provenance, recording rights (if any), and territory-specific restrictions.
 
 ## Release audit status
 
@@ -54,7 +70,7 @@ This file records third-party components and bundled media currently present in 
 | TinySoundFont | MIT text retained in repository | Identified |
 | Dastkhat FaNum | Pinned upstream commit; three TTF files size/SHA-1 verified; OFL and third-party notices bundled | Identified and reproducibly pinned |
 | Chaos Bank v1.9 | Pinned upstream README lists the exact file under CC0; source commit and asset Git blob SHA-1 are pinned | CC0 evidence verified at pinned revision |
-| Songs | No song assets currently present | No third-party song license review applicable yet |
+| Songs | Offline catalog with 10 JSON assets; source/attribution metadata in each asset and this section | Public-domain source evidence recorded for historical compositions; territorial status and original-exercise redistribution license remain explicit review items |
 | Resolved Release runtime dependencies | `releaseRuntimeClasspath`: 117 resolved modules. Graph: 16 first-level entries (14 declared runtime libraries, Compose BOM, Kotlin stdlib) and 101 transitive modules. License metadata: 110 Apache Software License 2.0, 6 Apache License 2.0, 1 Oboe metadata entry verified against the exact 1.9.0 upstream tag as Apache-2.0. No missing license names or license URLs. `com.google.guava:listenablefuture:1.0` has no project URL in its POM; its upstream project is identified at https://github.com/google/guava/tree/released-all-futures/listenablefuture1. | Resolved graph and license metadata reviewed; no UNKNOWN/NEEDS REVIEW license entries. All 117 module declarations resolve to Apache-2.0. |
 
 ## Release gate
