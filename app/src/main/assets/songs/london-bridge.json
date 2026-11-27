@@ -8,23 +8,98 @@
   "tempo": 96,
   "beatsPerBar": 4,
   "notes": [
-    {"midiNote": 67, "startBeat": 0, "duration": 1, "hand": "right"},
-    {"midiNote": 69, "startBeat": 1, "duration": 1, "hand": "right"},
-    {"midiNote": 67, "startBeat": 2, "duration": 1, "hand": "right"},
-    {"midiNote": 65, "startBeat": 3, "duration": 1, "hand": "right"},
-    {"midiNote": 64, "startBeat": 4, "duration": 1, "hand": "right"},
-    {"midiNote": 65, "startBeat": 5, "duration": 1, "hand": "right"},
-    {"midiNote": 67, "startBeat": 6, "duration": 2, "hand": "right"},
-    {"midiNote": 62, "startBeat": 8, "duration": 1, "hand": "right"},
-    {"midiNote": 64, "startBeat": 9, "duration": 1, "hand": "right"},
-    {"midiNote": 65, "startBeat": 10, "duration": 2, "hand": "right"},
-    {"midiNote": 64, "startBeat": 12, "duration": 1, "hand": "right"},
-    {"midiNote": 65, "startBeat": 13, "duration": 1, "hand": "right"},
-    {"midiNote": 67, "startBeat": 14, "duration": 2, "hand": "right"}
+    {
+      "midiNote": 67,
+      "startBeat": 0,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 69,
+      "startBeat": 1,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 2,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 66,
+      "startBeat": 3,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 4,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 66,
+      "startBeat": 5,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 6,
+      "duration": 2,
+      "hand": "right"
+    },
+    {
+      "midiNote": 62,
+      "startBeat": 8,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 9,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 66,
+      "startBeat": 10,
+      "duration": 2,
+      "hand": "right"
+    },
+    {
+      "midiNote": 64,
+      "startBeat": 12,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 65,
+      "startBeat": 13,
+      "duration": 1,
+      "hand": "right"
+    },
+    {
+      "midiNote": 67,
+      "startBeat": 14,
+      "duration": 2,
+      "hand": "right"
+    }
   ],
   "practiceSections": [
-    {"id": "bridge", "title": "پل لندن", "startBeat": 0, "endBeat": 8},
-    {"id": "falling", "title": "بازگشت ملودی", "startBeat": 8, "endBeat": 16}
+    {
+      "id": "bridge",
+      "title": "پل لندن",
+      "startBeat": 0,
+      "endBeat": 8
+    },
+    {
+      "id": "falling",
+      "title": "بازگشت ملودی",
+      "startBeat": 8,
+      "endBeat": 16
+    }
   ],
   "license": {
     "type": "public-domain-traditional",
