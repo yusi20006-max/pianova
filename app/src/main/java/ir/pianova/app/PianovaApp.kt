@@ -80,6 +80,7 @@ import ir.pianova.app.data.persistence.activeLearnerOrNull
 import ir.pianova.app.data.persistence.ProgressRepository
 import ir.pianova.app.domain.progress.LearnerProgressSnapshot
 import ir.pianova.app.feature.songs.SongListScreen
+import ir.pianova.app.feature.songs.FallingNotesScreen
 
 private data class MainTab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -281,13 +282,13 @@ private fun LearnerWorkspace(
 
     LaunchedEffect(route, learner.learnerId) {
         sessionStore.saveDestination(learner.learnerId, route)
-        onPianoVisibilityChanged(route == "practice")
+        onPianoVisibilityChanged(route == "practice" || route.startsWith("falling-notes"))
     }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (route != "practice" && !route.startsWith("lesson/")) {
+            if (route != "practice" && !route.startsWith("lesson/") && !route.startsWith("falling-notes")) {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     mainTabs.forEach { tab ->
                         NavigationBarItem(
@@ -321,7 +322,7 @@ private fun LearnerWorkspace(
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if ((route == "practice" || route.startsWith("lesson/")) && midiDevices.any { it.connected }) {
+                    if ((route == "practice" || route.startsWith("lesson/") || route.startsWith("falling-notes")) && midiDevices.any { it.connected }) {
                         Surface(shape = RoundedCornerShape(50), color = PianovaSage) {
                             Text("MIDI متصل", modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), color = PianovaGreen, style = MaterialTheme.typography.labelSmall)
                         }
@@ -411,7 +412,24 @@ private fun LearnerWorkspace(
                     )
                 }
                 composable("paths") { LearningPathScreen(learner) }
-                composable("library") { LibraryScreen(learner.learnerId) }
+                composable("library") { LibraryScreen(learner.learnerId, onPlaySong = { songId -> navController.navigate("falling-notes/$songId") }) }
+                composable(
+                    route = "falling-notes/{songId}",
+                    arguments = listOf(navArgument("songId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    FallingNotesScreen(
+                        learnerId = learner.learnerId,
+                        songId = backStackEntry.arguments?.getString("songId").orEmpty(),
+                        pianoReady = pianoReady,
+                        pianoRunning = pianoRunning,
+                        onPianoStart = onPianoStart,
+                        onPianoStop = onPianoStop,
+                        onNoteOn = onNoteOn,
+                        onNoteOff = onNoteOff,
+                        pianoInput = pianoInput,
+                        onExit = { navController.popBackStack() }
+                    )
+                }
                 composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
                 composable("progress") { ProgressScreen(learner.learnerId) }
                 composable("settings") {
@@ -606,7 +624,7 @@ private fun LearningScreen(onPractice: () -> Unit) {
 }
 
 @Composable
-private fun LibraryScreen(learnerId: String) {
+private fun LibraryScreen(learnerId: String, onPlaySong: (String) -> Unit) {
     val context = LocalContext.current
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val progressRepository = remember(database) { ProgressRepository(database) }
@@ -615,7 +633,8 @@ private fun LibraryScreen(learnerId: String) {
     PageColumn(scrollable = true) {
         PageTitle("کتابخانه آهنگ‌ها", "قطعات آموزشی ایرانی و بین‌المللی")
         SongListScreen(
-            progressCounts = songProgress.associate { it.songId to it.playCount }
+            progressCounts = songProgress.associate { it.songId to it.playCount },
+            onPlaySong = onPlaySong
         )
     }
 }

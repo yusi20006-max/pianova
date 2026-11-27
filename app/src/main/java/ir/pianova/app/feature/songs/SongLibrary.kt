@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -158,6 +159,7 @@ fun filterSongsByCategory(songs: List<SongDocument>, category: String?): List<So
 @Composable
 fun SongListScreen(
     progressCounts: Map<String, Int>,
+    onPlaySong: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var songs by remember { mutableStateOf<List<SongDocument>>(emptyList()) }
@@ -233,6 +235,9 @@ fun SongListScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Button(onClick = { onPlaySong(song.id) }, modifier = Modifier.fillMaxWidth()) {
+                            Text("شروع تمرین")
+                        }
                         val count = progressCounts[song.id] ?: 0
                         if (count > 0) Text("تمرین‌شده: $count بار", style = MaterialTheme.typography.labelMedium)
                         if (expanded) {
