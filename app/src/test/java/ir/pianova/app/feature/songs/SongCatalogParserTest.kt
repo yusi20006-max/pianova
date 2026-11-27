@@ -82,5 +82,11 @@ class SongCatalogParserTest {
         assertTrue(songs.any { it.category == "international" })
         assertTrue(songs.any { it.category == "practice" })
         assertTrue(songs.all { it.notes.isNotEmpty() && it.practiceSections.isNotEmpty() })
+        assertEquals(
+            songs.count { it.category == "iranian" },
+            filterSongsByCategory(songs, "iranian").size
+        )
+        assertTrue(filterSongsByCategory(songs, "classical").all { it.category == "classical" })
+        assertEquals(songs, filterSongsByCategory(songs, null))
     }
 }
