@@ -18,7 +18,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-data class UsbMidiDeviceStatus(val id: Int, val name: String, val connected: Boolean, val selected: Boolean)
+enum class MidiTransport { USB, BLUETOOTH }
+
+data class UsbMidiDeviceStatus(
+    val id: Int,
+    val name: String,
+    val connected: Boolean,
+    val selected: Boolean,
+    val transport: MidiTransport = MidiTransport.USB,
+    val identity: String = id.toString()
+)
 
 /** Android USB MIDI adapter. MIDI remains optional for touchscreen-only devices. */
 class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInput, AutoCloseable {
@@ -113,7 +122,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                 }
             }
             deviceStatusFlow.value = infos.map { info ->
-                UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections, selectedDeviceId == info.id)
+                UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections, selectedDeviceId == info.id, MidiTransport.USB, stableIdentity(info))
             }
         }
         val selectedIdentity = synchronized(lock) { selectedDeviceIdentity }
