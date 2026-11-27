@@ -72,8 +72,15 @@ class BluetoothMidiInput(
         override fun onDeviceRemoved(info: MidiDeviceInfo) {
             if (info.type != MidiDeviceInfo.TYPE_BLUETOOTH) return
             val current = activeConnection.value
-            if (current?.deviceId == info.id) disconnect()
+            if (current?.deviceId == info.id) {
+                disconnect()
+                handler.postDelayed(reconnectScanRunnable, 1_000L)
+            }
         }
+    }
+
+    private val reconnectScanRunnable = Runnable {
+        if (!closed && selectedAddress != null && activeConnection.value == null) refreshDevices()
     }
 
     private val scanCallback = object : ScanCallback() {
@@ -123,6 +130,10 @@ class BluetoothMidiInput(
         runCatching { scanner?.stopScan(scanCallback) }
         synchronized(lock) { scanActive = false }
         publishStatuses()
+        if (!closed && selectedAddress != null && activeConnection.value == null) {
+            handler.removeCallbacks(reconnectScanRunnable)
+            handler.postDelayed(reconnectScanRunnable, 3_000L)
+        }
     }
 
     private fun onDeviceFound(result: ScanResult) {
@@ -175,6 +186,7 @@ class BluetoothMidiInput(
                     }
                 }
                 publishStatuses()
+                if (activeConnection.value != null) stopScan()
             }, handler)
         }.onFailure {
             synchronized(lock) { if (token == openToken) pendingAddress = null }
@@ -265,6 +277,7 @@ class BluetoothMidiInput(
             disconnectLocked()
             ++openToken
         }
+        handler.removeCallbacks(reconnectScanRunnable)
         stopScan()
         midiManager?.unregisterDeviceCallback(deviceCallback)
         queue.close()
