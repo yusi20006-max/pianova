@@ -164,6 +164,10 @@ private fun FallingNotesSession(
 
     suspend fun saveCompletedRun() {
         if (isSaved || isSaving) return
+        if (selectedNotes.isEmpty()) {
+            feedback = "برای این دست نتی وجود ندارد؛ دست دیگری را انتخاب کن."
+            return
+        }
         isSaving = true
         try {
             val accuracy = FallingNotesEngine.accuracy(correctCount, selectedNotes.size)
@@ -398,7 +402,7 @@ private fun FallingNotesSession(
                     )
                 }
             } else {
-                Text("برای این انتخاب دستی نتی وجود ندارد.", color = Color.White)
+                Text("برای این دست نتی وجود ندارد؛ دست دیگری را انتخاب کن.", color = Color.White)
             }
 
             Row(
@@ -421,12 +425,12 @@ private fun FallingNotesSession(
                         if (isPlaying) {
                             isPlaying = false
                             wantsPlayback = false
-                        } else if (!isFinished && pianoReady) {
+                        } else if (!isFinished && pianoReady && selectedNotes.isNotEmpty()) {
                             wantsPlayback = true
                             if (pianoRunning) isPlaying = true else onPianoStart()
                         }
                     },
-                    enabled = pianoReady && !isFinished,
+                    enabled = pianoReady && !isFinished && selectedNotes.isNotEmpty(),
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (isPlaying) "توقف" else if (pianoRunning) "ادامه" else "شروع تمرین")
