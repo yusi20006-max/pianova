@@ -33,7 +33,7 @@ public:
     bool loadSoundFont(AAssetManager* assets, const char* assetPath);
     bool start();
     void stop();
-    AudioEngineState state() const noexcept { return state_.load(std::memory_order_acquire); }
+    AudioEngineState state() const noexcept { return state_.load(std::memory_order_acquire); }\n    int32_t outputDeviceId() const noexcept;
 
     bool noteOn(int note, float velocity) noexcept;
     bool noteOff(int note) noexcept;
@@ -150,7 +150,7 @@ private:
 
     bool startLocked();
     void applyPendingCommands() noexcept;
-    std::mutex streamMutex_;
+    mutable std::mutex streamMutex_;
     std::atomic<bool> recoveryEnabled_{false};
     std::atomic<float> currentVolume_{1.0f};
 
