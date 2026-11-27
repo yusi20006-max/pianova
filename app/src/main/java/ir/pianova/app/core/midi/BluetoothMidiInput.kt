@@ -198,35 +198,7 @@ class BluetoothMidiInput(
         synchronized(lock) {
             val c = activeConnection.value ?: return
             if (c.deviceId != deviceId) return
-            when (event) {
-                is PianoEvent.NoteOn -> {
-                    val notes = c.heldByChannel.getOrPut(channel) { mutableSetOf() }
-                    if (notes.add(event.midiNote)) {
-                        val count = heldNoteCounts[event.midiNote] ?: 0
-                        heldNoteCounts[event.midiNote] = count + 1
-                        if (count == 0) queue.trySend(event)
-                    } else queue.trySend(event)
-                }
-                is PianoEvent.NoteOff -> {
-                    val notes = c.heldByChannel[channel] ?: return
-                    if (notes.remove(event.midiNote)) {
-                        if (notes.isEmpty()) c.heldByChannel.remove(channel)
-                        val count = (heldNoteCounts[event.midiNote] ?: 1) - 1
-                        if (count <= 0) {
-                            heldNoteCounts.remove(event.midiNote)
-                            queue.trySend(event)
-                        } else heldNoteCounts[event.midiNote] = count
-                    }
-                }
-                is PianoEvent.Sustain -> {
-                    val key = deviceId to channel
-                    val before = sustainChannels.isNotEmpty()
-                    if (event.enabled) { c.sustainChannels += channel; sustainChannels += key }
-                    else { c.sustainChannels -= channel; sustainChannels -= key }
-                    val after = sustainChannels.isNotEmpty()
-                    if (before != after) queue.trySend(PianoEvent.Sustain(after, event.timestampMs))
-                }
-            }
+            c.eventTracker.accept(channel, event).forEach { queue.trySend(it) }
         }
     }
 
@@ -237,18 +209,7 @@ class BluetoothMidiInput(
         activeConnection.value = null
         pendingAddress = null
         ++openToken
-        c.heldByChannel.values.flatten().forEach { note ->
-            val count = (heldNoteCounts[note] ?: 1) - 1
-            if (count <= 0) {
-                heldNoteCounts.remove(note)
-                queue.trySend(PianoEvent.NoteOff(note, nowMs()))
-            } else heldNoteCounts[note] = count
-        }
-        c.heldByChannel.clear()
-        val sustainWasOn = sustainChannels.isNotEmpty()
-        c.sustainChannels.forEach { channel -> sustainChannels.remove(c.deviceId to channel) }
-        c.sustainChannels.clear()
-        if (sustainWasOn && sustainChannels.isEmpty()) queue.trySend(PianoEvent.Sustain(false, nowMs()))
+        c.eventTracker.releaseAll(nowMs()).forEach { queue.trySend(it) }
         c.ports.forEach { runCatching { it.close() } }
         runCatching { c.device.close() }
     }
