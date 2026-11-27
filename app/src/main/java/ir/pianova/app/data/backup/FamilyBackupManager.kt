@@ -25,7 +25,8 @@ data class FamilyBackupPreferences(
     val family: Map<String, String> = emptyMap(),
     val legacy: Map<String, String> = emptyMap(),
     val lessonMastery: Map<String, String> = emptyMap(),
-    val legacyMastery: Map<String, String> = emptyMap()
+    val legacyMastery: Map<String, String> = emptyMap(),
+    val hapticEnabled: Boolean? = null
 )
 
 @Serializable
@@ -415,7 +416,9 @@ object FamilyBackupManager {
             "pianova_lesson_mastery", Context.MODE_PRIVATE
         ).all.filterKeys { it == "skill_attempts" || it == "learner_scope_migration_decided" }
             .mapValues { (_, value) -> encodePreference(value) }
-        return FamilyBackupPreferences(sessionValues, familyValues, legacyValues, mastery, unassignedMastery)
+        val hapticEnabled = app.getSharedPreferences("pianova_settings", Context.MODE_PRIVATE)
+            .getBoolean("haptic_enabled", true)
+        return FamilyBackupPreferences(sessionValues, familyValues, legacyValues, mastery, unassignedMastery, hapticEnabled)
     }
 
     private fun replacePreferences(
@@ -432,6 +435,12 @@ object FamilyBackupManager {
         check(family.edit().clear().commit()) { "Could not restore family preferences" }
         check(legacy.edit().clear().commit()) { "Could not restore legacy preferences" }
         check(unassignedMastery.edit().clear().commit()) { "Could not clear unassigned mastery data" }
+        snapshot.hapticEnabled?.let { enabled ->
+            check(app.getSharedPreferences("pianova_settings", Context.MODE_PRIVATE)
+                .edit().putBoolean("haptic_enabled", enabled).commit()) {
+                "Could not restore haptic preference"
+            }
+        }
         snapshot.learnerSession.forEach { (key, value) -> putPreference(session, key, value) }
         snapshot.family.forEach { (key, value) -> putPreference(family, key, value) }
         snapshot.legacy.forEach { (key, value) -> putPreference(legacy, key, value) }
