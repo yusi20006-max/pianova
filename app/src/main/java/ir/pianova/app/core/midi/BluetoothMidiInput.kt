@@ -47,6 +47,7 @@ class BluetoothMidiInput(
     private val lock = Any()
     private val discovered = linkedMapOf<String, BluetoothDevice>()
     private var selectedAddress: String? = null
+    private var pendingAddress: String? = null
     private var scanActive = false
     private var closed = false
     private var openToken = 0L
@@ -92,10 +93,12 @@ class BluetoothMidiInput(
 
     fun selectDeviceIdentity(address: String?) {
         synchronized(lock) {
-            selectedAddress = address
-            if (activeConnection.value?.address != address) {
+            if (selectedAddress != address) {
+                pendingAddress = null
+                ++openToken
                 disconnectLocked()
             }
+            selectedAddress = address
         }
         if (address != null) discovered[address]?.let(::connect)
         publishStatuses()
@@ -135,13 +138,19 @@ class BluetoothMidiInput(
         val manager = midiManager ?: return
         val address = device.address ?: return
         val token = synchronized(lock) {
-            if (closed || activeConnection.value != null || address != selectedAddress) return
+            if (closed || activeConnection.value != null || pendingAddress != null || address != selectedAddress) return
+            pendingAddress = address
             ++openToken
         }
         runCatching {
             manager.openBluetoothDevice(device, { opened ->
-                if (opened == null) return@openBluetoothDevice
+                if (opened == null) {
+                    synchronized(lock) { if (token == openToken) pendingAddress = null }
+                    publishStatuses()
+                    return@openBluetoothDevice
+                }
                 synchronized(lock) {
+                    if (token == openToken) pendingAddress = null
                     if (closed || token != openToken || address != selectedAddress || activeConnection.value != null) {
                         opened.close()
                         return@synchronized
@@ -167,7 +176,10 @@ class BluetoothMidiInput(
                 }
                 publishStatuses()
             }, handler)
-        }.onFailure { publishStatuses() }
+        }.onFailure {
+            synchronized(lock) { if (token == openToken) pendingAddress = null }
+            publishStatuses()
+        }
     }
 
     private fun handleEvent(deviceId: Int, channel: Int, event: PianoEvent) {
@@ -211,6 +223,7 @@ class BluetoothMidiInput(
     private fun disconnectLocked() {
         val c = activeConnection.value ?: return
         activeConnection.value = null
+        pendingAddress = null
         ++openToken
         c.heldByChannel.values.flatten().forEach { note ->
             val count = (heldNoteCounts[note] ?: 1) - 1
