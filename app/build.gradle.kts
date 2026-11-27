@@ -15,13 +15,23 @@ plugins {
 // Download Dastkhat font files (SIL OFL) into res/font if missing.
 // Source: https://github.com/dastyar-io/dastkhat-font (FaNum, square dots).
 // ---------------------------------------------------------------------------
+val dastkhatRevision = "19f4a12b56a89567b07e02500f0e4aed670e3644"
 val dastkhatFonts = mapOf(
-    "dastkhat_regular.ttf" to
-        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/FaNum/DastkhatFaNum/TTF/DastkhatFaNum-Regular.ttf",
-    "dastkhat_medium.ttf" to
-        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/FaNum/DastkhatFaNum/TTF/DastkhatFaNum-Medium.ttf",
-    "dastkhat_bold.ttf" to
-        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/FaNum/DastkhatFaNum/TTF/DastkhatFaNum-Bold.ttf"
+    "dastkhat_regular.ttf" to arrayOf(
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/$dastkhatRevision/fonts/FaNum/DastkhatFaNum/TTF/DastkhatFaNum-Regular.ttf",
+        "216996",
+        "4b157d43cdefcb3cd86358ebb07958a35e4ff147"
+    ),
+    "dastkhat_medium.ttf" to arrayOf(
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/$dastkhatRevision/fonts/FaNum/DastkhatFaNum/TTF/DastkhatFaNum-Medium.ttf",
+        "217340",
+        "6ff32f71d84577e74a5349352d840f8b53fe451f"
+    ),
+    "dastkhat_bold.ttf" to arrayOf(
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/$dastkhatRevision/fonts/FaNum/DastkhatFaNum/TTF/DastkhatFaNum-Bold.ttf",
+        "219424",
+        "f0e92f5afedb5298a024e1f6aadc532bdbc795c5"
+    )
 )
 
 val fontDir = layout.projectDirectory.dir("src/main/res/font")
@@ -32,16 +42,25 @@ tasks.register("downloadDastkhatFonts") {
     outputs.dir(fontDir)
     doLast {
         fontDir.asFile.mkdirs()
-        dastkhatFonts.forEach { (name, url) ->
+        dastkhatFonts.forEach { (name, metadata) ->
+            val (url, expectedSize, expectedSha) = metadata
             val dest = fontDir.file(name).asFile
-            if (!dest.exists() || dest.length() < 1000) {
-                logger.lifecycle("Downloading $name …")
-                URI(url).toURL().openStream().use { input ->
-                    dest.outputStream().use { output -> input.copyTo(output) }
+            val existing = if (dest.isFile) dest.readBytes() else null
+            val existingIsValid = existing != null &&
+                existing.size.toString() == expectedSize &&
+                gitBlobSha1(existing) == expectedSha
+            if (!existingIsValid) {
+                logger.lifecycle("Downloading pinned Dastkhat font: $name")
+                val bytes = URI(url).toURL().openStream().use { it.readBytes() }
+                check(bytes.size.toString() == expectedSize) {
+                    "Unexpected size for $name: ${bytes.size}"
                 }
-                logger.lifecycle("  → ${dest.length()} bytes")
+                check(gitBlobSha1(bytes) == expectedSha) {
+                    "Git blob SHA-1 verification failed for $name"
+                }
+                dest.writeBytes(bytes)
             } else {
-                logger.lifecycle("Skip $name (already present, ${dest.length()} bytes)")
+                logger.lifecycle("Verified cached Dastkhat font: $name")
             }
         }
     }
