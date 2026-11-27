@@ -105,7 +105,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
     private fun disconnect(deviceId: Int) {
         synchronized(lock) {
             val c = connections.remove(deviceId) ?: return
-            c.heldNotesByChannel.values.flatten().toSet().forEach { note ->
+            c.heldNotesByChannel.values.flatten().forEach { note ->
                 val n = (aggregateHeldNotes[note] ?: 1) - 1
                 if (n <= 0) { aggregateHeldNotes.remove(note); enqueue(PianoEvent.NoteOff(note, nowMs())) }
                 else aggregateHeldNotes[note] = n
