@@ -14,7 +14,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
+data class UsbMidiDeviceStatus(val id: Int, val name: String, val connected: Boolean)
 
 /** Android USB MIDI adapter. MIDI remains optional for touchscreen-only devices. */
 class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInput, AutoCloseable {
@@ -30,6 +34,8 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
     private val aggregateHeldNotes = mutableMapOf<Int, Int>()
     private val activeSustainChannels = mutableSetOf<Pair<Int, Int>>()
     private var closed = false
+    private val deviceStatusFlow = MutableStateFlow<List<UsbMidiDeviceStatus>>(emptyList())
+    val deviceStatuses: StateFlow<List<UsbMidiDeviceStatus>> = deviceStatusFlow
     private data class Connection(
         val device: MidiDevice,
         val ports: MutableList<MidiOutputPort> = mutableListOf(),
@@ -47,9 +53,19 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
         require(extraBufferCapacity > 0) { "extraBufferCapacity must be positive" }
         eventScope.launch { for (event in eventQueue) eventsFlow.emit(event) }
         manager?.registerDeviceCallback(callback, mainHandler)
-        manager?.devices?.forEach(::connectIfSupported)
+        refreshDevices()
     }
     private fun enqueue(event: PianoEvent) { eventQueue.trySend(event) }
+
+    fun refreshDevices() {
+        val infos = manager?.devices?.filter { it.type == MidiDeviceInfo.TYPE_USB }.orEmpty()
+        synchronized(lock) {
+            deviceStatusFlow.value = infos.map { info ->
+                UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections)
+            }
+        }
+        infos.forEach(::connectIfSupported)
+    }
     private fun connectIfSupported(info: MidiDeviceInfo) {
         val midiManager = manager ?: return
         if (info.type != MidiDeviceInfo.TYPE_USB || synchronized(lock) { closed || info.id in connections || !pendingDeviceIds.add(info.id) }) return
@@ -67,6 +83,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
                     if (runCatching { port.connect(receiver) }.isSuccess) connection.ports += port else runCatching { port.close() }
                 }
                 if (connection.ports.isEmpty()) { connections.remove(info.id); device.close() }
+                refreshDeviceStatusLocked()
             }
         }, mainHandler) }.onFailure { synchronized(lock) { pendingDeviceIds -= info.id } }
     }
@@ -116,6 +133,7 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
             c.sustainChannels.clear()
             if (before && activeSustainChannels.isEmpty()) enqueue(PianoEvent.Sustain(false, nowMs()))
             c.ports.forEach { runCatching { it.close() } }; runCatching { c.device.close() }
+            refreshDeviceStatusLocked()
         }
     }
     override fun close() {
@@ -126,6 +144,12 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
             connections.keys.toList().forEach(::disconnect)
         }
         eventQueue.close()
+    }
+    private fun refreshDeviceStatusLocked() {
+        val infos = manager?.devices?.filter { it.type == MidiDeviceInfo.TYPE_USB }.orEmpty()
+        deviceStatusFlow.value = infos.map { info ->
+            UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections)
+        }
     }
     private fun nowMs() = System.nanoTime() / 1_000_000L
 }
