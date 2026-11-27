@@ -44,7 +44,8 @@ class AcousticPianoInput(context: Context) : PianoInput, AutoCloseable {
     private val running = AtomicBoolean(false)
     private var captureJob: Job? = null
     @Volatile private var audioRecord: AudioRecord? = null
-    private val noteLock = Any()\n    private val heldNotes = mutableSetOf<Int>()
+    private val noteLock = Any()
+    private val heldNotes = mutableSetOf<Int>()
     private val stableFrames = mutableMapOf<Int, Int>()
     private val missingFrames = mutableMapOf<Int, Int>()
     private val sampleRate = 22_050
