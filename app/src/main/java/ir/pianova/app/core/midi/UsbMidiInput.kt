@@ -72,16 +72,25 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
     private val callback = object : MidiManager.DeviceCallback() {
         override fun onDeviceAdded(info: MidiDeviceInfo) {
             synchronized(lock) {
-                if (selectedDeviceIdentity != null) {
-                    selectedDeviceId = if (stableIdentity(info) == selectedDeviceIdentity) info.id else null
+                if (selectedDeviceIdentity != null &&
+                    (selectedDeviceId == null || manager?.devices?.none { it.id == selectedDeviceId } == true) &&
+                    stableIdentity(info) == selectedDeviceIdentity
+                ) {
+                    selectedDeviceId = info.id
                 }
             }
             connectIfSupported(info)
             refreshDevices()
         }
         override fun onDeviceRemoved(info: MidiDeviceInfo) {
-            synchronized(lock) { pendingDeviceIds.remove(info.id) }
+            synchronized(lock) {
+                pendingDeviceIds.remove(info.id)
+                if (selectedDeviceId == info.id) selectedDeviceId = null
+            }
             disconnect(info.id)
+            // Removal can happen before an open completes, when disconnect has no
+            // active Connection to remove. Always refresh the visible device list.
+            refreshDevices()
         }
     }
     init {
@@ -96,7 +105,12 @@ class UsbMidiInput(context: Context, extraBufferCapacity: Int = 128) : PianoInpu
         val infos = manager?.devices?.filter { it.type == MidiDeviceInfo.TYPE_USB }.orEmpty()
         synchronized(lock) {
             selectedDeviceIdentity?.let { identity ->
-                selectedDeviceId = infos.firstOrNull { stableIdentity(it) == identity }?.id
+                val currentSelectionIsAttached = selectedDeviceId?.let { id ->
+                    infos.any { it.id == id && stableIdentity(it) == identity }
+                } == true
+                if (!currentSelectionIsAttached) {
+                    selectedDeviceId = infos.firstOrNull { stableIdentity(it) == identity }?.id
+                }
             }
             deviceStatusFlow.value = infos.map { info ->
                 UsbMidiDeviceStatus(info.id, info.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "USB MIDI", info.id in connections, selectedDeviceId == info.id)
