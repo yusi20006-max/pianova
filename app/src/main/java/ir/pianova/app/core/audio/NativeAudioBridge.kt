@@ -13,7 +13,7 @@ internal object NativeAudioBridge {
 
     external fun nativeCreate(assets: AssetManager): Long
     external fun nativeStart(handle: Long): Boolean
-    external fun nativeGetState(handle: Long): Int
+    external fun nativeGetState(handle: Long): Int\n    external fun nativeGetOutputDeviceId(handle: Long): Int
     external fun nativeStop(handle: Long)
     external fun nativeNoteOn(handle: Long, note: Int, velocity: Float): Boolean
     external fun nativeNoteOff(handle: Long, note: Int): Boolean
