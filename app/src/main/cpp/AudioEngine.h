@@ -14,6 +14,13 @@ struct tsf;
 
 namespace pianova {
 
+enum class AudioEngineState : int32_t {
+    Stopped = 0,
+    Running = 1,
+    Recovering = 2,
+    RecoveryFailed = 3
+};
+
 class AudioEngine final : public oboe::AudioStreamDataCallback,
                           public oboe::AudioStreamErrorCallback {
 public:
@@ -26,6 +33,7 @@ public:
     bool loadSoundFont(AAssetManager* assets, const char* assetPath);
     bool start();
     void stop();
+    AudioEngineState state() const noexcept { return state_.load(std::memory_order_acquire); }
 
     bool noteOn(int note, float velocity) noexcept;
     bool noteOff(int note) noexcept;
@@ -151,6 +159,7 @@ private:
     std::unique_ptr<tsf, void (*)(tsf*)> synth_{nullptr, nullptr};
     std::shared_ptr<oboe::AudioStream> stream_;
     std::atomic<bool> started_{false};
+    std::atomic<AudioEngineState> state_{AudioEngineState::Stopped};
 };
 
 } // namespace pianova
