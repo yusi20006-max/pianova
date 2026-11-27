@@ -65,7 +65,7 @@ fun AboutDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "یادگیری پیانو به صورت آفلاین و تعاملی",
+                    text = "پیانوا برای همراهی با نورا و نیکان در مسیر یادگیری پیانو ساخته می‌شود؛ تجربه‌ای آفلاین، تعاملی و متناسب با هر هنرجو.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                     textAlign = TextAlign.Center
