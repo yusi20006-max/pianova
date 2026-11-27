@@ -32,6 +32,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.FilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -62,6 +65,7 @@ import ir.pianova.app.core.designsystem.PianovaMuted
 import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.core.midi.UsbMidiDeviceStatus
 import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.data.persistence.RoomFamilyRepository
 import ir.pianova.app.domain.family.Family
@@ -99,6 +103,9 @@ fun PianovaApp(
     onVolume: (Float) -> Unit,
     onPianoVisibilityChanged: (Boolean) -> Unit,
     pianoInput: PianoInput,
+    midiDevices: List<UsbMidiDeviceStatus>,
+    onMidiRefresh: () -> Unit,
+    onMidiDeviceSelected: (Int?) -> Unit,
     onPlayReferenceNotes: (List<Int>, Long) -> Unit
 ) {
     val context = LocalContext.current
@@ -219,6 +226,9 @@ fun PianovaApp(
                     onNoteOff = onNoteOff,
                     onSustain = onSustain,
                     onVolume = onVolume,
+                    midiDevices = midiDevices,
+                    onMidiRefresh = onMidiRefresh,
+                    onMidiDeviceSelected = onMidiDeviceSelected,
                     onPianoVisibilityChanged = onPianoVisibilityChanged,
                     pianoInput = pianoInput,
                     onPlayReferenceNotes = onPlayReferenceNotes,
@@ -306,7 +316,14 @@ private fun LearnerWorkspace(
                         Text(audienceLabel(learner.audience), color = PianovaMuted, style = MaterialTheme.typography.labelSmall)
                     }
                 }
-                TextButton(onClick = onChangeLearner) { Text("تغییر هنرجو") }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (midiDevices.any { it.connected }) {
+                        Surface(shape = RoundedCornerShape(50), color = PianovaSage) {
+                            Text("MIDI متصل", modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), color = PianovaGreen, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                    TextButton(onClick = onChangeLearner) { Text("تغییر هنرجو") }
+                }
             }
             NavHost(
                 navController = navController,
@@ -396,7 +413,19 @@ private fun LearnerWorkspace(
                 composable("settings") {
                     SettingsScreen(
                         onAboutClick = { showAboutDialog = true },
-                        onBackupClick = { navController.navigate("family-backup") }
+                        onBackupClick = { navController.navigate("family-backup") },
+                        midiDevices = midiDevices,
+                        onMidiRefresh = onMidiRefresh,
+                        onMidiDeviceSelected = onMidiDeviceSelected,
+                        initialVolume = sessionStore.volumeFor(learner.learnerId),
+                        initialLabelMode = sessionStore.labelModeFor(learner.learnerId),
+                        initialFirstMidi = sessionStore.firstMidiFor(learner.learnerId),
+                        onPracticePreferencesChanged = { volume, labelMode, firstMidi ->
+                            sessionStore.saveVolume(learner.learnerId, volume)
+                            sessionStore.saveLabelMode(learner.learnerId, labelMode)
+                            sessionStore.saveFirstMidi(learner.learnerId, firstMidi)
+                            onVolume(volume)
+                        }
                     )
                 }
                 composable("family-backup") {
@@ -671,12 +700,74 @@ private fun ProgressScreen(learnerId: String) {
 }
 
 @Composable
-private fun SettingsScreen(onAboutClick: () -> Unit, onBackupClick: () -> Unit) {
-    PageColumn {
+private fun SettingsScreen(
+    onAboutClick: () -> Unit,
+    onBackupClick: () -> Unit,
+    midiDevices: List<UsbMidiDeviceStatus>,
+    onMidiRefresh: () -> Unit,
+    onMidiDeviceSelected: (Int?) -> Unit,
+    initialVolume: Float,
+    initialLabelMode: Int,
+    initialFirstMidi: Int,
+    onPracticePreferencesChanged: (Float, Int, Int) -> Unit
+) {
+    val context = LocalContext.current
+    val preferences = remember(context) { context.getSharedPreferences("pianova_settings", 0) }
+    var volume by remember { mutableStateOf(initialVolume.coerceIn(0.05f, 1f)) }
+    var labelMode by remember { mutableStateOf(initialLabelMode.coerceIn(0, 2)) }
+    var firstMidi by remember { mutableStateOf(initialFirstMidi.coerceIn(21, 84)) }
+    var hapticEnabled by remember { mutableStateOf(preferences.getBoolean("haptic_enabled", true)) }
+    PageColumn(scrollable = true) {
         PageTitle("تنظیمات", "تنظیم تجربه یادگیری و صدای پیانو")
-        StatusCard("صدای پیانو و خروجی صوتی", "آماده")
-        StatusCard("زبان و شیوه نمایش نت‌ها", "آماده")
-        StatusCard("تم و نمایش", "آماده")
+        Text("صدا", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
+        Text("بلندی خروجی", color = PianovaMuted)
+        Slider(value = volume, onValueChange = { volume = it }, valueRange = 0.05f..1f, onValueChangeFinished = {
+            onPracticePreferencesChanged(volume, labelMode, firstMidi)
+        })
+        Text("صدای فعلی: \${(volume * 100).toInt()}٪", color = PianovaGreen)
+        StatusCard("ساز", "Classic Grand · صدای فعلی")
+        Text("کلاویه و نمایش", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("فارسی", "Latin", "بدون نام").forEachIndexed { index, label ->
+                FilterChip(
+                    selected = labelMode == index,
+                    onClick = { labelMode = index; onPracticePreferencesChanged(volume, labelMode, firstMidi) },
+                    label = { Text(label) }
+                )
+            }
+        }
+        Text("محدوده کلاویه: \${firstMidi} تا \${(firstMidi + 23).coerceAtMost(108)} MIDI", color = PianovaMuted)
+        Slider(value = firstMidi.toFloat(), onValueChange = { firstMidi = it.toInt() }, valueRange = 21f..84f, steps = 62, onValueChangeFinished = {
+            onPracticePreferencesChanged(volume, labelMode, firstMidi)
+        })
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("بازخورد لرزشی لمس کلاویه", color = PianovaInk)
+            Switch(checked = hapticEnabled, onCheckedChange = {
+                hapticEnabled = it
+                preferences.edit().putBoolean("haptic_enabled", it).apply()
+            })
+        }
+        Text("MIDI و اتصال پیانو", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
+        Text(if (midiDevices.any { it.connected }) "وضعیت: متصل" else "وضعیت: قطع", color = if (midiDevices.any { it.connected }) PianovaGreen else PianovaMuted)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = { onMidiDeviceSelected(null) }) { Text("اتصال خودکار") }
+            TextButton(onClick = onMidiRefresh) { Text("جستجوی دوباره") }
+        }
+        if (midiDevices.isEmpty()) {
+            EmptyState("دستگاه MIDI پیدا نشد", "پیانو یا کیبورد دیجیتال را با USB OTG وصل کنید و جستجوی دوباره را بزنید.")
+        } else {
+            midiDevices.forEach { device ->
+                StatusCard(
+                    device.name,
+                    when {
+                        device.connected -> "متصل"
+                        device.selected -> "انتخاب‌شده · در انتظار اتصال"
+                        else -> "قطع"
+                    },
+                    onClick = { onMidiDeviceSelected(device.id) }
+                )
+            }
+        }
         TextButton(onClick = onAboutClick) { Text("درباره Pianova و نسخه نصب‌شده") }
         StatusCard("پشتیبان‌گیری و بازیابی خانواده", "آماده", onClick = onBackupClick)
     }
