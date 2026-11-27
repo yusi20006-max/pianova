@@ -43,12 +43,14 @@ class MidiByteParserTest {
     }
     @Test fun samePitchOnDifferentChannelsProducesDistinctEvents() {
         val out = mutableListOf<Pair<Int, PianoEvent>>()
-        MidiByteParser(emit = { ch, ev -> out += ch to ev }).feed(byteArrayOf(0x90.toByte(), 60, 90, 0x91.toByte(), 60, 80, 0x80.toByte(), 60, 0x81.toByte(), 60))
+        MidiByteParser(clock = { 0 }, emit = { ch, ev -> out += ch to ev }).feed(
+            byteArrayOf(0x90.toByte(), 60, 90, 0x91.toByte(), 60, 80, 0x80.toByte(), 60, 0, 0x81.toByte(), 60, 0)
+        )
         assertEquals(listOf(0 to PianoEvent.NoteOn(60, 90 / 127f, 0), 1 to PianoEvent.NoteOn(60, 80 / 127f, 0), 0 to PianoEvent.NoteOff(60, 0), 1 to PianoEvent.NoteOff(60, 0)), out)
     }
     @Test fun sustainEventsFromDifferentChannelsRemainDistinct() {
         val out = mutableListOf<Pair<Int, PianoEvent>>()
-        MidiByteParser(emit = { ch, ev -> out += ch to ev }).feed(byteArrayOf(0xB0.toByte(), 64, 127, 0xB1.toByte(), 64, 127, 0xB0.toByte(), 64, 0, 0xB1.toByte(), 64, 0))
+        MidiByteParser(clock = { 0 }, emit = { ch, ev -> out += ch to ev }).feed(byteArrayOf(0xB0.toByte(), 64, 127, 0xB1.toByte(), 64, 127, 0xB0.toByte(), 64, 0, 0xB1.toByte(), 64, 0))
         assertEquals(listOf(0 to PianoEvent.Sustain(true, 0), 1 to PianoEvent.Sustain(true, 0), 0 to PianoEvent.Sustain(false, 0), 1 to PianoEvent.Sustain(false, 0)), out)
     }
 }
