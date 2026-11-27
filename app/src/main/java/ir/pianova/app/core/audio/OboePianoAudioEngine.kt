@@ -3,6 +3,23 @@ package ir.pianova.app.core.audio
 import android.content.Context
 import java.util.concurrent.atomic.AtomicLong
 
+enum class AudioEngineState {
+    STOPPED,
+    RUNNING,
+    RECOVERING,
+    RECOVERY_FAILED;
+
+    companion object {
+        fun fromNative(value: Int): AudioEngineState = when (value) {
+            0 -> STOPPED
+            1 -> RUNNING
+            2 -> RECOVERING
+            3 -> RECOVERY_FAILED
+            else -> RECOVERY_FAILED
+        }
+    }
+}
+
 /**
  * Oboe-backed implementation of [PianoAudioEngine].
  *
@@ -25,6 +42,13 @@ class OboePianoAudioEngine(context: Context) : PianoAudioEngine {
     override fun start(): Boolean {
         val nativeHandle = handle.get()
         return nativeHandle != 0L && NativeAudioBridge.nativeStart(nativeHandle)
+    }
+
+    @Synchronized
+    fun state(): AudioEngineState {
+        val nativeHandle = handle.get()
+        return if (nativeHandle == 0L) AudioEngineState.RECOVERY_FAILED
+        else AudioEngineState.fromNative(NativeAudioBridge.nativeGetState(nativeHandle))
     }
 
     @Synchronized

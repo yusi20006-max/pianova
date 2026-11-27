@@ -215,10 +215,10 @@ fun PianoScreen(
                     }
                     Button(
                         onClick = if (running) onStop else onStart,
-                        enabled = ready,
+                        enabled = ready && !status.contains("در حال بازیابی"),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 5.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF164E63))
-                    ) { Text(if (running) "توقف صدا" else "شروع صدا", fontSize = 11.sp) }
+                    ) { Text(if (running) "توقف صدا" else if (status.contains("تلاش دوباره")) "تلاش دوباره" else "شروع صدا", fontSize = 11.sp) }
                 }
             }
 
