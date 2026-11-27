@@ -36,6 +36,48 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Generate release runtime dependency license inventory
+        run: timeout 8m gradle --no-daemon --console=plain :app:generateLicenseReport --stacktrace
+
+      - name: Print dependency license inventory summary
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("app/build/reports/dependency-license/licenses.json")
+          data = json.loads(report.read_text(encoding="utf-8"))
+          dependencies = data.get("dependencies", [])
+          unknown = []
+          print(f"RELEASE_RUNTIME_DEPENDENCY_COUNT={len(dependencies)}")
+          for item in dependencies:
+              licenses = item.get("moduleLicenses") or []
+              if not licenses:
+                  unknown.append(item)
+                  labels = ["UNKNOWN/NEEDS REVIEW"]
+              else:
+                  labels = [
+                      f"{license.get('moduleLicense', 'UNKNOWN')} ({license.get('moduleLicenseUrl', 'no license URL')})"
+                      for license in licenses
+                  ]
+              print(
+                  "LICENSE_AUDIT_ITEM="
+                  f"{item.get('moduleName', 'UNKNOWN')}:"
+                  f"{item.get('moduleVersion', 'UNKNOWN')} | "
+                  + "; ".join(labels)
+              )
+          print(f"UNKNOWN_LICENSE_COUNT={len(unknown)}")
+          PY
+
+      - name: Upload release runtime license inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: pianova-release-license-inventory-${{ github.run_number }}
+          path: app/build/reports/dependency-license/
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Configure full test failure diagnostics
         shell: bash
         run: |
