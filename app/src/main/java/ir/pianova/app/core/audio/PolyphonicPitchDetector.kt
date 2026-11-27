@@ -148,6 +148,5 @@ class PolyphonicPitchDetector(
 
     companion object {
         fun midiToFrequency(note: Int): Double = 440.0 * 2.0.pow((note - 69) / 12.0)
-        private fun Double.pow(exponent: Double): Double = kotlin.math.pow(this, exponent)
     }
 }
