@@ -3,6 +3,8 @@ package ir.pianova.app
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,23 +16,37 @@ import ir.pianova.app.core.designsystem.PianovaTheme
 import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.core.midi.MergedPianoInput
 import ir.pianova.app.core.midi.UsbMidiInput
+import ir.pianova.app.core.midi.BluetoothMidiInput
+import ir.pianova.app.core.midi.UsbMidiDeviceStatus
+import ir.pianova.app.core.midi.MidiTransport
 import ir.pianova.app.core.midi.VirtualKeyboardInput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import android.Manifest
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import android.content.Intent
+import android.provider.Settings
+import android.content.pm.PackageManager
+import android.os.Build
 
 class MainActivity : ComponentActivity() {
     private var audioEngine: OboePianoAudioEngine? = null
     private val virtualKeyboardInput = VirtualKeyboardInput()
     private lateinit var usbMidiInput: UsbMidiInput
+    private lateinit var bluetoothMidiInput: BluetoothMidiInput
+    private var bluetoothPermissionLauncher: ActivityResultLauncher<Array<String>>? = null
     private lateinit var mergedPianoInput: MergedPianoInput
     private var engineLoading = false
+    private var audioOutputRouteStatus by mutableStateOf("مسیر خروجی پیش‌فرض سیستم")
     private var engineStatus by mutableStateOf("در حال آماده‌سازی بانک صدای پیانو…")
     private var engineReady by mutableStateOf(false)
     private var engineRunning by mutableStateOf(false)
@@ -49,10 +65,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         previousOrientation = requestedOrientation
         usbMidiInput = UsbMidiInput(applicationContext)
+        bluetoothMidiInput = BluetoothMidiInput(applicationContext)
+        bluetoothPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            if (result.values.all { it }) bluetoothMidiInput.refreshDevices()
+        }
         val settingsPreferences = getSharedPreferences("pianova_settings", MODE_PRIVATE)
         val preferredMidiIdentity = settingsPreferences.getString("midi_selected_identity", null)
         if (!preferredMidiIdentity.isNullOrBlank()) usbMidiInput.selectDeviceIdentity(preferredMidiIdentity)
-        mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput), lifecycleScope)
+        val preferredBluetoothIdentity = settingsPreferences.getString("bluetooth_midi_selected_identity", null)
+        if (!preferredBluetoothIdentity.isNullOrBlank()) bluetoothMidiInput.selectDeviceIdentity(preferredBluetoothIdentity)
+        mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput, bluetoothMidiInput), lifecycleScope)
 
         // The UI emits source-independent events. Only this collector knows
         // about the concrete audio engine, keeping input and playback decoupled.
@@ -69,12 +91,14 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val midiDevices by usbMidiInput.deviceStatuses.collectAsState()
+            val midiDevices by combine(usbMidiInput.deviceStatuses, bluetoothMidiInput.deviceStatuses) { usb, bluetooth -> usb + bluetooth }.collectAsState(initial = emptyList())
             PianovaTheme {
                 PianovaApp(
                     pianoStatus = engineStatus,
                     pianoReady = engineReady,
                     pianoRunning = engineRunning,
+                    audioOutputRouteStatus = audioOutputRouteStatus,
+                    onBluetoothAudioSettings = ::openBluetoothAudioSettings,
                     onPianoStart = ::startAudioEngine,
                     onPianoStop = ::stopAudioEngine,
                     onNoteOn = { note, velocity -> virtualKeyboardInput.noteOn(note, velocity) },
@@ -82,11 +106,27 @@ class MainActivity : ComponentActivity() {
                     onSustain = { enabled -> virtualKeyboardInput.sustain(enabled) },
                     onVolume = { volume -> outputVolume = volume; audioEngine?.setVolume(volume) },
                     midiDevices = midiDevices,
-                    onMidiRefresh = usbMidiInput::refreshDevices,
-                    onMidiDeviceSelected = { deviceId ->
-                        val identity = usbMidiInput.selectedDeviceIdentity(deviceId)
-                        settingsPreferences.edit().putString("midi_selected_identity", identity).apply()
-                        usbMidiInput.selectDevice(deviceId)
+                    onMidiRefresh = { usbMidiInput.refreshDevices(); requestBluetoothMidiScan() },
+                    onMidiDeviceSelected = { device ->
+                        when (device?.transport) {
+                            MidiTransport.BLUETOOTH -> {
+                                settingsPreferences.edit().putString("bluetooth_midi_selected_identity", device.identity).remove("midi_selected_identity").apply()
+                                usbMidiInput.selectDevice(null)
+                                bluetoothMidiInput.selectDeviceIdentity(device.identity)
+                                requestBluetoothMidiScan()
+                            }
+                            MidiTransport.USB -> {
+                                val identity = usbMidiInput.selectedDeviceIdentity(device.id)
+                                settingsPreferences.edit().putString("midi_selected_identity", identity).remove("bluetooth_midi_selected_identity").apply()
+                                bluetoothMidiInput.selectDeviceIdentity(null)
+                                usbMidiInput.selectDevice(device.id)
+                            }
+                            null -> {
+                                settingsPreferences.edit().remove("midi_selected_identity").remove("bluetooth_midi_selected_identity").apply()
+                                usbMidiInput.selectDevice(null)
+                                bluetoothMidiInput.selectDeviceIdentity(null)
+                            }
+                        }
                     },
                     pianoInput = mergedPianoInput,
                     onPlayReferenceNotes = ::playReferenceNotes,
@@ -101,6 +141,17 @@ class MainActivity : ComponentActivity() {
             }
         }
         loadAudioEngine()
+    }
+
+    private fun requestBluetoothMidiScan() {
+        val required = if (Build.VERSION.SDK_INT >= 31) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        val missing = required.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isEmpty()) bluetoothMidiInput.refreshDevices()
+        else bluetoothPermissionLauncher?.launch(missing.toTypedArray())
     }
 
     private fun loadAudioEngine() {
@@ -221,6 +272,7 @@ class MainActivity : ComponentActivity() {
         audioStateMonitorJob = lifecycleScope.launch {
             while (isActive && audioEngine === engine && isInForeground) {
                 val state = withContext(Dispatchers.IO) { engine.state() }
+                refreshAudioOutputRoute()
                 if (audioEngine !== engine || !isInForeground) break
                 when (state) {
                     ir.pianova.app.core.audio.AudioEngineState.RUNNING -> {
@@ -252,6 +304,26 @@ class MainActivity : ComponentActivity() {
                 delay(100)
             }
         }
+    }
+
+    private fun refreshAudioOutputRoute() {
+        val engine = audioEngine
+        val deviceId = engine?.outputDeviceId() ?: -1
+        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager
+        val device = audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)?.firstOrNull { it.id == deviceId }
+        audioOutputRouteStatus = when (device?.type) {
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "Bluetooth Audio · ${device.productName}"
+            AudioDeviceInfo.TYPE_BLE_HEADSET -> "Bluetooth LE Audio · ${device.productName}"
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "بلندگوی گوشی"
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> "هدفون سیمی"
+            AudioDeviceInfo.TYPE_USB_HEADSET -> "خروجی USB"
+            else -> if (deviceId >= 0) "خروجی صوتی · ${device?.productName ?: deviceId}" else "مسیر خروجی پیش‌فرض سیستم"
+        }
+    }
+
+    private fun openBluetoothAudioSettings() {
+        val panelIntent = if (Build.VERSION.SDK_INT >= 29) Intent(Settings.Panel.ACTION_BLUETOOTH) else Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+        runCatching { startActivity(panelIntent) }.onFailure { startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) }
     }
 
     private fun stopAudioEngine() {
@@ -317,6 +389,7 @@ class MainActivity : ComponentActivity() {
         audioEngine = null
         if (engine != null) engine.close()
         if (::usbMidiInput.isInitialized) usbMidiInput.close()
+        if (::bluetoothMidiInput.isInitialized) bluetoothMidiInput.close()
         requestedOrientation = previousOrientation
         super.onDestroy()
     }
