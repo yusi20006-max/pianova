@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
     private var isInForeground = false
     private var audioStartPending = false
     private var audioPlaybackRequested = false
+    private var referencePlaybackPending = false
     private var referencePlaybackJob: Job? = null
     private var audioStateMonitorJob: Job? = null
     private var resumeAudioAfterPause = false
@@ -165,6 +166,7 @@ class MainActivity : ComponentActivity() {
     private fun playReferenceNotes(notes: List<Int>, durationMs: Long) {
         if (notes.isEmpty()) return
         referencePlaybackJob?.cancel()
+        referencePlaybackPending = true
         referencePlaybackJob = lifecycleScope.launch {
             val engine = audioEngine ?: return@launch
             val started = audioOperationMutex.withLock {
@@ -174,8 +176,16 @@ class MainActivity : ComponentActivity() {
                     true
                 } else {
                     withContext(Dispatchers.IO) {
-                        engine.start().also { if (it) engine.setVolume(outputVolume) }
-                    }
+                        engine.start().also { opened ->
+                            if (opened) {
+                                engine.setVolume(outputVolume)
+                                if (!isInForeground) {
+                                    engine.stopAllNotes()
+                                    engine.stop()
+                                }
+                            }
+                        }
+                    } && isInForeground
                 }
             }
             if (!started || !isInForeground || audioEngine !== engine) return@launch
@@ -203,6 +213,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        referencePlaybackJob?.invokeOnCompletion { referencePlaybackPending = false }
     }
 
     private fun monitorAudioEngineState(engine: OboePianoAudioEngine) {
@@ -248,6 +259,7 @@ class MainActivity : ComponentActivity() {
     private fun stopAudioEngine(statusMessage: String) {
         referencePlaybackJob?.cancel()
         referencePlaybackJob = null
+        referencePlaybackPending = false
         audioStateMonitorJob?.cancel()
         audioStateMonitorJob = null
         audioPlaybackRequested = false
@@ -278,8 +290,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         isInForeground = false
+        val wasReferencePlaybackPending = referencePlaybackPending
         referencePlaybackJob?.cancel()
-        if (audioPlaybackRequested || engineRunning || audioStartPending) {
+        if (audioPlaybackRequested || engineRunning || audioStartPending || wasReferencePlaybackPending) {
             resumeAudioAfterPause = true
             stopAudioEngine("با خروج برنامه از پیش‌زمینه، صدا متوقف شد")
         }
