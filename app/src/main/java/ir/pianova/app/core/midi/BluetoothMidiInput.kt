@@ -57,13 +57,10 @@ class BluetoothMidiInput(
         val deviceId: Int,
         val address: String,
         val ports: MutableList<MidiOutputPort> = mutableListOf(),
-        val heldByChannel: MutableMap<Int, MutableSet<Int>> = mutableMapOf(),
-        val sustainChannels: MutableSet<Int> = mutableSetOf()
+        val eventTracker: MidiConnectionEventTracker = MidiConnectionEventTracker()
     )
 
     private val activeConnection = MutableStateFlow<Connection?>(null)
-    private val heldNoteCounts = mutableMapOf<Int, Int>()
-    private val sustainChannels = mutableSetOf<Pair<Int, Int>>()
     private val statusesFlow = MutableStateFlow<List<UsbMidiDeviceStatus>>(emptyList())
     val deviceStatuses: StateFlow<List<UsbMidiDeviceStatus>> = statusesFlow
 
