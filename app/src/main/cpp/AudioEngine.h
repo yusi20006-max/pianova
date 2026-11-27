@@ -33,7 +33,8 @@ public:
     bool loadSoundFont(AAssetManager* assets, const char* assetPath);
     bool start();
     void stop();
-    AudioEngineState state() const noexcept { return state_.load(std::memory_order_acquire); }\n    int32_t outputDeviceId() const noexcept;
+    AudioEngineState state() const noexcept { return state_.load(std::memory_order_acquire); }
+    int32_t outputDeviceId() const noexcept;
 
     bool noteOn(int note, float velocity) noexcept;
     bool noteOff(int note) noexcept;
