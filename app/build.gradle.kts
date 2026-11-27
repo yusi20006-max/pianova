@@ -20,7 +20,7 @@ plugins {
 // Missing license metadata remains visible as UNKNOWN in the generated reports.
 licenseReport {
     configurations = arrayOf("releaseRuntimeClasspath")
-    outputDir = layout.buildDirectory.dir("reports/dependency-license").get().asFile
+    outputDir = layout.buildDirectory.dir("reports/dependency-license").get().asFile.absolutePath
     renderers = arrayOf<ReportRenderer>(
         JsonReportRenderer("licenses.json", false),
         CsvReportRenderer("licenses.csv"),
