@@ -727,7 +727,7 @@ private fun SettingsScreen(
         Slider(value = volume, onValueChange = { volume = it }, valueRange = 0.05f..1f, onValueChangeFinished = {
             onPracticePreferencesChanged(volume, labelMode, firstMidi)
         })
-        Text("صدای فعلی: \${(volume * 100).toInt()}٪", color = PianovaGreen)
+        Text("صدای فعلی: ${(volume * 100).toInt()}٪", color = PianovaGreen)
         StatusCard("ساز", "Classic Grand · صدای فعلی")
         Text("کلاویه و نمایش", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -739,7 +739,7 @@ private fun SettingsScreen(
                 )
             }
         }
-        Text("محدوده کلاویه: \${firstMidi} تا \${(firstMidi + 23).coerceAtMost(108)} MIDI", color = PianovaMuted)
+        Text("محدوده کلاویه: ${firstMidi} تا ${(firstMidi + 23).coerceAtMost(108)} MIDI", color = PianovaMuted)
         Slider(value = firstMidi.toFloat(), onValueChange = { firstMidi = it.toInt() }, valueRange = 21f..84f, steps = 62, onValueChangeFinished = {
             onPracticePreferencesChanged(volume, labelMode, firstMidi)
         })
