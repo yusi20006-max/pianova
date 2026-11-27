@@ -49,7 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withFrameNanos
+import androidx.compose.runtime.withFrameNanos
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
@@ -270,10 +270,10 @@ private fun FallingNotesSession(
 
                 if (playheadBeat.floatValue >= totalBeats + 0.25f) {
                     playheadBeat.floatValue = totalBeats + 0.25f
-                    isPlaying = false
-                    wantsPlayback = false
                     isFinished = true
+                    wantsPlayback = false
                     saveCompletedRun()
+                    isPlaying = false
                     onPianoStop()
                 }
             }
