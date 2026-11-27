@@ -74,4 +74,17 @@ class SongCatalogParserTest {
         assertTrue(SONG_CATEGORIES.map { it.first }.containsAll(listOf("iranian", "classical", "international", "practice")))
     }
 
+    @Test
+    fun filtersSongsByCategoryAndKeepsAllWhenNoFilterIsSelected() {
+        val practice = SongCatalogParser.parse(validSong)
+        val classical = SongCatalogParser.parse(
+            validSong
+                .replace("test-song", "classical-song")
+                .replace("\"category\": \"practice\"", "\"category\": \"classical\"")
+        )
+        val songs = listOf(practice, classical)
+
+        assertEquals(listOf(classical), filterSongsByCategory(songs, "classical"))
+        assertEquals(songs, filterSongsByCategory(songs, null))
+    }
 }
