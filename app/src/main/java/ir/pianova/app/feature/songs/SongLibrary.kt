@@ -69,7 +69,7 @@ data class SongLicense(
     val name: String,
     val attribution: String,
     val sourceUrl: String? = null,
-    val licenseUrl: String,
+    val licenseUrl: String? = null,
     val notes: String? = null
 )
 
@@ -121,8 +121,9 @@ object SongCatalogParser {
             }
         }
         require(song.license.type.isNotBlank() && song.license.name.isNotBlank()) { "License type and name are required" }
-        require(song.license.attribution.isNotBlank() && song.license.licenseUrl.isNotBlank()) {
-            "License attribution and licenseUrl are required"
+        require(song.license.attribution.isNotBlank()) { "License attribution is required" }
+        if (song.license.type != "original") {
+            require(!song.license.licenseUrl.isNullOrBlank()) { "A licenseUrl is required for third-party/public-domain catalog entries" }
         }
         return song
     }
