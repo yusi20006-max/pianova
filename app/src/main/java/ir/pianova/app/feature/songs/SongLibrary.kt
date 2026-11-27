@@ -151,6 +151,9 @@ val SONG_CATEGORIES = listOf(
     "practice" to "تمرین‌های مبتدی"
 )
 
+fun filterSongsByCategory(songs: List<SongDocument>, category: String?): List<SongDocument> =
+    if (category == null) songs else songs.filter { it.category == category }
+
 @Composable
 fun SongListScreen(
     progressCounts: Map<String, Int>,
@@ -175,7 +178,7 @@ fun SongListScreen(
         }
     }
 
-    val visibleSongs = songs.filter { selectedCategory == null || it.category == selectedCategory }
+    val visibleSongs = filterSongsByCategory(songs, selectedCategory)
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
