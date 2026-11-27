@@ -241,7 +241,10 @@ fun SongListScreen(
                                 Text("• ${section.title}  (${section.startBeat} تا ${section.endBeat})", style = MaterialTheme.typography.bodySmall)
                             }
                             Text("انتساب و مجوز: ${song.license.attribution}", style = MaterialTheme.typography.bodySmall)
-                            Text("مجوز: ${song.license.name}", style = MaterialTheme.typography.labelSmall)
+                            Text("وضعیت مجوز: ${song.license.name}", style = MaterialTheme.typography.labelSmall)
+                            song.license.notes?.let { note ->
+                                Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
