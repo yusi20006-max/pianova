@@ -222,6 +222,8 @@ class MainActivity : ComponentActivity() {
                     }
                     ir.pianova.app.core.audio.AudioEngineState.RECOVERY_FAILED -> {
                         audioPlaybackRequested = false
+                        referencePlaybackJob?.cancel()
+                        referencePlaybackJob = null
                         engineRunning = false
                         engineStatus = "بازیابی صدا ناموفق بود؛ برای تلاش دوباره بزنید"
                         break
