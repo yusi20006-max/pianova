@@ -3,7 +3,7 @@ package ir.pianova.app.core.audio
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.ln
-import kotlin.math.sqrt
+import kotlin.math.sqrt\nimport kotlin.math.pow
 
 data class PitchDetectionResult(
     val midiNotes: List<Int>,
