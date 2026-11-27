@@ -234,6 +234,8 @@ fun PianovaApp(
                     midiDevices = midiDevices,
                     onMidiRefresh = onMidiRefresh,
                     onMidiDeviceSelected = onMidiDeviceSelected,
+                    audioOutputRouteStatus = audioOutputRouteStatus,
+                    onBluetoothAudioSettings = onBluetoothAudioSettings,
                     onPianoVisibilityChanged = onPianoVisibilityChanged,
                     pianoInput = pianoInput,
                     onPlayReferenceNotes = onPlayReferenceNotes,
