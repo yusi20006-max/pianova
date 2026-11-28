@@ -29,7 +29,7 @@ class ReferencePlaybackTest {
             sink = sink,
             tickMs = tickMs,
             nowNanos = { time.nanos },
-            sleep = { ms -> time.nanos += ms * 1_000_000L }
+            sleep = { ms -> time.nanos += ms * 1_000_000L; kotlinx.coroutines.yield() }
         )
 
     @Test fun referenceNoteRejectsInvalidData() {
