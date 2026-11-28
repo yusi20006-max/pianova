@@ -25,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
@@ -64,6 +65,15 @@ import ir.pianova.app.core.midi.PracticeInputRouter
 import ir.pianova.app.core.midi.PracticeInputMode
 import ir.pianova.app.core.audio.AcousticPianoInput
 import ir.pianova.app.core.midi.PianoEvent
+import ir.pianova.app.core.midi.ActiveNoteTracker
+import ir.pianova.app.core.audio.ReferenceAudioSink
+import ir.pianova.app.core.audio.ReferenceNote
+import ir.pianova.app.core.audio.ReferencePlaybackController
+import ir.pianova.app.core.audio.ReferencePlaybackState
+import ir.pianova.app.core.designsystem.PianovaBackButton
+import ir.pianova.app.core.designsystem.InfoButton
+import ir.pianova.app.core.designsystem.ReferencePlaybackPanel
+import androidx.compose.runtime.rememberCoroutineScope
 import ir.pianova.app.data.lesson.LessonRepository
 import ir.pianova.app.core.database.EvaluationEvidenceEntity
 import ir.pianova.app.core.database.PianovaDatabase
@@ -214,6 +224,7 @@ fun LessonPlayerScreen(
     onNoteOn: (Int, Float) -> Boolean,
     onNoteOff: (Int) -> Unit,
     onPlayReferenceNotes: (List<Int>, Long) -> Unit,
+    referenceSink: ReferenceAudioSink,
     onExit: () -> Unit
 ) {
     val context = LocalContext.current
@@ -230,6 +241,14 @@ fun LessonPlayerScreen(
         pianoInput.events.collect { event ->
             if (event is PianoEvent.NoteOn) practiceClock.recordNote()
         }
+    }
+
+    // Active notes from ANY source (touch + physical MIDI) for key highlighting.
+    var externalActiveNotes by remember { mutableStateOf(emptySet<Int>()) }
+    val activeTracker = remember { ActiveNoteTracker() }
+    LaunchedEffect(pianoInput) {
+        externalActiveNotes = emptySet(); activeTracker.releaseAll()
+        pianoInput.events.collect { event -> externalActiveNotes = activeTracker.accept(event) }
     }
 
     DisposableEffect(lifecycleOwner, masterySessionId) {
@@ -292,6 +311,32 @@ fun LessonPlayerScreen(
     val step = entry.step
     val playable = step is LessonStep.PlayNote || step is LessonStep.PlaySequence || step is LessonStep.PlayChord
     val evaluationEngine = remember(practiceRouter) { EvaluationEngine(practiceRouter) }
+    // Reference (example) playback for this exercise; never feeds practice input.
+    val referenceScope = rememberCoroutineScope()
+    val referenceController = remember(lesson.id, step.id, referenceSink) { ReferencePlaybackController(referenceScope, referenceSink) }
+    val referenceProgress by referenceController.progress.collectAsState()
+    val isReferencePlaying = referenceProgress.state == ReferencePlaybackState.PLAYING
+    LaunchedEffect(step.id) {
+        referenceController.load(referenceNotesFor(step), referenceTempoFor(step))
+    }
+    // Configurable automatic first-play for exercises; once per step, not on recomposition.
+    val referenceAutoPlay = remember { androidx.compose.runtime.mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        referenceAutoPlay.value = ir.pianova.app.core.designsystem.ReferencePlaybackPreferences.isAutoPlayEnabled(context)
+    }
+    LaunchedEffect(step.id, referenceAutoPlay.value) {
+        if (referenceAutoPlay.value && referenceNotesFor(step).isNotEmpty()) {
+            onPianoStart()
+            referenceController.play()
+        }
+    }
+    LaunchedEffect(isReferencePlaying) {
+        // Suspend practice evaluation while reference is playing; resume + clear held notes after.
+        practiceRouter.setEnabled(!isReferencePlaying)
+    }
+    DisposableEffect(lesson.id, step.id) {
+        onDispose { referenceScope.launch { referenceController.release() } }
+    }
     val coroutineScope = practiceScope
     var microphoneMode by remember(lesson.id) { mutableStateOf(false) }
     var microphonePermissionMessage by remember(lesson.id) { mutableStateOf<String?>(null) }
@@ -515,7 +560,7 @@ fun LessonPlayerScreen(
                     Text(lesson.titleFor(audience), style = MaterialTheme.typography.titleLarge, color = PianovaInk, fontWeight = FontWeight.Bold)
                     Text(entry.chapterTitle, style = MaterialTheme.typography.bodySmall, color = PianovaMuted)
                 }
-                TextButton(onClick = onExit) { Text("خروج از درس") }
+                PianovaBackButton(onBack = onExit, label = "بازگشت")
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -615,10 +660,6 @@ fun LessonPlayerScreen(
                             Text(step.promptFor(audience) ?: "به صدای نت‌ها با دقت گوش کن.", style = MaterialTheme.typography.bodyLarge, color = PianovaInk)
                             if (step.midiNotes.isNotEmpty()) {
                                 Text("نمونه صوتی با صدای پیانوی داخلی پخش می‌شود.", style = MaterialTheme.typography.bodySmall, color = PianovaMuted)
-                                TextButton(
-                                    onClick = { onPlayReferenceNotes(step.midiNotes, step.noteDurationMs) },
-                                    enabled = pianoRunning
-                                ) { Text("پخش دوباره نمونه") }
                             } else {
                                 Text("برای این مرحله هنوز نمونه صوتی قابل پخش تعریف نشده است.", style = MaterialTheme.typography.bodySmall, color = PianovaMuted)
                             }
@@ -641,9 +682,25 @@ fun LessonPlayerScreen(
                 }
             }
 
+            if (playable || step is LessonStep.Listen) {
+                ReferencePlaybackPanel(
+                    controller = referenceController,
+                    scope = referenceScope,
+                    title = "شنیدن نمونه",
+                    onPlay = { onPianoStart() },
+                    infoMessage = "نمونهٔ صحیح این تمرین را قبل از نواختن بشنوید. پخش/توقف موقت/توقف/از نو و نوار پیشرفت. در حین نمونه، نواختن شما برای ارزیابی حساب نمی‌شود؛ پس از پایان نمونه بنوازید. اگر برای این مرحله دادهٔ پخش معتبر نباشد، دکمه پخش نمایش داده نمی‌شود."
+                )
+                if (isReferencePlaying) Text("در حال پخش نمونه… ارزیابی موقتاً متوقف است.", color = PianovaMuted, style = MaterialTheme.typography.bodySmall)
+            }
             if (playable) {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    InfoButton(
+                        title = "تمرین با میکروفون",
+                        message = "به‌جای MIDI، صدای پیانو را با میکروفون گوشی تشخیص دهید. نیاز به اجازهٔ میکروفون دارد. در محیط پر سر و صدا دقت کمتر است و تشخیص همه نت‌های همزمان محدود است. پردازش محلی است؛ صدا ذخیره یا ارسال نمی‌شود. در حالت میکروفون، ورودی MIDI موقتاً برای ارزیابی استفاده نمی‌شود."
+                    )
                     TextButton(
+                        modifier = Modifier.weight(1f),
                         onClick = {
                             if (microphoneMode || microphoneStatus.listening) {
                                 acousticInput.stop()
@@ -657,10 +714,10 @@ fun LessonPlayerScreen(
                             } else {
                                 microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                        }
                     ) {
                         Text(if (microphoneMode || microphoneStatus.listening) "توقف شنود میکروفون" else "تمرین با شنیدن صدای پیانو")
+                    }
                     }
                     if (microphoneStatus.listening) {
                         Text("● در حال شنیدن پیانو", color = PianovaGreen, fontWeight = FontWeight.Bold)
@@ -713,6 +770,7 @@ fun LessonPlayerScreen(
                         onNoteOff(note)
                     },
                     highlightedNotes = targetNotes.toSet(),
+                    activeNotes = externalActiveNotes,
                     noteCount = keyboardCount,
                     modifier = Modifier.fillMaxWidth().height(150.dp)
                 )
@@ -723,7 +781,7 @@ fun LessonPlayerScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onExit, modifier = Modifier.weight(1f)) { Text("خروج از درس") }
+                PianovaBackButton(onBack = onExit, modifier = Modifier.weight(1f), label = "خروج از درس")
                 Button(
                     onClick = {
                         val updatedInSession = completedStepIds + step.id
@@ -766,6 +824,8 @@ fun LessonPlayerScreen(
         }
     }
 
+    BackHandler(enabled = showCompleteDialog) { showCompleteDialog = false }
+    androidx.activity.compose.BackHandler(enabled = isReferencePlaying) { referenceScope.launch { referenceController.stop() } }
     if (showCompleteDialog) {
         AlertDialog(
             onDismissRequest = { showCompleteDialog = false },
@@ -872,4 +932,30 @@ private fun midiNoteLabel(note: Int): String {
     val pitch = note.mod(12)
     val octave = note / 12 - 1
     return "${persian[pitch]} (${latin[pitch]}$octave)"
+}
+
+/** Builds reference-playback notes (in beats) for a lesson step. Empty => no Play. */
+internal fun referenceNotesFor(step: LessonStep): List<ReferenceNote> = when (step) {
+    is LessonStep.Listen -> {
+        if (step.midiNotes.isEmpty()) emptyList() else {
+            val spacingBeats = (step.noteDurationMs.coerceAtLeast(1).toDouble() / 1000.0)
+            step.midiNotes.mapIndexed { i, note ->
+                ReferenceNote(note, i * spacingBeats, (spacingBeats * 0.9).coerceAtLeast(0.05))
+            }
+        }
+    }
+    is LessonStep.PlayNote -> if (step.midiNote in 0..127) listOf(ReferenceNote(step.midiNote, 0.0, 0.9)) else emptyList()
+    is LessonStep.PlaySequence ->
+        if (step.midiNotes.isEmpty()) emptyList()
+        else step.midiNotes.filter { it in 0..127 }.mapIndexed { i, note -> ReferenceNote(note, i * 1.0, 0.9) }
+    is LessonStep.PlayChord ->
+        if (step.midiNotes.isEmpty()) emptyList()
+        else step.midiNotes.filter { it in 0..127 }.map { ReferenceNote(it, 0.0, 1.0) }
+    else -> emptyList()
+}
+
+internal fun referenceTempoFor(step: LessonStep): Double = when (step) {
+    is LessonStep.PlaySequence -> step.tempoBpm.coerceIn(20, 240).toDouble()
+    is LessonStep.Listen -> 60.0
+    else -> 60.0
 }

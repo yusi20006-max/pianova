@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +44,21 @@ import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.SongProgressEntity
 import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.core.audio.ReferenceAudioSink
+import ir.pianova.app.core.audio.ReferenceNote
+import ir.pianova.app.core.audio.ReferencePlaybackController
+import ir.pianova.app.core.audio.ReferencePlaybackState
+import ir.pianova.app.core.designsystem.ReferencePlaybackPanel
+import ir.pianova.app.core.designsystem.ReferencePlaybackPreferences
+import ir.pianova.app.core.designsystem.InfoButton
+import ir.pianova.app.core.designsystem.PianovaBackButton
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import kotlinx.coroutines.launch
 import ir.pianova.app.data.persistence.ProgressRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
@@ -72,6 +88,7 @@ fun FallingNotesScreen(
     onNoteOn: (Int, Float) -> Boolean,
     onNoteOff: (Int) -> Unit,
     pianoInput: PianoInput,
+    referenceSink: ReferenceAudioSink,
     onExit: () -> Unit
 ) {
     val context = LocalContext.current
@@ -118,6 +135,7 @@ fun FallingNotesScreen(
             onNoteOn = onNoteOn,
             onNoteOff = onNoteOff,
             pianoInput = pianoInput,
+            referenceSink = referenceSink,
             onExit = onExit
         )
     }
@@ -135,8 +153,10 @@ private fun FallingNotesSession(
     onNoteOn: (Int, Float) -> Boolean,
     onNoteOff: (Int) -> Unit,
     pianoInput: PianoInput,
+    referenceSink: ReferenceAudioSink,
     onExit: () -> Unit
 ) {
+    val context = LocalContext.current
     var selectedHand by remember(song.id) { mutableStateOf(FallingNotesHand.BOTH) }
     var tempoPercent by remember(song.id) { mutableFloatStateOf(100f) }
     var waitForNote by remember(song.id) { mutableStateOf(false) }
@@ -161,6 +181,54 @@ private fun FallingNotesSession(
     }
     val totalBeats = remember(selectedNotes) { FallingNotesEngine.totalBeats(selectedNotes) }
     val effectiveTempo = song.tempo * (tempoPercent / 100f)
+    // Keep song keyboard at the same playable width as free practice (24 keys),
+    // while allowing octave paging for songs that span a wider register.
+    var keyboardFirstMidi by remember(song.id, selectedHand, keyRange) { mutableIntStateOf(keyRange?.firstMidi ?: 48) }
+    val playableKeyboardRange = remember(keyRange, keyboardFirstMidi) {
+        keyRange?.let { FallingNotesEngine.visibleKeyboardRange(it, keyboardFirstMidi, 24) }
+    }
+
+    // ---- Reference (example) playback ----
+    val referenceScope = rememberCoroutineScope()
+    val referenceController = remember(song.id, referenceSink) { ReferencePlaybackController(referenceScope, referenceSink) }
+    val referenceNotes = remember(selectedNotes) {
+        selectedNotes.map { ReferenceNote(it.midiNote, it.startBeat, it.duration, 0.82f) }
+    }
+    val referenceProgress by referenceController.progress.collectAsState()
+    val isReferencePlaying = referenceProgress.state == ReferencePlaybackState.PLAYING
+    var autoPlayOn by remember { mutableStateOf(ReferencePlaybackPreferences.isAutoPlayEnabled(context)) }
+    var autoPlayConsumed by remember(song.id) { mutableStateOf(false) }
+
+    LaunchedEffect(selectedNotes, song.tempo, song.id, selectedHand) {
+        referenceController.load(referenceNotes, song.tempo.toDouble())
+    }
+    // Auto-play once when entering a song (not on recomposition); no duplicate sessions.
+    LaunchedEffect(song.id, referenceNotes, pianoRunning, autoPlayOn) {
+        if (autoPlayOn && !autoPlayConsumed && referenceNotes.isNotEmpty() && !isReferencePlaying && !isPlaying) {
+            autoPlayConsumed = true
+            onPianoStart()
+            referenceController.play()
+        }
+    }
+    // Suppress practice evaluation while reference is playing.
+    LaunchedEffect(isReferencePlaying) {
+        // Practice matching is gated on !isReferencePlaying in handlePlayedNote.
+    }
+    // Stop reference on navigation / lifecycle.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, song.id) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP || event == Lifecycle.Event.ON_PAUSE) {
+                referenceScope.launch { referenceController.stop() }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            referenceScope.launch { referenceController.release() }
+        }
+    }
+
 
     suspend fun saveCompletedRun() {
         if (isSaved || isSaving) return
@@ -197,7 +265,7 @@ private fun FallingNotesSession(
     }
 
     fun handlePlayedNote(midiNote: Int) {
-        if (isFinished || !isPlaying) return
+        if (isFinished || !isPlaying || isReferencePlaying) return
         val pending = selectedNotes.indices.filterNot { it in matchedIndices }
         val candidateIndices = if (waitForNote && waitingForNote) {
             val nextBeat = pending.minOfOrNull { selectedNotes[it].startBeat }
@@ -242,10 +310,10 @@ private fun FallingNotesSession(
         }
     }
 
-    LaunchedEffect(pianoInput, isPlaying) {
-        if (isPlaying) {
+    LaunchedEffect(pianoInput, isPlaying, isReferencePlaying) {
+        if (isPlaying && !isReferencePlaying) {
             pianoInput.events.collect { event ->
-                if (event is PianoEvent.NoteOn) handlePlayedNote(event.midiNote)
+                if (event is PianoEvent.NoteOn && !isReferencePlaying) handlePlayedNote(event.midiNote)
             }
         }
     }
@@ -284,7 +352,11 @@ private fun FallingNotesSession(
         }
     }
 
-    val range = keyRange
+    val range = playableKeyboardRange
+    BackHandler(enabled = isReferencePlaying || isPlaying) {
+        referenceScope.launch { referenceController.stop() }
+        if (isPlaying) { isPlaying = false; wantsPlayback = false }
+    }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
             modifier = Modifier.fillMaxSize().background(FallingBackground).padding(horizontal = 14.dp, vertical = 10.dp),
@@ -299,7 +371,7 @@ private fun FallingNotesSession(
                     Text(song.title, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text("${song.composer} · ${song.tempo} BPM", color = Color(0xFF9FB3C1), style = MaterialTheme.typography.bodySmall)
                 }
-                TextButton(onClick = onExit) { Text("بازگشت", color = Color(0xFF7DD3FC)) }
+                PianovaBackButton(onBack = onExit, tint = Color(0xFF7DD3FC), label = "بازگشت")
             }
 
             Row(
@@ -330,8 +402,28 @@ private fun FallingNotesSession(
                     onValueChange = { tempoPercent = it },
                     valueRange = 50f..100f,
                     modifier = Modifier.weight(1f),
-                    enabled = !isFinished
+                    enabled = !isFinished && !isReferencePlaying
                 )
+            }
+
+            // Reference (example) playback + clear transition to practice.
+            ReferencePlaybackPanel(
+                controller = referenceController,
+                scope = referenceScope,
+                title = "شنیدن نمونه قبل از نواختن",
+                onPlay = { onPianoStart() },
+                onStop = { },
+                infoMessage = "نمونهٔ موسیقیِ این قطعه را قبل از نواختن بشنوید. پخش = شروع، توقف موقت = مکث، توقف = پایان و بازگشت به ابتدا، از نو = پخش دوباره از ابتدا. در حین نمونه، نواختن شما برای نمره حساب نمی‌شود. پس از نمونه، دکمه شروع تمرین را بزنید. برای قطعات بدون دادهٔ معتبر، دکمه پخش نمایش داده نمی‌شود."
+            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("پخش خودکار نمونه هنگام ورود", color = Color(0xFFCBD5E1), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                androidx.compose.material3.Switch(
+                    checked = autoPlayOn,
+                    onCheckedChange = { autoPlayOn = it; ReferencePlaybackPreferences.setAutoPlayEnabled(context, it) }
+                )
+            }
+            if (isReferencePlaying) {
+                Text("در حال پخش نمونه… نواختن شما برای نمره حساب نمی‌شود.", color = Color(0xFFFDE68A), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
             }
 
             Row(
@@ -339,7 +431,13 @@ private fun FallingNotesSession(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("انتظار برای نواختن نت", color = Color(0xFFCBD5E1), style = MaterialTheme.typography.bodySmall)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("انتظار برای نواختن نت", color = Color(0xFFCBD5E1), style = MaterialTheme.typography.bodySmall)
+                    InfoButton(
+                        title = "حالت تمرین",
+                        message = "حالت معمولی: نت‌ها می‌افتند و شما همزمان نوازید. «انتظار برای نواختن نت»: قطعه روی نت برجسته‌شده مکث می‌کند تا شما آن را بنوازید. نواختن اشتباه امتیاز منفی می‌دهد اما قطعه را متوقف نمی‌کند."
+                    )
+                }
                 Switch(
                     checked = waitForNote,
                     onCheckedChange = {
@@ -389,6 +487,17 @@ private fun FallingNotesSession(
                         )
                     }
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("محدوده: ${midiLabelForSong(range.firstMidi)} تا ${midiLabelForSong(range.lastMidi)}", color = Color(0xFFCBD5E1), style = MaterialTheme.typography.labelSmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(onClick = { keyboardFirstMidi = (keyboardFirstMidi - 12).coerceAtLeast(21) }, enabled = keyboardFirstMidi > 21) { Text("− اکتاو") }
+                            TextButton(onClick = { keyboardFirstMidi = (keyboardFirstMidi + 12).coerceAtMost(84) }, enabled = keyboardFirstMidi < 84) { Text("+ اکتاو") }
+                        }
+                    }
                     PianoPlayableKeys(
                         firstMidi = range.firstMidi,
                         labelMode = 0,
@@ -396,9 +505,9 @@ private fun FallingNotesSession(
                         onNoteOn = onNoteOn,
                         onNoteOff = onNoteOff,
                         highlightedNotes = highlightedNotes,
-                        noteCount = range.noteCount,
+                        noteCount = 24,
                         hapticEnabled = false,
-                        modifier = Modifier.fillMaxWidth().height(112.dp)
+                        modifier = Modifier.fillMaxWidth().height(125.dp)
                     )
                 }
             } else {
@@ -441,4 +550,9 @@ private fun FallingNotesSession(
             if (isSaved) Text("پیشرفت این قطعه ذخیره شد.", color = Color(0xFF86EFAC), style = MaterialTheme.typography.labelSmall)
         }
     }
+}
+
+private fun midiLabelForSong(note: Int): String {
+    val names = listOf("دو", "دو♯", "ر", "ر♯", "می", "فا", "فا♯", "سل", "سل♯", "لا", "لا♯", "سی")
+    return "${names[note % 12]}${note / 12 - 1}"
 }

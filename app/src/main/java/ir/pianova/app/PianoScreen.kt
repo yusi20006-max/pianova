@@ -4,15 +4,20 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,6 +68,12 @@ import ir.pianova.app.core.database.PracticeSessionEntity
 import ir.pianova.app.data.persistence.ProgressRepository
 import java.util.UUID
 import kotlinx.coroutines.launch
+import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.core.midi.ActiveNoteTracker
+import ir.pianova.app.core.designsystem.PianovaBackButton
+import ir.pianova.app.core.designsystem.InfoButton
+import ir.pianova.app.core.designsystem.KeyboardLayout
+import ir.pianova.app.core.designsystem.KeyboardLayoutStore
 
 private val PianoWhite = Color(0xFFF1F5F6)
 private val PianoBlack = Color(0xFF10232B)
@@ -97,17 +108,47 @@ fun PianoScreen(
     onNoteOn: (Int, Float) -> Boolean,
     onNoteOff: (Int) -> Unit,
     onSustain: (Boolean) -> Unit,
-    onVolume: (Float) -> Unit
+    onVolume: (Float) -> Unit,
+    pianoInput: PianoInput? = null,
+    onBack: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
     var firstMidi by remember(learnerId) { mutableStateOf(initialFirstMidi) }
+    // Active notes from ANY source (touch + physical MIDI + virtual) for visual feedback.
+    var activeNotes by remember { mutableStateOf(emptySet<Int>()) }
+    val activeTracker = remember { ActiveNoteTracker() }
+    var keyboardLayout by remember { mutableStateOf(KeyboardLayoutStore.load(context)) }
+    var keyboardAdjustOpen by remember { mutableStateOf(false) }
     var sustain by remember(learnerId) { mutableStateOf(false) }
     var volume by remember(learnerId) { mutableStateOf(initialVolume) }
     var labelMode by remember(learnerId) { mutableStateOf(initialLabelMode) }
-    val context = LocalContext.current
     val hapticEnabled = remember(context) { context.getSharedPreferences("pianova_settings", 0).getBoolean("haptic_enabled", true) }
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val progressRepository = remember(database) { ProgressRepository(database) }
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Track physical (and virtual) notes from the unified input stream for visual feedback.
+    LaunchedEffect(pianoInput) {
+        activeNotes = emptySet()
+        activeTracker.releaseAll()
+        pianoInput?.events?.collect { event ->
+            activeNotes = activeTracker.accept(event)
+        }
+    }
+    // Release any active notes when leaving / losing lifecycle, so nothing sticks.
+    DisposableEffect(lifecycleOwner, pianoInput) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP || event == Lifecycle.Event.ON_PAUSE) {
+                activeNotes = activeTracker.releaseAll()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            activeNotes = activeTracker.releaseAll()
+        }
+    }
+
     val practiceClock = remember(learnerId) { PracticeSessionClock() }
     var practiceSessionId by remember(learnerId) { mutableStateOf<String?>(null) }
 
@@ -190,18 +231,26 @@ fun PianoScreen(
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Column(
-            modifier = Modifier.fillMaxSize().background(Color(0xFF0B1422)).padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().background(Color(0xFF0B1422))) {
+            val compactLandscape = maxWidth > maxHeight && maxHeight < 440.dp
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = if (compactLandscape) 8.dp else 14.dp, vertical = if (compactLandscape) 4.dp else 8.dp)
+                    .then(if (compactLandscape) Modifier.verticalScroll(rememberScrollState()) else Modifier.fillMaxHeight()),
+                verticalArrangement = Arrangement.spacedBy(if (compactLandscape) 3.dp else 5.dp)
+            ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Text("پیانوا", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(status, color = Color(0xFF9FB3C1), fontSize = 10.sp, maxLines = 1)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    onBack?.let { back ->
+                        PianovaBackButton(onBack = back, tint = Color.White, label = "بازگشت")
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text("پیانوا", color = Color.White, fontSize = if (compactLandscape) 16.sp else 20.sp, fontWeight = FontWeight.Bold)
+                        Text(if (compactLandscape && activeNotes.isNotEmpty()) activeNotes.sorted().joinToString(" · ") { midiLabel(it, 1) } else status, color = Color(0xFF9FB3C1), fontSize = 10.sp, maxLines = 1)
+                    }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     TextButton(onClick = {
@@ -218,7 +267,7 @@ fun PianoScreen(
                         enabled = ready && !status.contains("در حال بازیابی"),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 5.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF164E63))
-                    ) { Text(if (running) "توقف صدا" else if (status.contains("تلاش دوباره")) "تلاش دوباره" else "شروع صدا", fontSize = 11.sp) }
+                    ) { Text(if (running) "توقف صدا" else if (status.contains("تلاش دوباره")) "تلاش دوباره" else "شروع صدا", fontSize = if (compactLandscape) 10.sp else 11.sp) }
                 }
             }
 
@@ -237,17 +286,17 @@ fun PianoScreen(
                     },
                     enabled = running,
                     valueRange = 0.05f..1f,
-                    modifier = Modifier.weight(1f).height(28.dp)
+                    modifier = Modifier.weight(1f).height(if (compactLandscape) 22.dp else 28.dp)
                 )
                 Text("محدوده: ${midiLabel(firstMidi, 1)} تا ${midiLabel((firstMidi + 23).coerceAtMost(108), 1)}", color = Color.White, fontSize = 11.sp)
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier.fillMaxWidth().then(if (compactLandscape) Modifier.height(125.dp) else Modifier.weight(1f)),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(if (compactLandscape) 4.dp else 10.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (compactLandscape) 2.dp else 6.dp)) {
                     Text("اکتاو", color = Color(0xFF9FB3C1), fontSize = 10.sp)
                     Button(
                         onClick = {
@@ -269,19 +318,65 @@ fun PianoScreen(
                     ) { Text("−", fontSize = 18.sp) }
                 }
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    PianoPlayableKeys(
-                        firstMidi = firstMidi,
-                        labelMode = labelMode,
-                        enabled = running,
-                        onNoteOn = trackedNoteOn,
-                        onNoteOff = onNoteOff,
-                        hapticEnabled = hapticEnabled,
-                        modifier = Modifier.weight(1f).fillMaxSize()
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
+                        PianoPlayableKeys(
+                            firstMidi = firstMidi,
+                            labelMode = labelMode,
+                            enabled = running,
+                            onNoteOn = trackedNoteOn,
+                            onNoteOff = onNoteOff,
+                            hapticEnabled = hapticEnabled,
+                            activeNotes = activeNotes,
+                            noteCount = keyboardLayout.visibleNotes,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                 .height(if (compactLandscape) 125.dp else keyboardLayout.keyboardHeightDp.dp)
+                                .offset(x = if (compactLandscape) 0.dp else keyboardLayout.offsetXDp.dp, y = if (compactLandscape) 0.dp else keyboardLayout.offsetYDp.dp)
+                        )
+                    }
+                }
+            }
+
+            // Active-note indicator: physical key presses are visible immediately.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (activeNotes.isEmpty()) "نت فعال: —" else "نت فعال: " + activeNotes.sorted().joinToString("، ") { midiLabel(it, 1) },
+                    color = if (activeNotes.isEmpty()) Color(0xFF9FB3C1) else PianoPressed,
+                    fontSize = 11.sp
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    androidx.compose.material3.TextButton(onClick = { keyboardAdjustOpen = !keyboardAdjustOpen }) {
+                        Text(if (keyboardAdjustOpen) "بستن تنظیم کیبورد" else "تنظیم کیبورد", color = Color(0xFF7DD3FC), fontSize = 11.sp)
+                    }
+                    InfoButton(
+                        title = "تنظیم کیبورد تمرین",
+                        message = "اندازه کیبورد (ارتفاع)، جایگاه عمودی و افقی، و تعداد نت‌های نمایش‌داده‌شده را تغییر دهید. اکتاو و محدوده نت با دکمه‌های ± یا نمای کامل تغییر می‌کند. «بازنشانی» چیدمان را به حالت پیش‌فرض برمی‌گرداند. تنظیمات ذخیره می‌شود. اگر کیبورد جای کنترل‌ها را بگیرد، ارتفاع را کم کنید یا جایگاه را جابه‌جا کنید."
                     )
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            if (keyboardAdjustOpen) {
+                KeyboardAdjustPanel(
+                    layout = keyboardLayout,
+                    onChange = { updated ->
+                        keyboardLayout = updated.normalized()
+                        KeyboardLayoutStore.save(context, keyboardLayout)
+                    },
+                    onReset = {
+                        keyboardLayout = KeyboardLayout.DEFAULT
+                        KeyboardLayoutStore.reset(context)
+                    }
+                )
+            }
+
+            if (!compactLandscape) Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("نمای کامل ۸۸ کلاویه  •  A0 تا C8", color = Color(0xFFCBD5E1), fontSize = 10.sp)
                     Text("برای انتخاب محدوده لمس کنید", color = Color(0xFF7DD3FC), fontSize = 10.sp)
@@ -297,6 +392,7 @@ fun PianoScreen(
                     )
                 }
             }
+            }
         }
     }
 }
@@ -309,6 +405,7 @@ fun PianoPlayableKeys(
     onNoteOn: (Int, Float) -> Boolean,
     onNoteOff: (Int) -> Unit,
     highlightedNotes: Set<Int> = emptySet(),
+    activeNotes: Set<Int> = emptySet(),
     noteCount: Int = 24,
     hapticEnabled: Boolean = true,
     modifier: Modifier = Modifier
@@ -417,7 +514,7 @@ fun PianoPlayableKeys(
         }
         whites.forEachIndexed { index, note ->
             val left = index * whiteWidth
-            val pressed = pressedNotes.containsKey(note)
+            val pressed = pressedNotes.containsKey(note) || note in activeNotes
             drawRoundRect(
                 color = when { pressed -> PianoPressed; note in highlightedNotes -> Color(0xFFDCE9D9); else -> PianoWhite },
                 topLeft = Offset(left + 1f, 1f),
@@ -445,7 +542,7 @@ fun PianoPlayableKeys(
             if (whiteIndex < 0) continue
             val left = (whiteIndex + 1) * whiteWidth - blackWidth / 2f
             drawRoundRect(
-                color = when { note in pressedNotes -> PianoPressed; note in highlightedNotes -> Color(0xFF557A62); else -> PianoBlack },
+                color = when { note in pressedNotes || note in activeNotes -> PianoPressed; note in highlightedNotes -> Color(0xFF557A62); else -> PianoBlack },
                 topLeft = Offset(left, 0f),
                 size = Size(blackWidth, blackHeight),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
@@ -512,5 +609,65 @@ private fun PianoRangeOverview(
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f),
             style = Stroke(2f)
         )
+    }
+}
+
+/** Simple, intuitive keyboard-layout adjustments. */
+@Composable
+private fun KeyboardAdjustPanel(
+    layout: KeyboardLayout,
+    onChange: (KeyboardLayout) -> Unit,
+    onReset: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Size (height)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("اندازه", color = Color(0xFFCBD5E1), fontSize = 11.sp, modifier = Modifier.width(64.dp))
+            Slider(
+                value = layout.keyboardHeightDp.toFloat(),
+                onValueChange = { onChange(layout.copy(keyboardHeightDp = it.roundToInt())) },
+                valueRange = KeyboardLayout.MIN_KEYBOARD_HEIGHT_DP.toFloat()..KeyboardLayout.MAX_KEYBOARD_HEIGHT_DP.toFloat(),
+                modifier = Modifier.weight(1f).height(24.dp)
+            )
+            Text("${layout.keyboardHeightDp}dp", color = Color.White, fontSize = 10.sp)
+        }
+        // Vertical position
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("جایگاه عمودی", color = Color(0xFFCBD5E1), fontSize = 11.sp, modifier = Modifier.width(64.dp))
+            Slider(
+                value = layout.offsetYDp.toFloat(),
+                onValueChange = { onChange(layout.copy(offsetYDp = it.roundToInt())) },
+                valueRange = KeyboardLayout.MIN_OFFSET_DP.toFloat()..KeyboardLayout.MAX_OFFSET_DP.toFloat(),
+                modifier = Modifier.weight(1f).height(24.dp)
+            )
+        }
+        // Horizontal position
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("جایگاه افقی", color = Color(0xFFCBD5E1), fontSize = 11.sp, modifier = Modifier.width(64.dp))
+            Slider(
+                value = layout.offsetXDp.toFloat(),
+                onValueChange = { onChange(layout.copy(offsetXDp = it.roundToInt())) },
+                valueRange = KeyboardLayout.MIN_OFFSET_DP.toFloat()..KeyboardLayout.MAX_OFFSET_DP.toFloat(),
+                modifier = Modifier.weight(1f).height(24.dp)
+            )
+        }
+        // Visible range (notes shown)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("تعداد نت نمایش", color = Color(0xFFCBD5E1), fontSize = 11.sp)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(
+                    onClick = { onChange(layout.copy(visibleNotes = (layout.visibleNotes - KeyboardLayout.OCTAVE).coerceAtLeast(KeyboardLayout.MIN_VISIBLE_NOTES))) },
+                    modifier = Modifier.size(width = 40.dp, height = 32.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                ) { Text("−", fontSize = 16.sp) }
+                Text("${layout.visibleNotes}", color = Color.White, fontSize = 12.sp)
+                Button(
+                    onClick = { onChange(layout.copy(visibleNotes = (layout.visibleNotes + KeyboardLayout.OCTAVE).coerceAtMost(KeyboardLayout.MAX_VISIBLE_NOTES))) },
+                    modifier = Modifier.size(width = 40.dp, height = 32.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                ) { Text("+", fontSize = 16.sp) }
+                androidx.compose.material3.TextButton(onClick = onReset) { Text("بازنشانی", color = Color(0xFF7DD3FC), fontSize = 11.sp) }
+            }
+        }
     }
 }

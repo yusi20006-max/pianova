@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import ir.pianova.app.core.designsystem.PianovaBackButton
 import ir.pianova.app.core.designsystem.PianovaBorder
 import ir.pianova.app.core.designsystem.PianovaGreen
 import ir.pianova.app.core.designsystem.PianovaInk
@@ -281,11 +283,12 @@ fun FamilyManagementScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("ورود به Pianova") }
             } else {
-                OutlinedButton(onClick = onComplete, modifier = Modifier.fillMaxWidth()) { Text("بازگشت") }
+                PianovaBackButton(onBack = onComplete, label = "بازگشت", modifier = Modifier.fillMaxWidth())
             }
         }
     }
 
+    BackHandler(enabled = deleteTarget != null) { deleteTarget = null }
     deleteTarget?.let { learner ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
