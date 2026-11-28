@@ -63,6 +63,10 @@ jobs:
       - name: Run MIDI, lesson parser, and lesson navigation tests
         run: timeout 7m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --tests 'ir.pianova.app.core.audio.AudioEngineStateTest' --tests 'ir.pianova.app.core.midi.VirtualKeyboardInputTest' --tests 'ir.pianova.app.data.lesson.JsonLessonParserTest' --tests 'ir.pianova.app.domain.lesson.LessonProgressTest' --tests 'ir.pianova.app.domain.progress.LearnerProgressAggregatorTest' --tests 'ir.pianova.app.PracticeSessionClockTest' --tests 'ir.pianova.app.data.persistence.PianovaDatabaseTest' --tests 'ir.pianova.app.data.persistence.LearningPathRepositoryTest' --tests 'ir.pianova.app.domain.learning.LearningPathCatalogTest' --tests 'ir.pianova.app.data.persistence.LearnerSessionStoreTest' --tests 'ir.pianova.app.data.lesson.SkillAttemptStoreTest' --tests 'ir.pianova.app.LearnerSelectionScreenTest' --tests 'ir.pianova.app.domain.progress.FamilyProgressReportTest' --tests 'ir.pianova.app.FamilyProgressReportsScreenTest' --tests 'ir.pianova.app.data.backup.FamilyBackupCodecTest' --tests 'ir.pianova.app.data.lesson.BundledLessonContentTest' --tests 'ir.pianova.app.data.lesson.AudienceContentTest' --tests 'ir.pianova.app.feature.songs.SongCatalogParserTest' --tests 'ir.pianova.app.feature.songs.FallingNotesEngineTest' --tests 'ir.pianova.app.core.voice.LessonNarrationTextTest' --tests 'ir.pianova.app.core.voice.LessonVoiceEngineTest' --info --stacktrace
 
+      # Run the complete unit test suite (including MIDI, reference playback, keyboard, navigation, readability).
+      - name: Run full unit test suite
+        run: timeout 12m gradle --init-script /tmp/pianova-test-logging.gradle --no-daemon --console=plain testDebugUnitTest --info --stacktrace
+
       - name: Build debug APK
         run: gradle --no-daemon --console=plain assembleDebug --stacktrace
         env:

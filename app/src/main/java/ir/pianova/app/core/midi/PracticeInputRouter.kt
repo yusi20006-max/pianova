@@ -1,6 +1,5 @@
 package ir.pianova.app.core.midi
 
-import ir.pianova.app.core.audio.AcousticPianoInput
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,7 +14,7 @@ enum class PracticeInputMode { MIDI, MICROPHONE }
 /** Routes practice evaluation to one selected input mode to avoid duplicate notes. */
 class PracticeInputRouter(
     private val midiInput: PianoInput,
-    private val microphoneInput: AcousticPianoInput,
+    private val microphoneInput: PianoInput,
     scope: CoroutineScope
 ) : PianoInput, AutoCloseable {
     private val eventFlow = MutableSharedFlow<PianoEvent>(replay = 0, extraBufferCapacity = 128)
