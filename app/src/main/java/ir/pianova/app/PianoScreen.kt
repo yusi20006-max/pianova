@@ -266,7 +266,16 @@ fun PianoScreen(
                         enabled = ready && !status.contains("در حال بازیابی"),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 5.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF164E63))
-                    ) { Text(if (running) "توقف صدا" else if (status.contains("تلاش دوباره")) "تلاش دوباره" else "شروع صدا", fontSize = 11.sp) }
+                    ) { Text(if (running) "توقف صدا" else if (status.contains("تلاش دوباره")) "تلاش دوباره" else "شروع صدا", fontSize = if (compactLandscape) 10.sp else 11.sp) }
+                    if (compactLandscape) {
+                        TextButton(onClick = { keyboardAdjustOpen = !keyboardAdjustOpen }) {
+                            Text("تنظیم کیبورد", color = Color(0xFF7DD3FC), fontSize = 10.sp)
+                        }
+                        InfoButton(
+                            title = "تنظیم کیبورد تمرین",
+                            message = "ارتفاع و تعداد نت‌های کیبورد را تنظیم کنید. در حالت افقی جایگاه ثابت می‌شود تا کلاویه‌ها از صفحه خارج نشوند."
+                        )
+                    }
                 }
             }
 
@@ -285,13 +294,13 @@ fun PianoScreen(
                     },
                     enabled = running,
                     valueRange = 0.05f..1f,
-                    modifier = Modifier.weight(1f).height(28.dp)
+                    modifier = Modifier.weight(1f).height(if (compactLandscape) 22.dp else 28.dp)
                 )
                 Text("محدوده: ${midiLabel(firstMidi, 1)} تا ${midiLabel((firstMidi + 23).coerceAtMost(108), 1)}", color = Color.White, fontSize = 11.sp)
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().then(if (compactLandscape) Modifier.height(130.dp) else Modifier.weight(1f)),
+                modifier = Modifier.fillMaxWidth().then(if (compactLandscape) Modifier.height(125.dp) else Modifier.weight(1f)),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(if (compactLandscape) 4.dp else 10.dp)
             ) {
@@ -332,7 +341,7 @@ fun PianoScreen(
                             noteCount = keyboardLayout.visibleNotes,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                 .height(if (compactLandscape) 130.dp else keyboardLayout.keyboardHeightDp.dp)
+                                 .height(if (compactLandscape) 125.dp else keyboardLayout.keyboardHeightDp.dp)
                                 .offset(x = if (compactLandscape) 0.dp else keyboardLayout.offsetXDp.dp, y = if (compactLandscape) 0.dp else keyboardLayout.offsetYDp.dp)
                         )
                     }
