@@ -425,7 +425,13 @@ private fun FallingNotesSession(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("انتظار برای نواختن نت", color = Color(0xFFCBD5E1), style = MaterialTheme.typography.bodySmall)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("انتظار برای نواختن نت", color = Color(0xFFCBD5E1), style = MaterialTheme.typography.bodySmall)
+                    InfoButton(
+                        title = "حالت تمرین",
+                        message = "حالت معمولی: نت‌ها می‌افتند و شما همزمان نوازید. «انتظار برای نواختن نت»: قطعه روی نت برجسته‌شده مکث می‌کند تا شما آن را بنوازید. نواختن اشتباه امتیاز منفی می‌دهد اما قطعه را متوقف نمی‌کند."
+                    )
+                }
                 Switch(
                     checked = waitForNote,
                     onCheckedChange = {

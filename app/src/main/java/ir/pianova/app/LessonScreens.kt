@@ -319,6 +319,17 @@ fun LessonPlayerScreen(
     LaunchedEffect(step.id) {
         referenceController.load(referenceNotesFor(step), referenceTempoFor(step))
     }
+    // Configurable automatic first-play for exercises; once per step, not on recomposition.
+    val referenceAutoPlay = remember { androidx.compose.runtime.mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        referenceAutoPlay.value = ir.pianova.app.core.designsystem.ReferencePlaybackPreferences.isAutoPlayEnabled(context)
+    }
+    LaunchedEffect(step.id, referenceAutoPlay.value) {
+        if (referenceAutoPlay.value && referenceNotesFor(step).isNotEmpty()) {
+            onPianoStart()
+            referenceController.play()
+        }
+    }
     LaunchedEffect(isReferencePlaying) {
         // Suspend practice evaluation while reference is playing; resume + clear held notes after.
         practiceRouter.setEnabled(!isReferencePlaying)
