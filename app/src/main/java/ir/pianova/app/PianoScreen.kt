@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -227,10 +230,13 @@ fun PianoScreen(
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Column(
-            modifier = Modifier.fillMaxSize().background(Color(0xFF0B1422)).padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().background(Color(0xFF0B1422))) {
+            val compactLandscape = maxWidth > maxHeight && maxHeight < 440.dp
+            Column(
+                modifier = Modifier.fillMaxSize().padding(horizontal = if (compactLandscape) 8.dp else 14.dp, vertical = if (compactLandscape) 4.dp else 8.dp)
+                    .then(if (compactLandscape) Modifier.verticalScroll(rememberScrollState()) else Modifier),
+                verticalArrangement = Arrangement.spacedBy(if (compactLandscape) 3.dp else 5.dp)
+            ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -241,8 +247,8 @@ fun PianoScreen(
                         PianovaBackButton(onBack = back, tint = Color.White, label = "بازگشت")
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text("پیانوا", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        Text(status, color = Color(0xFF9FB3C1), fontSize = 10.sp, maxLines = 1)
+                        Text("پیانوا", color = Color.White, fontSize = if (compactLandscape) 16.sp else 20.sp, fontWeight = FontWeight.Bold)
+                        Text(if (compactLandscape && activeNotes.isNotEmpty()) activeNotes.sorted().joinToString(" · ") { midiLabel(it, 1) } else status, color = Color(0xFF9FB3C1), fontSize = 10.sp, maxLines = 1)
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -285,11 +291,11 @@ fun PianoScreen(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier.fillMaxWidth().then(if (compactLandscape) Modifier.height(130.dp) else Modifier.weight(1f)),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(if (compactLandscape) 4.dp else 10.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (compactLandscape) 2.dp else 6.dp)) {
                     Text("اکتاو", color = Color(0xFF9FB3C1), fontSize = 10.sp)
                     Button(
                         onClick = {
@@ -312,7 +318,7 @@ fun PianoScreen(
                 }
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Box(
-                        modifier = Modifier.weight(1f).fillMaxSize(),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                         contentAlignment = Alignment.BottomCenter
                     ) {
                         PianoPlayableKeys(
@@ -326,15 +332,15 @@ fun PianoScreen(
                             noteCount = keyboardLayout.visibleNotes,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(keyboardLayout.keyboardHeightDp.dp)
-                                .offset(x = keyboardLayout.offsetXDp.dp, y = keyboardLayout.offsetYDp.dp)
+                                 .height(if (compactLandscape) 130.dp else keyboardLayout.keyboardHeightDp.dp)
+                                .offset(x = if (compactLandscape) 0.dp else keyboardLayout.offsetXDp.dp, y = if (compactLandscape) 0.dp else keyboardLayout.offsetYDp.dp)
                         )
                     }
                 }
             }
 
             // Active-note indicator: physical key presses are visible immediately.
-            Row(
+            if (!compactLandscape) Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -371,8 +377,10 @@ fun PianoScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("نمای کامل ۸۸ کلاویه  •  A0 تا C8", color = Color(0xFFCBD5E1), fontSize = 10.sp)
-                    Text("برای انتخاب محدوده لمس کنید", color = Color(0xFF7DD3FC), fontSize = 10.sp)
+                    if (!compactLandscape) {
+                        Text("نمای کامل ۸۸ کلاویه  •  A0 تا C8", color = Color(0xFFCBD5E1), fontSize = 10.sp)
+                        Text("برای انتخاب محدوده لمس کنید", color = Color(0xFF7DD3FC), fontSize = 10.sp)
+                    }
                 }
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     PianoRangeOverview(
@@ -381,9 +389,10 @@ fun PianoScreen(
                             firstMidi = it
                             onLearnerPreferenceChanged(volume, labelMode, firstMidi)
                         },
-                        modifier = Modifier.fillMaxWidth().height(38.dp)
+                        modifier = Modifier.fillMaxWidth().height(if (compactLandscape) 20.dp else 38.dp)
                     )
                 }
+            }
             }
         }
     }
