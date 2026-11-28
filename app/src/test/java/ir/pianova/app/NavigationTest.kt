@@ -1,6 +1,7 @@
 package ir.pianova.app
 
 import ir.pianova.app.data.persistence.activeLearnerOrNull
+import ir.pianova.app.data.persistence.safeLearnerDestination
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
