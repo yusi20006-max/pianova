@@ -703,8 +703,7 @@ fun LessonPlayerScreen(
                             } else {
                                 microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                        }
                     ) {
                         Text(if (microphoneMode || microphoneStatus.listening) "توقف شنود میکروفون" else "تمرین با شنیدن صدای پیانو")
                     }

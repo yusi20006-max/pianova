@@ -156,6 +156,7 @@ private fun FallingNotesSession(
     referenceSink: ReferenceAudioSink,
     onExit: () -> Unit
 ) {
+    val context = LocalContext.current
     var selectedHand by remember(song.id) { mutableStateOf(FallingNotesHand.BOTH) }
     var tempoPercent by remember(song.id) { mutableFloatStateOf(100f) }
     var waitForNote by remember(song.id) { mutableStateOf(false) }
