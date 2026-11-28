@@ -45,6 +45,20 @@ class FallingNotesEngineTest {
     }
 
     @Test
+    fun visibleKeyboardRangeKeepsTwentyFourPlayableKeysAndClampsAtEnds() {
+        val wideSongRange = PianoMidiRange(30, 48)
+        val low = FallingNotesEngine.visibleKeyboardRange(wideSongRange, 10, 24)
+        assertEquals(21, low.firstMidi)
+        assertEquals(24, low.noteCount)
+        val middle = FallingNotesEngine.visibleKeyboardRange(wideSongRange, 60, 24)
+        assertEquals(60, middle.firstMidi)
+        assertEquals(24, middle.noteCount)
+        val high = FallingNotesEngine.visibleKeyboardRange(wideSongRange, 100, 24)
+        assertEquals(85, high.firstMidi)
+        assertEquals(24, high.noteCount)
+    }
+
+    @Test
     fun whiteAndBlackKeyCentersFollowPianoKeyboardGeometry() {
         val range = PianoMidiRange(firstMidi = 60, noteCount = 13)
         assertEquals(0.0625f, FallingNotesEngine.keyCenterFraction(60, range)!!, 0.0001f)

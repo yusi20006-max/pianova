@@ -181,6 +181,12 @@ private fun FallingNotesSession(
     }
     val totalBeats = remember(selectedNotes) { FallingNotesEngine.totalBeats(selectedNotes) }
     val effectiveTempo = song.tempo * (tempoPercent / 100f)
+    // Keep song keyboard at the same playable width as free practice (24 keys),
+    // while allowing octave paging for songs that span a wider register.
+    var keyboardFirstMidi by remember(song.id, selectedHand, keyRange) { mutableIntStateOf(keyRange?.firstMidi ?: 48) }
+    val playableKeyboardRange = remember(keyRange, keyboardFirstMidi) {
+        keyRange?.let { FallingNotesEngine.visibleKeyboardRange(it, keyboardFirstMidi, 24) }
+    }
 
     // ---- Reference (example) playback ----
     val referenceScope = rememberCoroutineScope()
@@ -346,7 +352,7 @@ private fun FallingNotesSession(
         }
     }
 
-    val range = keyRange
+    val range = playableKeyboardRange
     BackHandler(enabled = isReferencePlaying || isPlaying) {
         referenceScope.launch { referenceController.stop() }
         if (isPlaying) { isPlaying = false; wantsPlayback = false }
@@ -481,6 +487,17 @@ private fun FallingNotesSession(
                         )
                     }
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("محدوده: ${midiLabelForSong(range.firstMidi)} تا ${midiLabelForSong(range.lastMidi)}", color = Color(0xFFCBD5E1), style = MaterialTheme.typography.labelSmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(onClick = { keyboardFirstMidi = (keyboardFirstMidi - 12).coerceAtLeast(21) }, enabled = keyboardFirstMidi > 21) { Text("− اکتاو") }
+                            TextButton(onClick = { keyboardFirstMidi = (keyboardFirstMidi + 12).coerceAtMost(84) }, enabled = keyboardFirstMidi < 84) { Text("+ اکتاو") }
+                        }
+                    }
                     PianoPlayableKeys(
                         firstMidi = range.firstMidi,
                         labelMode = 0,
@@ -488,9 +505,9 @@ private fun FallingNotesSession(
                         onNoteOn = onNoteOn,
                         onNoteOff = onNoteOff,
                         highlightedNotes = highlightedNotes,
-                        noteCount = range.noteCount,
+                        noteCount = 24,
                         hapticEnabled = false,
-                        modifier = Modifier.fillMaxWidth().height(112.dp)
+                        modifier = Modifier.fillMaxWidth().height(125.dp)
                     )
                 }
             } else {
@@ -533,4 +550,9 @@ private fun FallingNotesSession(
             if (isSaved) Text("پیشرفت این قطعه ذخیره شد.", color = Color(0xFF86EFAC), style = MaterialTheme.typography.labelSmall)
         }
     }
+}
+
+private fun midiLabelForSong(note: Int): String {
+    val names = listOf("دو", "دو♯", "ر", "ر♯", "می", "فا", "فا♯", "سل", "سل♯", "لا", "لا♯", "سی")
+    return "${names[note % 12]}${note / 12 - 1}"
 }

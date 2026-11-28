@@ -35,6 +35,13 @@ object FallingNotesEngine {
         return PianoMidiRange(first, (last - first + 1).coerceIn(1, 48))
     }
 
+    /** Returns a compact 24-key window, clamped to the piano MIDI range, for a wide song range. */
+    fun visibleKeyboardRange(songRange: PianoMidiRange, requestedFirstMidi: Int, visibleNoteCount: Int = 24): PianoMidiRange {
+        val count = visibleNoteCount.coerceIn(12, 48)
+        val first = requestedFirstMidi.coerceIn(21, (108 - count + 1).coerceAtLeast(21))
+        return PianoMidiRange(first, count)
+    }
+
     /** Matches PianoPlayableKeys white-key spacing and black-key boundary centers. */
     fun keyCenterFraction(midiNote: Int, range: PianoMidiRange): Float? {
         if (midiNote !in range.firstMidi..range.lastMidi) return null
