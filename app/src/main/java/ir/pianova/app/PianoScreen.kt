@@ -267,15 +267,6 @@ fun PianoScreen(
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 5.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF164E63))
                     ) { Text(if (running) "توقف صدا" else if (status.contains("تلاش دوباره")) "تلاش دوباره" else "شروع صدا", fontSize = if (compactLandscape) 10.sp else 11.sp) }
-                    if (compactLandscape) {
-                        TextButton(onClick = { keyboardAdjustOpen = !keyboardAdjustOpen }) {
-                            Text("تنظیم کیبورد", color = Color(0xFF7DD3FC), fontSize = 10.sp)
-                        }
-                        InfoButton(
-                            title = "تنظیم کیبورد تمرین",
-                            message = "ارتفاع و تعداد نت‌های کیبورد را تنظیم کنید. در حالت افقی جایگاه ثابت می‌شود تا کلاویه‌ها از صفحه خارج نشوند."
-                        )
-                    }
                 }
             }
 
@@ -349,7 +340,7 @@ fun PianoScreen(
             }
 
             // Active-note indicator: physical key presses are visible immediately.
-            if (!compactLandscape) Row(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -384,12 +375,10 @@ fun PianoScreen(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            if (!compactLandscape) Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    if (!compactLandscape) {
-                        Text("نمای کامل ۸۸ کلاویه  •  A0 تا C8", color = Color(0xFFCBD5E1), fontSize = 10.sp)
-                        Text("برای انتخاب محدوده لمس کنید", color = Color(0xFF7DD3FC), fontSize = 10.sp)
-                    }
+                    Text("نمای کامل ۸۸ کلاویه  •  A0 تا C8", color = Color(0xFFCBD5E1), fontSize = 10.sp)
+                    Text("برای انتخاب محدوده لمس کنید", color = Color(0xFF7DD3FC), fontSize = 10.sp)
                 }
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     PianoRangeOverview(
@@ -398,7 +387,7 @@ fun PianoScreen(
                             firstMidi = it
                             onLearnerPreferenceChanged(volume, labelMode, firstMidi)
                         },
-                        modifier = Modifier.fillMaxWidth().height(if (compactLandscape) 20.dp else 38.dp)
+                        modifier = Modifier.fillMaxWidth().height(38.dp)
                     )
                 }
             }
