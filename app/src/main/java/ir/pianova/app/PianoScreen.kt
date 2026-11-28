@@ -233,8 +233,8 @@ fun PianoScreen(
         BoxWithConstraints(modifier = Modifier.fillMaxSize().background(Color(0xFF0B1422))) {
             val compactLandscape = maxWidth > maxHeight && maxHeight < 440.dp
             Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = if (compactLandscape) 8.dp else 14.dp, vertical = if (compactLandscape) 4.dp else 8.dp)
-                    .then(if (compactLandscape) Modifier.verticalScroll(rememberScrollState()) else Modifier),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = if (compactLandscape) 8.dp else 14.dp, vertical = if (compactLandscape) 4.dp else 8.dp)
+                    .then(if (compactLandscape) Modifier.verticalScroll(rememberScrollState()) else Modifier.fillMaxHeight()),
                 verticalArrangement = Arrangement.spacedBy(if (compactLandscape) 3.dp else 5.dp)
             ) {
             Row(
