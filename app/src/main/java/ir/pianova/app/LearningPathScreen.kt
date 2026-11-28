@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import ir.pianova.app.core.designsystem.PianovaBackButton
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,7 +32,7 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun LearningPathScreen(learner: LearnerProfile) {
+fun LearningPathScreen(learner: LearnerProfile, onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val repository = remember(database) { LearningPathRepository(database) }
@@ -45,6 +46,7 @@ fun LearningPathScreen(learner: LearnerProfile) {
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                PianovaBackButton(onBack = onBack, label = "بازگشت")
                 Text("مسیر آموزشی هنرجو", style = MaterialTheme.typography.headlineSmall, color = PianovaInk, fontWeight = FontWeight.Bold)
                 Text("مسیر و سطح را هر زمان تغییر دهید؛ سابقه انتخاب‌ها و پیشرفت درس‌ها حفظ می‌شود.", color = PianovaMuted)
             }

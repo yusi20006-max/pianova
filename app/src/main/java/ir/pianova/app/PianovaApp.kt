@@ -57,7 +57,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.activity.compose.BackHandler
 import ir.pianova.app.core.designsystem.AboutDialog
+import ir.pianova.app.core.designsystem.InfoButton
+import ir.pianova.app.core.designsystem.PianovaBackButton
 import ir.pianova.app.core.designsystem.PianovaFuture
 import ir.pianova.app.core.designsystem.PianovaGreen
 import ir.pianova.app.core.designsystem.PianovaInk
@@ -65,6 +68,8 @@ import ir.pianova.app.core.designsystem.PianovaMuted
 import ir.pianova.app.core.designsystem.PianovaSage
 import ir.pianova.app.core.designsystem.PianovaWhite
 import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.core.audio.ReferenceAudioSink
+import ir.pianova.app.core.designsystem.ReferencePlaybackPreferences
 import ir.pianova.app.core.midi.UsbMidiDeviceStatus
 import ir.pianova.app.core.midi.MidiTransport
 import ir.pianova.app.core.database.PianovaDatabase
@@ -111,7 +116,8 @@ fun PianovaApp(
     midiDevices: List<UsbMidiDeviceStatus>,
     onMidiRefresh: () -> Unit,
     onMidiDeviceSelected: (UsbMidiDeviceStatus?) -> Unit,
-    onPlayReferenceNotes: (List<Int>, Long) -> Unit
+    onPlayReferenceNotes: (List<Int>, Long) -> Unit,
+    referenceSink: ReferenceAudioSink
 ) {
     val context = LocalContext.current
     val database = remember(context) { PianovaDatabase.getInstance(context) }
@@ -150,6 +156,11 @@ fun PianovaApp(
             onPianoStop()
         }
     }
+
+    // System Back closes overlays in the right order before popping NavHost / exiting.
+    BackHandler(enabled = managerOpen) { managerOpen = false }
+    BackHandler(enabled = familyReportsOpen) { familyReportsOpen = false }
+    BackHandler(enabled = familyBackupOpen) { familyBackupOpen = false }
 
     // If a profile is removed while another screen is open, discard its active
     // context immediately and return to the chooser. The manager is not a learner.
@@ -239,6 +250,7 @@ fun PianovaApp(
                     onPianoVisibilityChanged = onPianoVisibilityChanged,
                     pianoInput = pianoInput,
                     onPlayReferenceNotes = onPlayReferenceNotes,
+                    referenceSink = referenceSink,
                     onChangeLearner = {
                         onPianoVisibilityChanged(false)
                         onPianoStop()
@@ -268,6 +280,7 @@ private fun LearnerWorkspace(
     midiDevices: List<UsbMidiDeviceStatus>,
     onMidiRefresh: () -> Unit,
     onMidiDeviceSelected: (UsbMidiDeviceStatus?) -> Unit,
+    referenceSink: ReferenceAudioSink,
     audioOutputRouteStatus: String,
     onBluetoothAudioSettings: () -> Unit,
     onPianoVisibilityChanged: (Boolean) -> Unit,
@@ -295,11 +308,11 @@ private fun LearnerWorkspace(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (route != "practice" && !route.startsWith("lesson/") && !route.startsWith("falling-notes")) {
+            if (!route.startsWith("lesson/") && !route.startsWith("falling-notes")) {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     mainTabs.forEach { tab ->
                         NavigationBarItem(
-                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family", "paths", "family-reports", "family-backup") else route == tab.route,
+                            selected = if (tab.route == "more") route in setOf("more", "progress", "settings", "family", "paths", "family-reports", "family-backup") else route == tab.route || (tab.route == "practice" && route == "practice"),
                             onClick = {
                                 navController.navigate(tab.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -392,6 +405,7 @@ private fun LearnerWorkspace(
                             onNoteOn = onNoteOn,
                             onNoteOff = onNoteOff,
                             onPlayReferenceNotes = onPlayReferenceNotes,
+                            referenceSink = referenceSink,
                             onExit = { navController.popBackStack() }
                         )
                     }
@@ -415,10 +429,12 @@ private fun LearnerWorkspace(
                         onNoteOn = onNoteOn,
                         onNoteOff = onNoteOff,
                         onSustain = onSustain,
-                        onVolume = onVolume
+                        onVolume = onVolume,
+                        pianoInput = pianoInput,
+                        onBack = { if (!navController.popBackStack()) navController.navigate("home") { launchSingleTop = true } }
                     )
                 }
-                composable("paths") { LearningPathScreen(learner) }
+                composable("paths") { LearningPathScreen(learner, onBack = { navController.popBackStack() }) }
                 composable("library") { LibraryScreen(learner.learnerId, onPlaySong = { songId -> navController.navigate("falling-notes/$songId") }) }
                 composable(
                     route = "falling-notes/{songId}",
@@ -434,13 +450,15 @@ private fun LearnerWorkspace(
                         onNoteOn = onNoteOn,
                         onNoteOff = onNoteOff,
                         pianoInput = pianoInput,
+                        referenceSink = referenceSink,
                         onExit = { navController.popBackStack() }
                     )
                 }
                 composable("more") { MoreScreen(navController, onAboutClick = { showAboutDialog = true }) }
-                composable("progress") { ProgressScreen(learner.learnerId) }
+                composable("progress") { ProgressScreen(learner.learnerId, onBack = { navController.popBackStack() }) }
                 composable("settings") {
                     SettingsScreen(
+                        onBack = { navController.popBackStack() },
                         onAboutClick = { showAboutDialog = true },
                         onBackupClick = { navController.navigate("family-backup") },
                         midiDevices = midiDevices,
@@ -485,6 +503,7 @@ private fun LearnerWorkspace(
             }
         }
     }
+    BackHandler(enabled = showAboutDialog) { showAboutDialog = false }
     if (showAboutDialog) AboutDialog(onDismiss = { showAboutDialog = false })
 }
 
@@ -649,7 +668,7 @@ private fun LibraryScreen(learnerId: String, onPlaySong: (String) -> Unit) {
 }
 
 @Composable
-private fun ProgressScreen(learnerId: String) {
+private fun ProgressScreen(learnerId: String, onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val database = remember(context) { PianovaDatabase.getInstance(context) }
     val progressRepository = remember(database) { ProgressRepository(database) }
@@ -662,6 +681,7 @@ private fun ProgressScreen(learnerId: String) {
     )
 
     PageColumn(scrollable = true) {
+        PianovaBackButton(onBack = onBack, label = "بازگشت")
         PageTitle("پیشرفت من", "مسیر تمرین و مهارت‌هایت را اینجا دنبال می‌کنی")
         if (lessonProgress.isEmpty() && practiceSessions.isEmpty() && achievements.isEmpty() &&
             learnerGoal == null && learnerProgress.evaluationCount == 0
@@ -728,6 +748,7 @@ private fun ProgressScreen(learnerId: String) {
 
 @Composable
 private fun SettingsScreen(
+    onBack: () -> Unit = {},
     onAboutClick: () -> Unit,
     onBackupClick: () -> Unit,
     midiDevices: List<UsbMidiDeviceStatus>,
@@ -746,16 +767,24 @@ private fun SettingsScreen(
     var labelMode by remember { mutableStateOf(initialLabelMode.coerceIn(0, 2)) }
     var firstMidi by remember { mutableStateOf(initialFirstMidi.coerceIn(21, 84)) }
     var hapticEnabled by remember { mutableStateOf(preferences.getBoolean("haptic_enabled", true)) }
+    var referenceAutoPlay by remember { mutableStateOf(ReferencePlaybackPreferences.isAutoPlayEnabled(context)) }
     PageColumn(scrollable = true) {
+        PianovaBackButton(onBack = onBack, label = "بازگشت")
         PageTitle("تنظیمات", "تنظیم تجربه یادگیری و صدای پیانو")
-        Text("صدا", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("صدا", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(title = "صدای پیانو", message = "بلندی خروجیِ صدای پیانو داخلی. موتور صدا (Oboe + TinySoundFont) باید فعال باشد؛ در صفحه تمرین دکمه شروع صدا را بزنید. MIDI ورودی مستقل از خروجی صدا است. اگر صدا نمی‌آید، بلندی را بالا ببرید و مسیر خروجی را بررسی کنید.")
+        }
         Text("بلندی خروجی", color = PianovaMuted)
         Slider(value = volume, onValueChange = { volume = it }, valueRange = 0.05f..1f, onValueChangeFinished = {
             onPracticePreferencesChanged(volume, labelMode, firstMidi)
         })
         Text("صدای فعلی: ${(volume * 100).toInt()}٪", color = PianovaGreen)
         StatusCard("ساز", "Classic Grand · صدای فعلی")
-        Text("کلاویه و نمایش", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("کلاویه و نمایش", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(title = "کلاویه و نمایش", message = "نام نت‌ها (فارسی/Latin/بدون نام) و بازخورد لرزشی. اندازه، جایگاه و محدوده کیبورد تمرین در خود صفحه تمرین قابل تنظیم است.")
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("فارسی", "Latin", "بدون نام").forEachIndexed { index, label ->
                 FilterChip(
@@ -765,21 +794,33 @@ private fun SettingsScreen(
                 )
             }
         }
-        Text("محدوده کلاویه: ${firstMidi} تا ${(firstMidi + 23).coerceAtMost(108)} MIDI", color = PianovaMuted)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("محدوده کلاویه: ${firstMidi} تا ${(firstMidi + 23).coerceAtMost(108)} MIDI", color = PianovaMuted, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(title = "محدوده کلاویه", message = "کدام نت‌ها روی کیبورد تمرین نمایش داده می‌شود. اگر اکتاو/محدوده با پیانوی فیزیکی شما یا درس نمی‌خواند، آن را تنظیم کنید. نمایش کلید همیشه چپ‌به‌راست است. محدوده ذخیره می‌شود.")
+        }
         Slider(value = firstMidi.toFloat(), onValueChange = { firstMidi = it.toInt() }, valueRange = 21f..84f, steps = 62, onValueChangeFinished = {
             onPracticePreferencesChanged(volume, labelMode, firstMidi)
         })
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("بازخورد لرزشی لمس کلاویه", color = PianovaInk)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("بازخورد لرزشی لمس کلاویه", color = PianovaInk, modifier = Modifier.weight(1f, fill = false))
+                InfoButton(title = "بازخورد لرزشی", message = "هنگام لمس کلاویه، گوشی کمی لرزش می‌دهد. روی دستگاه‌های بدون ویبراتور اثری ندارد.")
+            }
             Switch(checked = hapticEnabled, onCheckedChange = {
                 hapticEnabled = it
                 preferences.edit().putBoolean("haptic_enabled", it).apply()
             })
         }
-        Text("خروجی صوتی", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("خروجی صوتی", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(title = "مسیر صدای خروجی", message = "کجا صدای پیانو پخش می‌شود (بلندگوی گوشی، هدفون، Bluetooth Audio، USB). مسیر واقعی را سیستم اندروید تعیین می‌کند؛ این برنامه فقط مسیر انتخاب‌شده را نشان می‌دهد. دکمه زیر تنظیمات Bluetooth اندروید را باز می‌کند. اتصال Bluetooth صدا با MIDI مستقل است.")
+        }
         Text("مسیر فعلی: $audioOutputRouteStatus", color = PianovaMuted)
         TextButton(onClick = onBluetoothAudioSettings) { Text("تنظیم Bluetooth Audio در Android") }
-        Text("MIDI و اتصال پیانو", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("MIDI و اتصال پیانو", style = MaterialTheme.typography.titleMedium, color = PianovaInk, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(title = "MIDI ورودی", message = "پیانوی فیزیکی را از طریق USB MIDI یا Bluetooth MIDI وصل کنید. «متصل» یعنی دستگاه وصل شده؛ برای اطمینان، یک کلید بنوازید و نت فعال در کیبورد را ببینید. MIDI ورودی مستقل از خروجی صدا/Bluetooth Audio است. «جستجوی دوباره» دستگاه را دوباره پیدا می‌کند؛ «انتخاب خودکار» اولین دستگاه را انتخاب می‌کند. قطع و اتصال دوباره ایمن است و نت‌های نگه‌داشته آزاد می‌شوند.")
+        }
         Text(if (midiDevices.any { it.connected }) "وضعیت: متصل" else "وضعیت: قطع", color = if (midiDevices.any { it.connected }) PianovaGreen else PianovaMuted)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { onMidiDeviceSelected(null) }) { Text("انتخاب خودکار") }
@@ -801,6 +842,21 @@ private fun SettingsScreen(
             }
         }
         TextButton(onClick = onAboutClick) { Text("درباره Pianova و نسخه نصب‌شده") }
+        // Reference-playback auto-play (songs & exercises), persisted.
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("پخش خودکار نمونه هنگام ورود", color = PianovaInk, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(title = "پخش خودکار نمونه", message = "اگر روشن باشد، هنگام ورود به یک آهنگ یا تمرین، نمونهٔ موسیقی یک‌بار خودکار پخش می‌شود. همیشه می‌توانید آن را متوقف کنید یا پخش دستی را انتخاب کنید. در حین نمونه، نواختن شما برای نمره حساب نمی‌شود. اگر قطعه دادهٔ معتبر نداشته باشد، چیزی پخش نمی‌شود. این تنظیم ذخیره می‌شود.")
+            Switch(checked = referenceAutoPlay, onCheckedChange = { referenceAutoPlay = it; ReferencePlaybackPreferences.setAutoPlayEnabled(context, it) })
+        }
+        // Bluetooth MIDI vs USB MIDI clarification
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Bluetooth MIDI", style = MaterialTheme.typography.bodyMedium, color = PianovaMuted, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(title = "Bluetooth MIDI", message = "پیانو را به‌صورت بی‌سیم به‌عنوان دستگاه MIDI متصل کنید. نیاز به مجوز Bluetooth (و روی اندروید قدیمی‌تر موقعیت مکانی برای اسکن) دارد. اسکن ۱۲ ثانیه ادامه دارد. Bluetooth MIDI برای نت‌ها جداست از Bluetooth Audio برای صدا. اگر نت نیامد، کلید بنوازید، «جستجوی دوباره» بزنید، یا مجوزها را بررسی کنید.")
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("USB MIDI", style = MaterialTheme.typography.bodyMedium, color = PianovaMuted, modifier = Modifier.weight(1f, fill = false))
+            InfoButton(title = "USB MIDI", message = "پیانو را با کابل USB (OTG) وصل کنید. نیاز به پشتیبانی android.software.midi دارد. پورت‌های خروجی دستگاه خوانده می‌شوند. اگر نت نیامد، کلید بنوازید و «جستجوی دوباره» بزنید. قطع کابل نت‌های نگه‌داشته را آزاد می‌کند.")
+        }
         StatusCard("پشتیبان‌گیری و بازیابی خانواده", "آماده", onClick = onBackupClick)
     }
 }

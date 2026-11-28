@@ -12,6 +12,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.lifecycleScope
 import ir.pianova.app.core.audio.OboePianoAudioEngine
+import ir.pianova.app.core.audio.ReferenceAudioSink
+import ir.pianova.app.core.audio.AudioEngineState
 import ir.pianova.app.core.designsystem.PianovaTheme
 import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.core.midi.MergedPianoInput
@@ -45,6 +47,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var bluetoothMidiInput: BluetoothMidiInput
     private var bluetoothPermissionLauncher: ActivityResultLauncher<Array<String>>? = null
     private lateinit var mergedPianoInput: MergedPianoInput
+    private lateinit var referenceSink: ReferenceAudioSink
     private var engineLoading = false
     private var audioOutputRouteStatus by mutableStateOf("مسیر خروجی پیش‌فرض سیستم")
     private var engineStatus by mutableStateOf("در حال آماده‌سازی بانک صدای پیانو…")
@@ -75,6 +78,21 @@ class MainActivity : ComponentActivity() {
         val preferredBluetoothIdentity = settingsPreferences.getString("bluetooth_midi_selected_identity", null)
         if (!preferredBluetoothIdentity.isNullOrBlank()) bluetoothMidiInput.selectDeviceIdentity(preferredBluetoothIdentity)
         mergedPianoInput = MergedPianoInput(listOf(virtualKeyboardInput, usbMidiInput, bluetoothMidiInput), lifecycleScope)
+        // Reference (example) playback drives audio DIRECTLY and never feeds mergedPianoInput,
+        // so practice evaluation is never triggered by reference notes.
+        referenceSink = object : ReferenceAudioSink {
+            override fun noteOn(midiNote: Int, velocity: Float) {
+                val e = audioEngine ?: return
+                val safe = velocity.coerceIn(0f, 1f)
+                if (e.state() != AudioEngineState.RUNNING) {
+                    lifecycleScope.launch {
+                        audioOperationMutex.withLock { if (e.start()) engineRunning = true }
+                        e.noteOn(midiNote, safe)
+                    }
+                } else e.noteOn(midiNote, safe)
+            }
+            override fun noteOff(midiNote: Int) { audioEngine?.noteOff(midiNote) }
+        }
 
         // The UI emits source-independent events. Only this collector knows
         // about the concrete audio engine, keeping input and playback decoupled.
@@ -130,6 +148,7 @@ class MainActivity : ComponentActivity() {
                     },
                     pianoInput = mergedPianoInput,
                     onPlayReferenceNotes = ::playReferenceNotes,
+                    referenceSink = referenceSink,
                     onPianoVisibilityChanged = { visible ->
                         requestedOrientation = if (visible) {
                             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE

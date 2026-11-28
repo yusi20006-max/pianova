@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +44,21 @@ import ir.pianova.app.core.database.PianovaDatabase
 import ir.pianova.app.core.database.SongProgressEntity
 import ir.pianova.app.core.midi.PianoEvent
 import ir.pianova.app.core.midi.PianoInput
+import ir.pianova.app.core.audio.ReferenceAudioSink
+import ir.pianova.app.core.audio.ReferenceNote
+import ir.pianova.app.core.audio.ReferencePlaybackController
+import ir.pianova.app.core.audio.ReferencePlaybackState
+import ir.pianova.app.core.designsystem.ReferencePlaybackPanel
+import ir.pianova.app.core.designsystem.ReferencePlaybackPreferences
+import ir.pianova.app.core.designsystem.InfoButton
+import ir.pianova.app.core.designsystem.PianovaBackButton
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import kotlinx.coroutines.launch
 import ir.pianova.app.data.persistence.ProgressRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
@@ -72,6 +88,7 @@ fun FallingNotesScreen(
     onNoteOn: (Int, Float) -> Boolean,
     onNoteOff: (Int) -> Unit,
     pianoInput: PianoInput,
+    referenceSink: ReferenceAudioSink,
     onExit: () -> Unit
 ) {
     val context = LocalContext.current
@@ -118,6 +135,7 @@ fun FallingNotesScreen(
             onNoteOn = onNoteOn,
             onNoteOff = onNoteOff,
             pianoInput = pianoInput,
+            referenceSink = referenceSink,
             onExit = onExit
         )
     }
@@ -135,6 +153,7 @@ private fun FallingNotesSession(
     onNoteOn: (Int, Float) -> Boolean,
     onNoteOff: (Int) -> Unit,
     pianoInput: PianoInput,
+    referenceSink: ReferenceAudioSink,
     onExit: () -> Unit
 ) {
     var selectedHand by remember(song.id) { mutableStateOf(FallingNotesHand.BOTH) }
@@ -161,6 +180,48 @@ private fun FallingNotesSession(
     }
     val totalBeats = remember(selectedNotes) { FallingNotesEngine.totalBeats(selectedNotes) }
     val effectiveTempo = song.tempo * (tempoPercent / 100f)
+
+    // ---- Reference (example) playback ----
+    val referenceScope = rememberCoroutineScope()
+    val referenceController = remember(song.id, referenceSink) { ReferencePlaybackController(referenceScope, referenceSink) }
+    val referenceNotes = remember(selectedNotes) {
+        selectedNotes.map { ReferenceNote(it.midiNote, it.startBeat, it.duration, 0.82f) }
+    }
+    val referenceProgress by referenceController.progress.collectAsState()
+    val isReferencePlaying = referenceProgress.state == ReferencePlaybackState.PLAYING
+    var autoPlayOn by remember { mutableStateOf(ReferencePlaybackPreferences.isAutoPlayEnabled(context)) }
+    var autoPlayConsumed by remember(song.id) { mutableStateOf(false) }
+
+    LaunchedEffect(selectedNotes, song.tempo, song.id, selectedHand) {
+        referenceController.load(referenceNotes, song.tempo.toDouble())
+    }
+    // Auto-play once when entering a song (not on recomposition); no duplicate sessions.
+    LaunchedEffect(song.id, referenceNotes, pianoRunning, autoPlayOn) {
+        if (autoPlayOn && !autoPlayConsumed && referenceNotes.isNotEmpty() && !isReferencePlaying && !isPlaying) {
+            autoPlayConsumed = true
+            onPianoStart()
+            referenceController.play()
+        }
+    }
+    // Suppress practice evaluation while reference is playing.
+    LaunchedEffect(isReferencePlaying) {
+        // Practice matching is gated on !isReferencePlaying in handlePlayedNote.
+    }
+    // Stop reference on navigation / lifecycle.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, song.id) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP || event == Lifecycle.Event.ON_PAUSE) {
+                referenceScope.launch { referenceController.stop() }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            referenceScope.launch { referenceController.release() }
+        }
+    }
+
 
     suspend fun saveCompletedRun() {
         if (isSaved || isSaving) return
@@ -197,7 +258,7 @@ private fun FallingNotesSession(
     }
 
     fun handlePlayedNote(midiNote: Int) {
-        if (isFinished || !isPlaying) return
+        if (isFinished || !isPlaying || isReferencePlaying) return
         val pending = selectedNotes.indices.filterNot { it in matchedIndices }
         val candidateIndices = if (waitForNote && waitingForNote) {
             val nextBeat = pending.minOfOrNull { selectedNotes[it].startBeat }
@@ -242,10 +303,10 @@ private fun FallingNotesSession(
         }
     }
 
-    LaunchedEffect(pianoInput, isPlaying) {
-        if (isPlaying) {
+    LaunchedEffect(pianoInput, isPlaying, isReferencePlaying) {
+        if (isPlaying && !isReferencePlaying) {
             pianoInput.events.collect { event ->
-                if (event is PianoEvent.NoteOn) handlePlayedNote(event.midiNote)
+                if (event is PianoEvent.NoteOn && !isReferencePlaying) handlePlayedNote(event.midiNote)
             }
         }
     }
@@ -285,6 +346,10 @@ private fun FallingNotesSession(
     }
 
     val range = keyRange
+    BackHandler(enabled = isReferencePlaying || isPlaying) {
+        referenceScope.launch { referenceController.stop() }
+        if (isPlaying) { isPlaying = false; wantsPlayback = false }
+    }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
             modifier = Modifier.fillMaxSize().background(FallingBackground).padding(horizontal = 14.dp, vertical = 10.dp),
@@ -299,7 +364,7 @@ private fun FallingNotesSession(
                     Text(song.title, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text("${song.composer} · ${song.tempo} BPM", color = Color(0xFF9FB3C1), style = MaterialTheme.typography.bodySmall)
                 }
-                TextButton(onClick = onExit) { Text("بازگشت", color = Color(0xFF7DD3FC)) }
+                PianovaBackButton(onBack = onExit, tint = Color(0xFF7DD3FC), label = "بازگشت")
             }
 
             Row(
@@ -330,8 +395,28 @@ private fun FallingNotesSession(
                     onValueChange = { tempoPercent = it },
                     valueRange = 50f..100f,
                     modifier = Modifier.weight(1f),
-                    enabled = !isFinished
+                    enabled = !isFinished && !isReferencePlaying
                 )
+            }
+
+            // Reference (example) playback + clear transition to practice.
+            ReferencePlaybackPanel(
+                controller = referenceController,
+                scope = referenceScope,
+                title = "شنیدن نمونه قبل از نواختن",
+                onPlay = { onPianoStart() },
+                onStop = { },
+                infoMessage = "نمونهٔ موسیقیِ این قطعه را قبل از نواختن بشنوید. پخش = شروع، توقف موقت = مکث، توقف = پایان و بازگشت به ابتدا، از نو = پخش دوباره از ابتدا. در حین نمونه، نواختن شما برای نمره حساب نمی‌شود. پس از نمونه، دکمه شروع تمرین را بزنید. برای قطعات بدون دادهٔ معتبر، دکمه پخش نمایش داده نمی‌شود."
+            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("پخش خودکار نمونه هنگام ورود", color = Color(0xFFCBD5E1), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                androidx.compose.material3.Switch(
+                    checked = autoPlayOn,
+                    onCheckedChange = { autoPlayOn = it; ReferencePlaybackPreferences.setAutoPlayEnabled(context, it) }
+                )
+            }
+            if (isReferencePlaying) {
+                Text("در حال پخش نمونه… نواختن شما برای نمره حساب نمی‌شود.", color = Color(0xFFFDE68A), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
             }
 
             Row(
